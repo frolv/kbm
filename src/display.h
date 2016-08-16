@@ -1,5 +1,5 @@
 /*
- * kbm.h
+ * display.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,5 +20,6 @@
 #define _DISPLAY_H
 
 void init_display();
+void close_display();
 
 #endif
