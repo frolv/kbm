@@ -35,10 +35,10 @@ int main(int argc, char **argv)
 	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'h':
-			printf("usage: kbm FILE\n");
+			printf("usage: %s FILE\n", PROGRAM_NAME);
 			return 0;
 		default:
-			fprintf(stderr, "usage: kbm FILE\n");
+			fprintf(stderr, "usage: %s FILE\n", argv[0]);
 			return 1;
 		}
 	}
