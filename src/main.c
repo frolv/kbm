@@ -1,5 +1,6 @@
 /*
  * $NAME - $DESC
+ * main.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,10 +17,31 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#include "kbm.h"
 
-int main()
+#if defined(__linux__) || defined(__APPLE__)
+#include <getopt.h>
+#endif
+
+int main(int argc, char **argv)
 {
-	printf("fk autobotkey\n");
+#if defined(__linux__) || defined(__APPLE__)
+	int c;
+	static struct option long_opts[] = {
+		{ "help", no_argument, 0, 'h' },
+		{ 0, 0, 0, 0 }
+	};
+
+	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
+		switch (c) {
+		case 'h':
+			printf("usage: kbm FILE\n");
+			return 0;
+		default:
+			fprintf(stderr, "usage: kbm FILE\n");
+			return 1;
+		}
+	}
+#endif
 	return 0;
 }
