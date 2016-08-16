@@ -1,6 +1,5 @@
 /*
- * $NAME - $DESC
- * main.c
+ * kbm.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,33 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "kbm.h"
-#include "display.h"
+#ifndef _DISPLAY_H
+#define _DISPLAY_H
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <getopt.h>
+void init_display();
+
 #endif
-
-int main(int argc, char **argv)
-{
-#if defined(__linux__) || defined(__APPLE__)
-	int c;
-	static struct option long_opts[] = {
-		{ "help", no_argument, 0, 'h' },
-		{ 0, 0, 0, 0 }
-	};
-
-	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
-		switch (c) {
-		case 'h':
-			printf("usage: %s FILE\n", PROGRAM_NAME);
-			return 0;
-		default:
-			fprintf(stderr, "usage: %s FILE\n", argv[0]);
-			return 1;
-		}
-	}
-#endif
-	init_display();
-	return 0;
-}
