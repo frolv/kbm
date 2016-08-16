@@ -23,8 +23,11 @@
 
 #ifdef __linux__
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 static Display *dpy;
+
+static void init_keymaps();
 #endif
 
 void init_display()
@@ -38,4 +41,32 @@ void init_display()
 void close_display()
 {
 	XCloseDisplay(dpy);
+}
+
+void start_loop()
+{
+	XEvent evt;
+
+	/* create listeners for every mapped key */
+	init_keymaps();
+
+	while (1) {
+		XNextEvent(dpy, &evt);
+		switch (evt.type) {
+		case KeyPress:
+			printf("hotkey pressed\n");
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static void init_keymaps()
+{
+	/* temp */
+	int keycode = XKeysymToKeycode(dpy, XK_Y);
+
+	XGrabKey(dpy, keycode, AnyModifier, DefaultRootWindow(dpy),
+			True, GrabModeAsync, GrabModeAsync);
 }

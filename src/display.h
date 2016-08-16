@@ -21,5 +21,6 @@
 
 void init_display();
 void close_display();
+void start_loop();
 
 #endif

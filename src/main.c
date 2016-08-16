@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 	}
 #endif
 	init_display();
+	start_loop();
 	close_display();
 	return 0;
 }
