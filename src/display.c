@@ -88,8 +88,8 @@ void start_loop()
 		default:
 			break;
 		}
+		free(e);
 	}
-	free(e);
 }
 
 /* map_keys: grab all provided hotkeys */
