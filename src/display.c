@@ -36,16 +36,19 @@ static xcb_window_t root;
 /* X11 keysyms */
 static xcb_key_symbols_t *keysyms;
 
-static void map_keys();
 static unsigned int convert_x11_keysym(unsigned int keysym);
 #endif
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
-static void map_keys();
 static unsigned int convert_win_keycode(unsigned int keycode);
 #endif
+
+#ifdef __APPLE__
+#endif
+
+static void map_keys();
 
 #ifdef __linux__
 void init_display()
@@ -188,5 +191,24 @@ static unsigned int convert_win_keycode(unsigned int keycode)
 	default:
 		return 0;
 	}
+}
+#endif
+
+#ifdef __APPLE__
+void init_display()
+{
+}
+
+void close_display()
+{
+}
+
+void start_loop()
+{
+}
+
+/* map_keys: grab all provided hotkeys */
+static void map_keys()
+{
 }
 #endif
