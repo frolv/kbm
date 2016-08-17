@@ -6,14 +6,14 @@ CC=gcc
 CFLAGS=$(INC) -Wall -Wextra -std=c99
 
 SRCDIR=src
-_SRC=main.c display.c
+_SRC=main.c display.c keymap.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
-_HEAD=kbm.h display.h
+_HEAD=kbm.h display.h keymap.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 
 ifeq ($(shell uname -s),Linux)
-	LDFLAGS+=-lX11
+	LDFLAGS+=-lxcb -lxcb-keysyms -lxcb-util
 endif
 
 .PHONY: all
