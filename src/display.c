@@ -43,9 +43,8 @@ static unsigned int convert_x11_keysym(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
-static HHOOK hook;
-
-static LRESULT CALLBACK process_key(int code, WPARAM w, LPARAM l);
+static void map_keys();
+static unsigned int convert_win_keycode(unsigned int keycode);
 #endif
 
 #ifdef __linux__
@@ -140,30 +139,54 @@ static unsigned int convert_x11_keysym(unsigned int keysym)
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 void init_display()
 {
-	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, process_key, NULL, 0))) {
-	}
 }
 
 void close_display()
 {
-	UnhookWindowsHookEx(hook);
 }
 
 void start_loop()
 {
 	MSG msg;
+	unsigned int keycode;
+
+	map_keys();
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		if (msg.message == WM_HOTKEY) {
+			keycode = convert_win_keycode((msg.lParam >> 16) & 0xFFFF);
+			process_hotkey(keycode);
+		}
 	}
 }
 
-static LRESULT CALLBACK process_key(int code, WPARAM w, LPARAM l)
+/* map_keys: grab all provided hotkeys */
+static void map_keys()
 {
-	if (code == HC_ACTION)
-		printf("%d\n", ((KBDLLHOOKSTRUCT *)l)->vkCode);
+	/* temp */
+	const unsigned int keys[] = { 0x51, 0x57, 0x45 };
+	size_t i;
+	unsigned int mods = 0;
 
-	return CallNextHookEx(hook, code, w, l);
+	for (i = 0; i < 3; ++i) {
+		if (!RegisterHotKey(NULL, 1, mods, keys[i]))
+			fprintf(stderr, "error: the key '%s' is already "
+					"mapped by another program\n",
+					keystr(convert_win_keycode(keys[i])));
+	}
+}
+
+static unsigned int convert_win_keycode(unsigned int keycode)
+{
+	switch (keycode) {
+	case 0x51:
+		return KEY_Q;
+	case 0x57:
+		return KEY_W;
+	case 0x45:
+		return KEY_E;
+	default:
+		return 0;
+	}
 }
 #endif
