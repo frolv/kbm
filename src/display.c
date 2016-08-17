@@ -17,9 +17,10 @@
  */
 
 #include <stdlib.h>
-#include "kbm.h"
 #include "display.h"
+#include "kbm.h"
 #include "keymap.h"
+#include "hotkey.h"
 
 #ifdef __linux__
 #include <xcb/xcb.h>
@@ -62,7 +63,7 @@ void start_loop()
 {
 	xcb_generic_event_t *e;
 	xcb_keysym_t ks;
-	int keycode;
+	unsigned int keycode;
 
 	/* create listeners for every mapped key */
 	map_keys();
@@ -73,7 +74,7 @@ void start_loop()
 			ks = xcb_key_press_lookup_keysym(keysyms,
 					(xcb_key_press_event_t *)e, 0);
 			keycode = convert_x11_keysym(ks);
-			printf("%s\n", keystr(keycode));
+			process_hotkey(keycode);
 			break;
 		default:
 			break;

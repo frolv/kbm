@@ -6,9 +6,9 @@ CC=gcc
 CFLAGS=$(INC) -Wall -Wextra -std=c99
 
 SRCDIR=src
-_SRC=main.c display.c keymap.c
+_SRC=main.c display.c keymap.c hotkey.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
-_HEAD=kbm.h display.h keymap.h
+_HEAD=kbm.h display.h keymap.h hotkey.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 
