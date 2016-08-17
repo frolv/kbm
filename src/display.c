@@ -40,6 +40,15 @@ static void map_keys();
 static unsigned int convert_x11_keysym(unsigned int keysym);
 #endif
 
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#include <Windows.h>
+
+static HHOOK hook;
+
+static LRESULT CALLBACK process_key(int code, WPARAM w, LPARAM l);
+#endif
+
+#ifdef __linux__
 void init_display()
 {
 	int screen;
@@ -82,7 +91,6 @@ void start_loop()
 	}
 }
 
-#ifdef __linux__
 /* map_keys: grab all provided hotkeys */
 static void map_keys()
 {
@@ -114,5 +122,36 @@ static unsigned int convert_x11_keysym(unsigned int keysym)
 	default:
 		return 0;
 	}
+}
+#endif
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+void init_display()
+{
+	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, process_key, NULL, 0))) {
+	}
+}
+
+void close_display()
+{
+	UnhookWindowsHookEx(hook);
+}
+
+void start_loop()
+{
+	MSG msg;
+
+	while (GetMessage(&msg, NULL, 0, 0)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+}
+
+static LRESULT CALLBACK process_key(int code, WPARAM w, LPARAM l)
+{
+	if (code == HC_ACTION)
+		printf("%d\n", ((KBDLLHOOKSTRUCT *)l)->vkCode);
+
+	return CallNextHookEx(hook, code, w, l);
 }
 #endif
