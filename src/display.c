@@ -64,8 +64,8 @@ void init_display()
 
 void close_display()
 {
-	xcb_disconnect(conn);
 	xcb_key_symbols_free(keysyms);
+	xcb_disconnect(conn);
 }
 
 void start_loop()
@@ -89,6 +89,7 @@ void start_loop()
 			break;
 		}
 	}
+	free(e);
 }
 
 /* map_keys: grab all provided hotkeys */
@@ -97,13 +98,24 @@ static void map_keys()
 	/* temp */
 	const unsigned int keys[] = { XK_q, XK_w, XK_e };
 	size_t i;
+	unsigned int mods = 0;
 
 	xcb_keycode_t *kc;
+	xcb_void_cookie_t cookie;
+	xcb_generic_error_t *err;
 
 	for (i = 0; i < 3; ++i) {
 		kc = xcb_key_symbols_get_keycode(keysyms, keys[i]);
-		xcb_grab_key(conn, 1, root, 0, kc[0], XCB_GRAB_MODE_ASYNC,
-				XCB_GRAB_MODE_ASYNC);
+		cookie = xcb_grab_key_checked(conn, 1, root, mods, kc[0],
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		/* key grab will fail if the key is already grabbed */
+		if ((err = xcb_request_check(conn, cookie))) {
+			fprintf(stderr, "error: the key '%s' is already "
+					"mapped by another program\n",
+					keystr(convert_x11_keysym(keys[i])));
+			free(err);
+		}
+		free(kc);
 		/* also bind key with numlock + capslock */
 	}
 	xcb_flush(conn);
