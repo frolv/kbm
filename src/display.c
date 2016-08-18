@@ -52,12 +52,24 @@ static unsigned int convert_win_keycode(unsigned int keycode);
 
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
+/* keycode definitions */
+#include <Carbon/Carbon.h>
 
+/* array of all mapped keycodes */
+static int *mapped_keys;
+
+/* number of keys mapped */
+static size_t nmapped;
+
+static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
+		CGEventRef event, void *refcon);
 static unsigned int convert_osx_keycode(unsigned int keycode);
+static int intcmp(const void *a, const void *b);
 #endif
 
 
 static void map_keys();
+
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
@@ -153,6 +165,7 @@ static unsigned int convert_x11_keysym(unsigned int keysym)
 }
 #endif
 
+
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 void init_display()
 {
@@ -211,26 +224,9 @@ static unsigned int convert_win_keycode(unsigned int keycode)
 }
 #endif
 
+
 #ifdef __APPLE__
-CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-		CGEventRef event, void *refcon)
-{
-	CGKeyCode keycode;
-	unsigned int kc;
-
-	if (type != kCGEventKeyDown)
-		return event;
-
-	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
-			kCGKeyboardEventKeycode);
-	if (keycode == 12 || keycode == 13 || keycode == 14) {
-		kc = convert_osx_keycode(keycode);
-		process_hotkey(kc);
-		return NULL;
-	}
-	return event;
-}
-
+/* init_display: enable the keypress event tap */
 void init_display()
 {
 	CFMachPortRef tap;
@@ -249,10 +245,14 @@ void init_display()
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
+
+	mapped_keys = NULL;
 }
 
 void close_display()
 {
+	if (mapped_keys)
+		free(mapped_keys);
 }
 
 void start_loop()
@@ -264,19 +264,57 @@ void start_loop()
 /* map_keys: grab all provided hotkeys */
 static void map_keys()
 {
+	const unsigned int keys[] = { kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E };
+	size_t i;
+
+	mapped_keys = malloc(3 * sizeof(*mapped_keys));
+
+	for (i = 0; i < 3; ++i)
+		mapped_keys[i] = keys[i];
+	nmapped = i;
 }
 
+/* convert_osx_keycode: convert osx keycode to a kbm keycode */
 static unsigned int convert_osx_keycode(unsigned int keycode)
 {
 	switch (keycode) {
-	case 12:
+	case kVK_ANSI_Q:
 		return KEY_Q;
-	case 13:
+	case kVK_ANSI_W:
 		return KEY_W;
-	case 14:
+	case kVK_ANSI_E:
 		return KEY_E;
 	default:
 		return 0;
 	}
+}
+
+/* callback: function called when event is registered */
+static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
+		CGEventRef event, void *refcon)
+{
+	CGKeyCode keycode;
+	unsigned int kc;
+
+	/* just in case */
+	if (type != kCGEventKeyDown)
+		return event;
+
+	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
+			kCGKeyboardEventKeycode);
+	if (lfind(&keycode, mapped_keys, &nmapped, sizeof(*mapped_keys),
+				intcmp)) {
+		kc = convert_osx_keycode(keycode);
+		process_hotkey(kc);
+		/* prevent the event from propagating further */
+		return NULL;
+	}
+	return event;
+}
+
+/* intcmp: compare two integers */
+static int intcmp(const void *a, const void *b)
+{
+	return *(int *)a - *(int *)b;
 }
 #endif
