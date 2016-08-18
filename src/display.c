@@ -46,6 +46,9 @@ static unsigned int convert_win_keycode(unsigned int keycode);
 #endif
 
 #ifdef __APPLE__
+#include <ApplicationServices/ApplicationServices.h>
+
+static unsigned int convert_osx_keycode(unsigned int keycode);
 #endif
 
 static void map_keys();
@@ -195,8 +198,43 @@ static unsigned int convert_win_keycode(unsigned int keycode)
 #endif
 
 #ifdef __APPLE__
+CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
+		CGEventRef event, void *refcon)
+{
+	CGKeyCode keycode;
+	unsigned int kc;
+
+	if (type != kCGEventKeyDown)
+		return event;
+
+	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
+			kCGKeyboardEventKeycode);
+	if (keycode == 12 || keycode == 13 || keycode == 14) {
+		kc = convert_osx_keycode(keycode);
+		process_hotkey(kc);
+		return NULL;
+	}
+	return event;
+}
+
 void init_display()
 {
+	CFMachPortRef tap;
+	CGEventMask mask;
+	CFRunLoopSourceRef src;
+
+	mask = 1 << kCGEventKeyDown;
+	tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
+			0, mask, callback, NULL);
+	if (!tap) {
+		/* enable access for assistive devices */
+		fprintf(stderr, "error: failed to create event tap\n");
+		exit(1);
+	}
+
+	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
+	CGEventTapEnable(tap, true);
 }
 
 void close_display()
@@ -205,10 +243,26 @@ void close_display()
 
 void start_loop()
 {
+	map_keys();
+	CFRunLoopRun();
 }
 
 /* map_keys: grab all provided hotkeys */
 static void map_keys()
 {
+}
+
+static unsigned int convert_osx_keycode(unsigned int keycode)
+{
+	switch (keycode) {
+	case 12:
+		return KEY_Q;
+	case 13:
+		return KEY_W;
+	case 14:
+		return KEY_E;
+	default:
+		return 0;
+	}
 }
 #endif
