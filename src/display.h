@@ -19,8 +19,16 @@
 #ifndef _DISPLAY_H
 #define _DISPLAY_H
 
+/*
+ * init_display: perform OS-specific initialization
+ * actions for a graphical display
+ */
 void init_display();
+
+/* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display();
+
+/* start_loop: map the provided hotkeys and begin an event loop */
 void start_loop();
 
 #endif

@@ -22,6 +22,7 @@
 #include "keymap.h"
 #include "hotkey.h"
 
+
 #ifdef __linux__
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -30,14 +31,17 @@
 
 /* connection to the X server */
 static xcb_connection_t *conn;
+
+/* root screen of the X display and root window of screen */
 static xcb_screen_t *root_screen;
-/* root X window */
 static xcb_window_t root;
+
 /* X11 keysyms */
 static xcb_key_symbols_t *keysyms;
 
 static unsigned int convert_x11_keysym(unsigned int keysym);
 #endif
+
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
@@ -45,12 +49,15 @@ static unsigned int convert_x11_keysym(unsigned int keysym);
 static unsigned int convert_win_keycode(unsigned int keycode);
 #endif
 
+
 #ifdef __APPLE__
 #endif
+
 
 static void map_keys();
 
 #ifdef __linux__
+/* init_display: connect to the X server and grab the root window */
 void init_display()
 {
 	int screen;
@@ -59,24 +66,27 @@ void init_display()
 		fprintf(stderr, "error: failed to connect to X server\n");
 		exit(1);
 	}
+	/* get the root screen and root window of the X display */
 	root_screen = xcb_aux_get_screen(conn, screen);
 	root = root_screen->root;
 	keysyms = xcb_key_symbols_alloc(conn);
 }
 
+/* close_display: disconnect from X server and clean up */
 void close_display()
 {
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
 }
 
+/* start_loop: map all hotkeys and start listening for keypresses */
 void start_loop()
 {
 	xcb_generic_event_t *e;
 	xcb_keysym_t ks;
 	unsigned int keycode;
 
-	/* create listeners for every mapped key */
+	/* assign listeners for every mapped key */
 	map_keys();
 
 	while ((e = xcb_wait_for_event(conn))) {
@@ -110,6 +120,7 @@ static void map_keys()
 		kc = xcb_key_symbols_get_keycode(keysyms, keys[i]);
 		cookie = xcb_grab_key_checked(conn, 1, root, mods, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
@@ -123,7 +134,7 @@ static void map_keys()
 	xcb_flush(conn);
 }
 
-/* convert_x11_keysym: convert a x11 keysm to a kbm keycode */
+/* convert_x11_keysym: convert a x11 keysym to a kbm keycode */
 static unsigned int convert_x11_keysym(unsigned int keysym)
 {
 	switch (keysym) {
@@ -148,6 +159,7 @@ void close_display()
 {
 }
 
+/* start_loop: map hotkeys and start listening for keypresses */
 void start_loop()
 {
 	MSG msg;
@@ -157,13 +169,14 @@ void start_loop()
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
+			/* event keycode is stored in the upper half of lParam */
 			keycode = convert_win_keycode((msg.lParam >> 16) & 0xFFFF);
 			process_hotkey(keycode);
 		}
 	}
 }
 
-/* map_keys: grab all provided hotkeys */
+/* map_keys: register all provided hotkeys */
 static void map_keys()
 {
 	/* temp */
@@ -179,6 +192,7 @@ static void map_keys()
 	}
 }
 
+/* convert_win_keycode: convert win32 keycode to a kbm keycode */
 static unsigned int convert_win_keycode(unsigned int keycode)
 {
 	switch (keycode) {
@@ -205,6 +219,7 @@ void close_display()
 
 void start_loop()
 {
+	map_keys();
 }
 
 /* map_keys: grab all provided hotkeys */
