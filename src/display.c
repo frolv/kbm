@@ -131,7 +131,7 @@ static void map_keys(struct hotkey *head)
 
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
-		cookie = xcb_grab_key_checked(conn, 1, root, head->kbm_modmask,
+		cookie = xcb_grab_key_checked(conn, 1, root, head->os_modmask,
 				kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 		/* key grab will fail if the key is already grabbed */
@@ -142,15 +142,15 @@ static void map_keys(struct hotkey *head)
 			free(err);
 		}
 		/* bind key with num lock active */
-		xcb_grab_key(conn, 1, root, head->kbm_modmask | XCB_MOD_MASK_2,
+		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_2,
 				kc[0], XCB_GRAB_MODE_ASYNC,
 				XCB_GRAB_MODE_ASYNC);
 		/* bind key with caps lock active */
-		xcb_grab_key(conn, 1, root, head->kbm_modmask
+		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		/* bind key with both active */
-		xcb_grab_key(conn, 1, root, head->kbm_modmask
+		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		free(kc);
