@@ -143,8 +143,17 @@ static void map_keys()
 					keystr(convert_x11_keysym(keys[i])));
 			free(err);
 		}
+		/* bind key with num lock active */
+		xcb_grab_key(conn, 1, root, mods | XCB_MOD_MASK_2, kc[0],
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		/* bind key with caps lock active */
+		xcb_grab_key(conn, 1, root, mods | XCB_MOD_MASK_LOCK, kc[0],
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		/* bind key with both active */
+		xcb_grab_key(conn, 1, root,
+				mods | XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		free(kc);
-		/* also bind key with numlock + capslock */
 	}
 	xcb_flush(conn);
 }
