@@ -43,8 +43,6 @@ static xcb_key_symbols_t *keysyms;
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
-
-static unsigned int convert_win_keycode(unsigned int keycode);
 #endif
 
 
@@ -109,10 +107,12 @@ void start_loop(struct hotkey *head)
 		case XCB_KEY_PRESS:
 			ks = xcb_key_press_lookup_keysym(keysyms,
 					(xcb_key_press_event_t *)e, 0);
-			/* this sometimes happens when keys are */
-			/* pressed quickly in succession */
-			if (!(hk = find_by_os_code(head, ks)))
+			if (!(hk = find_by_os_code(head, ks))) {
+				/* this sometimes happens when keys are */
+				/* pressed quickly in succession */
+				/* event should be sent back out */
 				continue;
+			}
 			process_hotkey(hk);
 			break;
 		default:
@@ -173,15 +173,20 @@ void close_display()
 void start_loop(struct hotkey *head)
 {
 	MSG msg;
-	unsigned int keycode;
+	struct hotkey *hk;
 
 	map_keys(head);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
 			/* event keycode is stored in the upper half of lParam */
-			keycode = convert_win_keycode((msg.lParam >> 16) & 0xFFFF);
-			process_hotkey(keycode);
+			if ((hk = find_by_os_code(head, (msg.lParam >> 16) & 0xFFFF))) {
+				/* this sometimes happens when keys are */
+				/* pressed quickly in succession */
+				/* event should be sent back out */
+				continue;
+			}
+			process_hotkey(hk);
 		}
 	}
 }
@@ -189,31 +194,11 @@ void start_loop(struct hotkey *head)
 /* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
-	/* temp */
-	const unsigned int keys[] = { 0x51, 0x57, 0x45 };
-	size_t i;
-	unsigned int mods = 0;
-
-	for (i = 0; i < 3; ++i) {
-		if (!RegisterHotKey(NULL, 1, mods, keys[i]))
+	for (; head; head = head->next) {
+		if (!RegisterHotKey(NULL, 1, head->os_modmask, head->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(convert_win_keycode(keys[i])));
-	}
-}
-
-/* convert_win_keycode: convert win32 keycode to a kbm keycode */
-static unsigned int convert_win_keycode(unsigned int keycode)
-{
-	switch (keycode) {
-	case 0x51:
-		return KEY_Q;
-	case 0x57:
-		return KEY_W;
-	case 0x45:
-		return KEY_E;
-	default:
-		return 0;
+					keystr(head->kbm_code));
 	}
 }
 #endif
