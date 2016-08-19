@@ -38,8 +38,6 @@ static xcb_window_t root;
 
 /* X11 keysyms */
 static xcb_key_symbols_t *keysyms;
-
-static unsigned int convert_x11_keysym(unsigned int keysym);
 #endif
 
 
@@ -69,7 +67,8 @@ static int intcmp(const void *a, const void *b);
 #endif
 
 
-static void map_keys();
+static void map_keys(struct hotkey *head);
+static struct hotkey *find_by_os_code(struct hotkey *head, uint32_t code);
 
 
 #ifdef __linux__
@@ -96,22 +95,26 @@ void close_display()
 }
 
 /* start_loop: map all hotkeys and start listening for keypresses */
-void start_loop()
+void start_loop(struct hotkey *head)
 {
 	xcb_generic_event_t *e;
 	xcb_keysym_t ks;
-	unsigned int keycode;
+	struct hotkey *hk;
 
 	/* assign listeners for every mapped key */
-	map_keys();
+	map_keys(head);
 
 	while ((e = xcb_wait_for_event(conn))) {
 		switch (e->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
 			ks = xcb_key_press_lookup_keysym(keysyms,
 					(xcb_key_press_event_t *)e, 0);
-			keycode = convert_x11_keysym(ks);
-			process_hotkey(keycode);
+			if (!(hk = find_by_os_code(head, ks))) {
+				/* this should never happen */
+				fprintf(stderr, "something went very wrong\n");
+				continue;
+			}
+			process_hotkey(hk);
 			break;
 		default:
 			break;
@@ -121,57 +124,39 @@ void start_loop()
 }
 
 /* map_keys: grab all provided hotkeys */
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
-	/* temp */
-	const unsigned int keys[] = { XK_q, XK_w, XK_e };
-	size_t i;
-	unsigned int mods = 0;
-
 	xcb_keycode_t *kc;
 	xcb_void_cookie_t cookie;
 	xcb_generic_error_t *err;
 
-	for (i = 0; i < 3; ++i) {
-		kc = xcb_key_symbols_get_keycode(keysyms, keys[i]);
-		cookie = xcb_grab_key_checked(conn, 1, root, mods, kc[0],
-				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+	for (; head; head = head->next) {
+		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
+		cookie = xcb_grab_key_checked(conn, 1, root, head->kbm_modmask,
+				kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(convert_x11_keysym(keys[i])));
+					keystr(head->kbm_code));
 			free(err);
 		}
 		/* bind key with num lock active */
-		xcb_grab_key(conn, 1, root, mods | XCB_MOD_MASK_2, kc[0],
-				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		xcb_grab_key(conn, 1, root, head->kbm_modmask | XCB_MOD_MASK_2,
+				kc[0], XCB_GRAB_MODE_ASYNC,
+				XCB_GRAB_MODE_ASYNC);
 		/* bind key with caps lock active */
-		xcb_grab_key(conn, 1, root, mods | XCB_MOD_MASK_LOCK, kc[0],
+		xcb_grab_key(conn, 1, root, head->kbm_modmask
+				| XCB_MOD_MASK_LOCK, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		/* bind key with both active */
-		xcb_grab_key(conn, 1, root,
-				mods | XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
+		xcb_grab_key(conn, 1, root, head->kbm_modmask
+				| XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		free(kc);
 	}
 	xcb_flush(conn);
-}
-
-/* convert_x11_keysym: convert a x11 keysym to a kbm keycode */
-static unsigned int convert_x11_keysym(unsigned int keysym)
-{
-	switch (keysym) {
-	case XK_q:
-		return KEY_Q;
-	case XK_w:
-		return KEY_W;
-	case XK_e:
-		return KEY_E;
-	default:
-		return 0;
-	}
 }
 #endif
 
@@ -186,12 +171,12 @@ void close_display()
 }
 
 /* start_loop: map hotkeys and start listening for keypresses */
-void start_loop()
+void start_loop(struct hotkey *head)
 {
 	MSG msg;
 	unsigned int keycode;
 
-	map_keys();
+	map_keys(head);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
@@ -203,7 +188,7 @@ void start_loop()
 }
 
 /* map_keys: register all provided hotkeys */
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
 	/* temp */
 	const unsigned int keys[] = { 0x51, 0x57, 0x45 };
@@ -265,14 +250,14 @@ void close_display()
 		free(mapped_keys);
 }
 
-void start_loop()
+void start_loop(struct hotkey *head)
 {
-	map_keys();
+	map_keys(head);
 	CFRunLoopRun();
 }
 
 /* map_keys: grab all provided hotkeys */
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
 	const unsigned int keys[] = { kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E };
 	size_t i;
@@ -328,3 +313,13 @@ static int intcmp(const void *a, const void *b)
 	return *(int *)a - *(int *)b;
 }
 #endif
+
+/* find_by_os_code: return the hotkey in head with os_code code */
+static struct hotkey *find_by_os_code(struct hotkey *head, uint32_t code)
+{
+	for (; head; head = head->next) {
+		if (head->os_code == code)
+			return head;
+	}
+	return NULL;
+}

@@ -44,8 +44,11 @@ int main(int argc, char **argv)
 		}
 	}
 #endif
+	/* temp */
+	struct hotkey *head = NULL;
+
 	init_display();
-	start_loop();
+	start_loop(head);
 	close_display();
 	return 0;
 }

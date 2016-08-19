@@ -19,6 +19,8 @@
 #ifndef _DISPLAY_H
 #define _DISPLAY_H
 
+#include "hotkey.h"
+
 /*
  * init_display: perform OS-specific initialization
  * actions for a graphical display
@@ -29,6 +31,6 @@ void init_display();
 void close_display();
 
 /* start_loop: map the provided hotkeys and begin an event loop */
-void start_loop();
+void start_loop(struct hotkey *head);
 
 #endif
