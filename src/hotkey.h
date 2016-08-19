@@ -19,6 +19,21 @@
 #ifndef _HOTKEY_H
 #define _HOTKEY_H
 
-void process_hotkey(unsigned int keycode);
+#include <stdint.h>
+
+struct hotkey {
+	uint32_t kbm_code;	/* the kbm keycode of the hotkey */
+	uint32_t os_code;	/* the os-specific keycode of the hotkey */
+	uint32_t kbm_modmask;	/* kbm modifier masks */
+	uint32_t os_modmask;	/* kbm modifier masks */
+	uint8_t op;		/* the operation to perform when key pressed */
+	uint64_t opargs;	/* arguments for the operation */
+	struct hotkey *next;	/* next key binding */
+};
+
+struct hotkey *create_hotkey(uint32_t keycode, uint32_t mods,
+		uint8_t op, uint64_t opargs);
+
+void process_hotkey(struct hotkey *hk);
 
 #endif

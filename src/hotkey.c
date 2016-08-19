@@ -16,11 +16,49 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
 #include "hotkey.h"
 #include "kbm.h"
 #include "keymap.h"
 
-void process_hotkey(unsigned int keycode)
+static void get_os_codes(struct hotkey *hk);
+
+struct hotkey *create_hotkey(uint32_t keycode, uint32_t modmask,
+		uint8_t op, uint64_t opargs)
 {
-	printf("KEYPRESS: %s\n", keystr(keycode));
+	struct hotkey *hk;
+
+	hk = malloc(sizeof(*hk));
+	hk->kbm_code = keycode;
+	hk->kbm_modmask = modmask;
+	hk->op = op;
+	hk->opargs = opargs;
+	hk->next = NULL;
+	get_os_codes(hk);
+
+	return hk;
+}
+
+void process_hotkey(struct hotkey *hk)
+{
+	printf("KEYPRESS: %s\n", keystr(hk->kbm_code));
+}
+
+/* get_os_codes: load os-specific keycodes and mod masks into hk */
+static void get_os_codes(struct hotkey *hk)
+{
+#ifdef __linux__
+	hk->os_code = kbm_to_keysym(hk->kbm_code);
+	hk->os_modmask = kbm_to_xcb_masks(hk->kbm_modmask);
+#endif
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	hk->os_code = kbm_to_win32(hk->kbm_code);
+	hk->os_modmask = kbm_to_win_masks(hk->kbm_modmask);
+#endif
+
+#ifdef __APPLE__
+	hk->os_code = kbm_to_carbon(hk->kbm_code);
+	hk->os_modmask = 0;
+#endif
 }
