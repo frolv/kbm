@@ -19,6 +19,7 @@
 
 #include "kbm.h"
 #include "display.h"
+#include "keymap.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <getopt.h>
@@ -44,8 +45,10 @@ int main(int argc, char **argv)
 		}
 	}
 #endif
-	/* temp */
-	struct hotkey *head = NULL;
+	/* temp for testing purposes */
+	struct hotkey *head = create_hotkey(KEY_Q, 0, 0, 0);
+	head->next = create_hotkey(KEY_W, 0, 0, 0);
+	head->next->next = create_hotkey(KEY_E, 0, 0, 0);
 
 	init_display();
 	start_loop(head);

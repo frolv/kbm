@@ -109,11 +109,10 @@ void start_loop(struct hotkey *head)
 		case XCB_KEY_PRESS:
 			ks = xcb_key_press_lookup_keysym(keysyms,
 					(xcb_key_press_event_t *)e, 0);
-			if (!(hk = find_by_os_code(head, ks))) {
-				/* this should never happen */
-				fprintf(stderr, "something went very wrong\n");
+			/* this sometimes happens when keys are */
+			/* pressed quickly in succession */
+			if (!(hk = find_by_os_code(head, ks)))
 				continue;
-			}
 			process_hotkey(hk);
 			break;
 		default:
