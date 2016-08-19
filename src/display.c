@@ -27,7 +27,6 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
-#include <X11/keysym.h>
 
 /* connection to the X server */
 static xcb_connection_t *conn;
@@ -48,20 +47,12 @@ static xcb_key_symbols_t *keysyms;
 
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
-/* keycode definitions */
-#include <Carbon/Carbon.h>
-#include <search.h>
 
-/* array of all mapped keycodes */
-static int *mapped_keys;
-
-/* number of keys mapped */
-static size_t nmapped;
+/* head of the hotkey linked list */
+static struct hotkey *keymaps;
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		CGEventRef event, void *refcon);
-static unsigned int convert_osx_keycode(unsigned int keycode);
-static int intcmp(const void *a, const void *b);
 #endif
 
 
@@ -174,13 +165,15 @@ void start_loop(struct hotkey *head)
 {
 	MSG msg;
 	struct hotkey *hk;
+	unsigned int kc;
 
 	map_keys(head);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
 			/* event keycode is stored in the upper half of lParam */
-			if (!(hk = find_by_os_code(head, (msg.lParam >> 16) & 0xFFFF)))
+			kc = (msg.lParam >> 16) & 0xFFFF;
+			if (!(hk = find_by_os_code(head, kc)))
 				/* should never happen */
 				continue;
 			process_hotkey(hk);
@@ -221,14 +214,10 @@ void init_display()
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
-
-	mapped_keys = NULL;
 }
 
 void close_display()
 {
-	if (mapped_keys)
-		free(mapped_keys);
 }
 
 void start_loop(struct hotkey *head)
@@ -237,40 +226,12 @@ void start_loop(struct hotkey *head)
 	CFRunLoopRun();
 }
 
-/* map_keys: grab all provided hotkeys */
-static void map_keys(struct hotkey *head)
-{
-	const unsigned int keys[] = { kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E };
-	size_t i;
-
-	mapped_keys = malloc(3 * sizeof(*mapped_keys));
-
-	for (i = 0; i < 3; ++i)
-		mapped_keys[i] = keys[i];
-	nmapped = i;
-}
-
-/* convert_osx_keycode: convert osx keycode to a kbm keycode */
-static unsigned int convert_osx_keycode(unsigned int keycode)
-{
-	switch (keycode) {
-	case kVK_ANSI_Q:
-		return KEY_Q;
-	case kVK_ANSI_W:
-		return KEY_W;
-	case kVK_ANSI_E:
-		return KEY_E;
-	default:
-		return 0;
-	}
-}
-
 /* callback: function called when event is registered */
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		CGEventRef event, void *refcon)
 {
 	CGKeyCode keycode;
-	unsigned int kc;
+	struct hotkey *hk;
 
 	/* just in case */
 	if (type != kCGEventKeyDown)
@@ -278,20 +239,17 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
 			kCGKeyboardEventKeycode);
-	if (lfind(&keycode, mapped_keys, &nmapped, sizeof(*mapped_keys),
-				intcmp)) {
-		kc = convert_osx_keycode(keycode);
-		process_hotkey(kc);
+	if ((hk = find_by_os_code(keymaps, keycode))) {
+		process_hotkey(hk);
 		/* prevent the event from propagating further */
 		return NULL;
 	}
 	return event;
 }
 
-/* intcmp: compare two integers */
-static int intcmp(const void *a, const void *b)
+static void map_keys(struct hotkey *head)
 {
-	return *(int *)a - *(int *)b;
+	keymaps = head;
 }
 #endif
 

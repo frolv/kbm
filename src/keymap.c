@@ -75,11 +75,12 @@ unsigned int kbm_to_win_masks(uint32_t modmask)
 #endif
 
 #ifdef __APPLE__
-static const uint32_t win_keycodes[] = {
+static const uint32_t osx_keycodes[] = {
 	0x00, kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E
 };
 
 unsigned int kbm_to_carbon(uint32_t keycode)
 {
+	return osx_keycodes[keycode];
 }
 #endif
