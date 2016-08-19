@@ -65,8 +65,8 @@
 #define KEY_BTICK	0x25
 #define KEY_MINUS	0x26
 #define KEY_EQUAL	0x27
-#define KEY_LSQR	0x28
-#define KEY_RSQR	0x29
+#define KEY_LSQBR	0x28
+#define KEY_RSQBR	0x29
 #define KEY_BSLASH	0x2A
 #define KEY_SEMIC	0x2B
 #define KEY_QUOTE	0x2C
@@ -86,7 +86,35 @@
 #define KEY_SUPER	0x38	/* versions of these keys;	*/
 #define KEY_META	0x39	/* treat them identically	*/
 
+
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(unsigned int keycode);
+
+
+/*
+ * functions to convert kbm keycodes and mod
+ * masks to their OS-specific versions
+ */
+#include <stdint.h>
+
+#ifdef __linux__
+#include <X11/keysym.h>
+
+unsigned int kbm_to_keysym(uint32_t keycode);
+unsigned int kbm_to_xcb_masks(uint32_t modmask);
+#endif
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#include <Windows.h>
+
+unsigned int kbm_to_win32(uint32_t keycode);
+unsigned int kbm_to_win_masks(uint32_t modmask);
+#endif
+
+#ifdef __APPLE__
+#include <Carbon/Carbon.h>
+
+unsigned int kbm_to_carbon(uint32_t keycode);
+#endif
 
 #endif
