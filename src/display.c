@@ -180,12 +180,9 @@ void start_loop(struct hotkey *head)
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
 			/* event keycode is stored in the upper half of lParam */
-			if ((hk = find_by_os_code(head, (msg.lParam >> 16) & 0xFFFF))) {
-				/* this sometimes happens when keys are */
-				/* pressed quickly in succession */
-				/* event should be sent back out */
+			if (!(hk = find_by_os_code(head, (msg.lParam >> 16) & 0xFFFF)))
+				/* should never happen */
 				continue;
-			}
 			process_hotkey(hk);
 		}
 	}
