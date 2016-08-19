@@ -54,6 +54,7 @@ static unsigned int convert_win_keycode(unsigned int keycode);
 #include <ApplicationServices/ApplicationServices.h>
 /* keycode definitions */
 #include <Carbon/Carbon.h>
+#include <search.h>
 
 /* array of all mapped keycodes */
 static int *mapped_keys;
