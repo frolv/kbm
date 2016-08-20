@@ -144,19 +144,20 @@
 /* macro to check whether a modifer is set */
 #define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
 
+#include <stdint.h>
 
 /* keystr: return a string representation of key corresponding to keycode */
-char *keystr(unsigned int keycode);
+char *keystr(uint8_t keycode, uint8_t mask);
 
 
 /*
  * functions to convert kbm keycodes and mod
  * masks to their OS-specific versions
  */
-#include <stdint.h>
 
 #ifdef __linux__
 #include <X11/keysym.h>
+#include <xcb/xcb.h>
 
 unsigned int kbm_to_keysym(uint32_t keycode);
 unsigned int kbm_to_xcb_masks(uint32_t modmask);

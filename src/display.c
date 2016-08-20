@@ -57,7 +57,8 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 
 static void map_keys(struct hotkey *head);
-static struct hotkey *find_by_os_code(struct hotkey *head, uint32_t code);
+static struct hotkey *find_by_os_code(struct hotkey *head,
+		uint32_t code, uint32_t mask);
 
 
 #ifdef __linux__
@@ -87,6 +88,7 @@ void close_display()
 void start_loop(struct hotkey *head)
 {
 	xcb_generic_event_t *e;
+	xcb_key_press_event_t *evt;
 	xcb_keysym_t ks;
 	struct hotkey *hk;
 
@@ -96,9 +98,13 @@ void start_loop(struct hotkey *head)
 	while ((e = xcb_wait_for_event(conn))) {
 		switch (e->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
-			ks = xcb_key_press_lookup_keysym(keysyms,
-					(xcb_key_press_event_t *)e, 0);
-			if (!(hk = find_by_os_code(head, ks))) {
+			evt = (xcb_key_press_event_t *)e;
+			ks = xcb_key_press_lookup_keysym(keysyms, evt, 0);
+
+			/* unset the caps lock and num lock bits */
+			evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
+
+			if (!(hk = find_by_os_code(head, ks, evt->state))) {
 				/* this sometimes happens when keys are */
 				/* pressed quickly in succession */
 				/* event should be sent back out */
@@ -129,7 +135,8 @@ static void map_keys(struct hotkey *head)
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(head->kbm_code));
+					keystr(head->kbm_code,
+						head->kbm_modmask));
 			free(err);
 		}
 		/* bind key with num lock active */
@@ -188,7 +195,8 @@ static void map_keys(struct hotkey *head)
 		if (!RegisterHotKey(NULL, 1, head->os_modmask, head->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(head->kbm_code));
+					keystr(head->kbm_code,
+						head->kbm_modmask));
 	}
 }
 #endif
@@ -254,10 +262,11 @@ static void map_keys(struct hotkey *head)
 #endif
 
 /* find_by_os_code: return the hotkey in head with os_code code */
-static struct hotkey *find_by_os_code(struct hotkey *head, uint32_t code)
+static struct hotkey *find_by_os_code(struct hotkey *head,
+		uint32_t code, uint32_t mask)
 {
 	for (; head; head = head->next) {
-		if (head->os_code == code)
+		if (head->os_code == code && head->os_modmask == mask)
 			return head;
 	}
 	return NULL;

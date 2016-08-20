@@ -19,20 +19,31 @@
 #include <string.h>
 #include "keymap.h"
 
-static char key_str[8];
+static char key_str[32];
 
 /* keystr: return a string representation of key corresponding to keycode */
-char *keystr(unsigned int keycode)
+char *keystr(uint8_t keycode, uint8_t mask)
 {
+	key_str[0] = '\0';
+
+	if (CHECK_MOD(mask, KBM_CTRL_MASK))
+		strcat(key_str, "Ctrl-");
+	if (CHECK_MOD(mask, KBM_SUPER_MASK))
+		strcat(key_str, "Super-");
+	if (CHECK_MOD(mask, KBM_META_MASK))
+		strcat(key_str, "Alt-");
+	if (CHECK_MOD(mask, KBM_SHIFT_MASK))
+		strcat(key_str, "Shift-");
+
 	switch (keycode) {
 	case KEY_Q:
-		strcpy(key_str, "q");
+		strcat(key_str, "q");
 		break;
 	case KEY_W:
-		strcpy(key_str, "w");
+		strcat(key_str, "w");
 		break;
 	case KEY_E:
-		strcpy(key_str, "e");
+		strcat(key_str, "e");
 		break;
 	default:
 		key_str[0] = '\0';
@@ -54,7 +65,18 @@ unsigned int kbm_to_keysym(uint32_t keycode)
 
 unsigned int kbm_to_xcb_masks(uint32_t modmask)
 {
-	return modmask;
+	unsigned int mask = 0;
+
+	if (CHECK_MOD(modmask, KBM_SHIFT_MASK))
+		mask |= XCB_MOD_MASK_SHIFT;
+	if (CHECK_MOD(modmask, KBM_CTRL_MASK))
+		mask |= XCB_MOD_MASK_CONTROL;
+	if (CHECK_MOD(modmask, KBM_SUPER_MASK))
+		mask |= XCB_MOD_MASK_4;
+	if (CHECK_MOD(modmask, KBM_META_MASK))
+		mask |= XCB_MOD_MASK_1;
+
+	return mask;
 }
 #endif
 
