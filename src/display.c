@@ -105,9 +105,11 @@ void start_loop(struct hotkey *head)
 			evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
 
 			if (!(hk = find_by_os_code(head, ks, evt->state))) {
-				/* this sometimes happens when keys are */
-				/* pressed quickly in succession */
-				/* event should be sent back out */
+				/*
+				 * this sometimes happens when keys are
+				 * pressed in quick succession
+				 * the event should be sent back out
+				 */
 				continue;
 			}
 			process_hotkey(hk);
@@ -193,9 +195,11 @@ void start_loop(struct hotkey *head)
 /* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
-	/* if $KEY and $MODS+$KEY are registered at the same time, */
-	/* it will fail if both have the same ID */
-	/* each registered key is given a unique ID to prevent this */
+	/*
+	 * if $KEY and $MODS+$KEY are registered at the
+	 * same time, it will fail if both have the same ID.
+	 * each registered key is given a unique ID to prevent this
+	 */
 	int id = 1;
 
 	for (; head; head = head->next) {
