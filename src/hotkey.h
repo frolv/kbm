@@ -20,6 +20,7 @@
 #define _HOTKEY_H
 
 #include <stdint.h>
+#include "keymap.h"
 
 struct hotkey {
 	uint32_t kbm_code;	/* the kbm keycode of the hotkey */

@@ -19,7 +19,7 @@
 
 #include "kbm.h"
 #include "display.h"
-#include "keymap.h"
+#include "hotkey.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <getopt.h>
