@@ -22,22 +22,23 @@
 #include <stdint.h>
 #include "keymap.h"
 
+/* operations that can be performed */
 #define OP_CLICK	0xA0
 #define OP_RCLICK	0xA1
 #define OP_JUMP		0xA2
 #define OP_QUIT		0xA3
 
 struct hotkey {
-	uint32_t kbm_code;	/* the kbm keycode of the hotkey */
+	uint8_t kbm_code;	/* the kbm keycode of the hotkey */
+	uint8_t kbm_modmask;	/* kbm modifier masks */
 	uint32_t os_code;	/* the os-specific keycode of the hotkey */
-	uint32_t kbm_modmask;	/* kbm modifier masks */
-	uint32_t os_modmask;	/* kbm modifier masks */
+	uint32_t os_modmask;	/* os-specific modifier masks */
 	uint8_t op;		/* the operation to perform when key pressed */
 	uint64_t opargs;	/* arguments for the operation */
 	struct hotkey *next;	/* next key binding */
 };
 
-struct hotkey *create_hotkey(uint32_t keycode, uint32_t mods,
+struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 		uint8_t op, uint64_t opargs);
 
 void process_hotkey(struct hotkey *hk);
