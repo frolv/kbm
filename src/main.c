@@ -46,9 +46,10 @@ int main(int argc, char **argv)
 	}
 #endif
 	/* temp for testing purposes */
-	struct hotkey *head = create_hotkey(KEY_Q, 0, 0, 0);
-	head->next = create_hotkey(KEY_W, 0, 0, 0);
-	head->next->next = create_hotkey(KEY_E, 0, 0, 0);
+	struct hotkey *head = create_hotkey(KEY_Q, 0, OP_CLICK, 0);
+	head->next = create_hotkey(KEY_W, 0, OP_RCLICK, 0);
+	head->next->next = create_hotkey(KEY_E, 0, OP_JUMP, 0);
+	head->next->next->next = create_hotkey(KEY_Q, KBM_SHIFT_MASK, OP_QUIT, 0);
 
 	init_display();
 	start_loop(head);

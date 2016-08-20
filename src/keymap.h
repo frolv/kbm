@@ -86,6 +86,64 @@
 #define KEY_SUPER	0x38	/* versions of these keys;	*/
 #define KEY_META	0x39	/* treat them identically	*/
 
+/* f keys */
+#define KEY_F1		0x3A
+#define KEY_F2		0x3B
+#define KEY_F3		0x3C
+#define KEY_F4		0x3D
+#define KEY_F5		0x3E
+#define KEY_F6		0x3F
+#define KEY_F7		0x40
+#define KEY_F8		0x41
+#define KEY_F9		0x42
+#define KEY_F10		0x43
+#define KEY_F11		0x44
+#define KEY_F12		0x45
+
+/* TKL keys */
+#define KEY_PRTSCR	0x46
+#define KEY_SCRLCK	0x47
+#define KEY_PAUSE	0x48
+#define KEY_INSERT	0x49
+#define KEY_DELETE	0x4A
+#define KEY_HOME	0x4B
+#define KEY_END		0x4C
+#define KEY_PGUP	0x4D
+#define KEY_PGDOWN	0x4E
+#define KEY_LARROW	0x4F
+#define KEY_RARROW	0x50
+#define KEY_UARROW	0x51
+#define KEY_DARROW	0x52
+
+/* numpad keys */
+#define KEY_NUMLOCK	0x53
+#define KEY_NUMDIV	0x54
+#define KEY_NUMMULT	0x55
+#define KEY_NUMMINUS	0x56
+#define KEY_NUMPLUS	0x57
+#define KEY_NUMENTER	0x58
+#define KEY_NUMDOT	0x59
+#define KEY_NUM0	0x5A
+#define KEY_NUM1	0x5B
+#define KEY_NUM2	0x5C
+#define KEY_NUM3	0x5D
+#define KEY_NUM4	0x5E
+#define KEY_NUM5	0x5F
+#define KEY_NUM6	0x60
+#define KEY_NUM7	0x61
+#define KEY_NUM8	0x62
+#define KEY_NUM9	0x63
+
+
+/* bitmasks for the various modifier keys */
+#define KBM_SHIFT_MASK	0x01
+#define KBM_CTRL_MASK	0x02
+#define KBM_SUPER_MASK	0x04
+#define KBM_META_MASK	0x08
+
+/* macro to check whether a modifer is set */
+#define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == {MODMASK})
+
 
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(unsigned int keycode);

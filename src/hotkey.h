@@ -22,6 +22,11 @@
 #include <stdint.h>
 #include "keymap.h"
 
+#define OP_CLICK	0xA0
+#define OP_RCLICK	0xA1
+#define OP_JUMP		0xA2
+#define OP_QUIT		0xA3
+
 struct hotkey {
 	uint32_t kbm_code;	/* the kbm keycode of the hotkey */
 	uint32_t os_code;	/* the os-specific keycode of the hotkey */
