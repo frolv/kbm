@@ -23,7 +23,7 @@
 
 static void get_os_codes(struct hotkey *hk);
 
-struct hotkey *create_hotkey(uint32_t keycode, uint32_t modmask,
+struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 		uint8_t op, uint64_t opargs)
 {
 	struct hotkey *hk;
