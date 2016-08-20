@@ -172,15 +172,17 @@ void start_loop(struct hotkey *head)
 {
 	MSG msg;
 	struct hotkey *hk;
-	unsigned int kc;
+	unsigned int kc, mask;
 
 	map_keys(head);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_HOTKEY) {
-			/* event keycode is stored in the upper half of lParam */
+			/* mod mask is stored in the lower half of lParam */
+			mask = msg.lParam & 0xFFFF;
+			/* keycode is stored in the upper half of lParam */
 			kc = (msg.lParam >> 16) & 0xFFFF;
-			if (!(hk = find_by_os_code(head, kc)))
+			if (!(hk = find_by_os_code(head, kc, mask)))
 				/* should never happen */
 				continue;
 			process_hotkey(hk);
@@ -247,7 +249,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
 			kCGKeyboardEventKeycode);
-	if ((hk = find_by_os_code(keymaps, keycode))) {
+	if ((hk = find_by_os_code(keymaps, keycode, 0))) {
 		process_hotkey(hk);
 		/* prevent the event from propagating further */
 		return NULL;
