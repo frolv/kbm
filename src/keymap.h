@@ -142,7 +142,7 @@
 #define KBM_META_MASK	0x08
 
 /* macro to check whether a modifer is set */
-#define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == {MODMASK})
+#define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
 
 
 /* keystr: return a string representation of key corresponding to keycode */
