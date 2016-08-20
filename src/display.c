@@ -193,12 +193,18 @@ void start_loop(struct hotkey *head)
 /* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
+	/* if $KEY and $MODS+$KEY are registered at the same time, */
+	/* it will fail if both have the same ID */
+	/* each registered key is given a unique ID to prevent this */
+	int id = 1;
+
 	for (; head; head = head->next) {
-		if (!RegisterHotKey(NULL, 1, head->os_modmask, head->os_code))
+		if (!RegisterHotKey(NULL, id, head->os_modmask, head->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
 					keystr(head->kbm_code,
 						head->kbm_modmask));
+		++id;
 	}
 }
 #endif

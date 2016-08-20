@@ -92,7 +92,18 @@ unsigned int kbm_to_win32(uint32_t keycode)
 
 unsigned int kbm_to_win_masks(uint32_t modmask)
 {
-	return modmask;
+	unsigned int mask = 0;
+
+	if (CHECK_MOD(modmask, KBM_SHIFT_MASK))
+		mask |= MOD_SHIFT;
+	if (CHECK_MOD(modmask, KBM_CTRL_MASK))
+		mask |= MOD_CONTROL;
+	if (CHECK_MOD(modmask, KBM_SUPER_MASK))
+		mask |= MOD_WIN;
+	if (CHECK_MOD(modmask, KBM_META_MASK))
+		mask |= MOD_ALT;
+
+	return mask;
 }
 #endif
 
