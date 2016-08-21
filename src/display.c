@@ -258,7 +258,6 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	CGKeyCode keycode;
 	CGEventFlags flags;
 	struct hotkey *hk;
-	uint32_t mask;
 
 	/* just in case */
 	if (type != kCGEventKeyDown)
@@ -267,9 +266,11 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
 			kCGKeyboardEventKeycode);
 	flags = CGEventGetFlags(event);
-	mask = osx_to_kbm_masks(flags);
+	/* filter out all the bits we're not interested in */
+	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
+			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
-	if ((hk = find_by_os_code(keymaps, keycode, mask))) {
+	if ((hk = find_by_os_code(keymaps, keycode, flags))) {
 		process_hotkey(hk);
 		/* prevent the event from propagating further */
 		return NULL;

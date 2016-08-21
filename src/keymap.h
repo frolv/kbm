@@ -174,7 +174,7 @@ unsigned int kbm_to_win_masks(uint32_t modmask);
 #include <Carbon/Carbon.h>
 
 unsigned int kbm_to_carbon(uint32_t keycode);
-uint8_t osx_to_kbm_masks(uint32_t modmask);
+unsigned int kbm_to_osx_masks(uint32_t modmask);
 #endif
 
 #endif
