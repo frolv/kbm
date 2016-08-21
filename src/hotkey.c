@@ -59,6 +59,6 @@ static void get_os_codes(struct hotkey *hk)
 
 #ifdef __APPLE__
 	hk->os_code = kbm_to_carbon(hk->kbm_code);
-	hk->os_modmask = 0;
+	hk->os_modmask = hk->kbm_modmask;
 #endif
 }

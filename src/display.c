@@ -246,12 +246,19 @@ void start_loop(struct hotkey *head)
 	CFRunLoopRun();
 }
 
+static void map_keys(struct hotkey *head)
+{
+	keymaps = head;
+}
+
 /* callback: function called when event is registered */
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		CGEventRef event, void *refcon)
 {
 	CGKeyCode keycode;
+	CGEventFlags flags;
 	struct hotkey *hk;
+	uint32_t mask;
 
 	/* just in case */
 	if (type != kCGEventKeyDown)
@@ -259,17 +266,15 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
 			kCGKeyboardEventKeycode);
-	if ((hk = find_by_os_code(keymaps, keycode, 0))) {
+	flags = CGEventGetFlags(event);
+	mask = osx_to_kbm_masks(flags);
+
+	if ((hk = find_by_os_code(keymaps, keycode, mask))) {
 		process_hotkey(hk);
 		/* prevent the event from propagating further */
 		return NULL;
 	}
 	return event;
-}
-
-static void map_keys(struct hotkey *head)
-{
-	keymaps = head;
 }
 #endif
 

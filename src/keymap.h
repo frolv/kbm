@@ -138,8 +138,8 @@
 /* bitmasks for the various modifier keys */
 #define KBM_SHIFT_MASK	0x01
 #define KBM_CTRL_MASK	0x02
-#define KBM_SUPER_MASK	0x04
-#define KBM_META_MASK	0x08
+#define KBM_SUPER_MASK	0x04	/* command on OS X */
+#define KBM_META_MASK	0x08	/* option  on OS X */
 
 /* macro to check whether a modifer is set */
 #define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
@@ -174,6 +174,7 @@ unsigned int kbm_to_win_masks(uint32_t modmask);
 #include <Carbon/Carbon.h>
 
 unsigned int kbm_to_carbon(uint32_t keycode);
+uint8_t osx_to_kbm_masks(uint32_t modmask);
 #endif
 
 #endif

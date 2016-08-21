@@ -116,4 +116,20 @@ unsigned int kbm_to_carbon(uint32_t keycode)
 {
 	return osx_keycodes[keycode];
 }
+
+uint8_t osx_to_kbm_masks(uint32_t modmask)
+{
+	uint8_t mask = 0;
+
+	if (CHECK_MOD(modmask, kCGEventFlagMaskShift))
+		mask |= KBM_SHIFT_MASK;
+	if (CHECK_MOD(modmask, kCGEventFlagMaskControl))
+		mask |= KBM_CTRL_MASK;
+	if (CHECK_MOD(modmask, kCGEventFlagMaskCommand))
+		mask |= KBM_SUPER_MASK;
+	if (CHECK_MOD(modmask, kCGEventFlagMaskAlternate))
+		mask |= KBM_META_MASK;
+
+	return mask;
+}
 #endif
