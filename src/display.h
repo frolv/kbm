@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DISPLAY_H
-#define _DISPLAY_H
+#ifndef KBM_DISPLAY_H
+#define KBM_DISPLAY_H
 
 #include "hotkey.h"
 
@@ -33,4 +33,4 @@ void close_display();
 /* start_loop: map the provided hotkeys and begin an event loop */
 void start_loop(struct hotkey *head);
 
-#endif
+#endif /* KBM_DISPLAY_H */

@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HOTKEY_H
-#define _HOTKEY_H
+#ifndef KBM_HOTKEY_H
+#define KBM_HOTKEY_H
 
 #include <stdint.h>
 #include "keymap.h"
@@ -43,4 +43,4 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 
 void process_hotkey(struct hotkey *hk);
 
-#endif
+#endif /* KBM_HOTKEY_H */

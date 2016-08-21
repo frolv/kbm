@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _KEYMAP_H
-#define _KEYMAP_H
+#ifndef KBM_KEYMAP_H
+#define KBM_KEYMAP_H
 
-/* kbm keycodes */
+/* Keycode definitions for all the keys on a standard ANSI keyboard */
 
 /* alphabetic keys */
 #define KEY_Q 0x01
@@ -135,13 +135,13 @@
 #define KEY_NUM9	0x63
 
 
-/* bitmasks for the various modifier keys */
+/* Bitmasks for the various modifier keys */
 #define KBM_SHIFT_MASK	0x01
 #define KBM_CTRL_MASK	0x02
 #define KBM_SUPER_MASK	0x04	/* command on OS X */
 #define KBM_META_MASK	0x08	/* option  on OS X */
 
-/* macro to check whether a modifer is set */
+/* Macro to check whether a modifer is set */
 #define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
 
 #include <stdint.h>
@@ -151,30 +151,30 @@ char *keystr(uint8_t keycode, uint8_t mask);
 
 
 /*
- * functions to convert kbm keycodes and mod
- * masks to their OS-specific versions
+ * Functions to convert kbm keycodes and modifier masks to
+ * their OS-specific versions.
  */
 
 #ifdef __linux__
 #include <X11/keysym.h>
 #include <xcb/xcb.h>
 
-unsigned int kbm_to_keysym(uint32_t keycode);
-unsigned int kbm_to_xcb_masks(uint32_t modmask);
+unsigned int kbm_to_keysym(uint8_t keycode);
+unsigned int kbm_to_xcb_masks(uint8_t modmask);
 #endif
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
-unsigned int kbm_to_win32(uint32_t keycode);
-unsigned int kbm_to_win_masks(uint32_t modmask);
+unsigned int kbm_to_win32(uint8_t keycode);
+unsigned int kbm_to_win_masks(uint8_t modmask);
 #endif
 
 #ifdef __APPLE__
 #include <Carbon/Carbon.h>
 
-unsigned int kbm_to_carbon(uint32_t keycode);
-unsigned int kbm_to_osx_masks(uint32_t modmask);
+unsigned int kbm_to_carbon(uint8_t keycode);
+unsigned int kbm_to_osx_masks(uint8_t modmask);
 #endif
 
-#endif
+#endif /* KBM_KEYMAP_H */

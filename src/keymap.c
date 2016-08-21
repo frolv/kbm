@@ -58,12 +58,12 @@ static const uint32_t x11_keysyms[] = {
 	0x00, XK_q, XK_w, XK_e
 };
 
-unsigned int kbm_to_keysym(uint32_t keycode)
+unsigned int kbm_to_keysym(uint8_t keycode)
 {
 	return x11_keysyms[keycode];
 }
 
-unsigned int kbm_to_xcb_masks(uint32_t modmask)
+unsigned int kbm_to_xcb_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
@@ -85,12 +85,12 @@ static const uint32_t win_keycodes[] = {
 	0x00, 0x51, 0x57, 0x45
 };
 
-unsigned int kbm_to_win32(uint32_t keycode)
+unsigned int kbm_to_win32(uint8_t keycode)
 {
 	return win_keycodes[keycode];
 }
 
-unsigned int kbm_to_win_masks(uint32_t modmask)
+unsigned int kbm_to_win_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
@@ -112,12 +112,12 @@ static const uint32_t osx_keycodes[] = {
 	0x00, kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E
 };
 
-unsigned int kbm_to_carbon(uint32_t keycode)
+unsigned int kbm_to_carbon(uint8_t keycode)
 {
 	return osx_keycodes[keycode];
 }
 
-unsigned int kbm_to_osx_masks(uint32_t modmask)
+unsigned int kbm_to_osx_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 

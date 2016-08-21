@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _KBM_H
-#define _KBM_H
+#ifndef KBM_H
+#define KBM_H
 
 #include <stdio.h>
 
 /* working title of program for now */
 #define PROGRAM_NAME "kbm"
 
-#endif
+#endif /* KBM_H */
