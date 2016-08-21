@@ -39,9 +39,16 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 	return hk;
 }
 
-void process_hotkey(struct hotkey *hk)
+int process_hotkey(struct hotkey *hk)
 {
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
+	switch (hk->op) {
+	case OP_QUIT:
+		printf("OPERATION: quit\n");
+		return -1;
+	default:
+		return 0;
+	}
 }
 
 /* get_os_codes: load os-specific keycodes and mod masks into hk */

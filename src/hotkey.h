@@ -26,7 +26,8 @@
 #define OP_CLICK	0xA0
 #define OP_RCLICK	0xA1
 #define OP_JUMP		0xA2
-#define OP_QUIT		0xA3
+#define OP_SUSPEND	0xA3
+#define OP_QUIT		0xA4
 
 struct hotkey {
 	uint8_t kbm_code;	/* the kbm keycode of the hotkey */
@@ -41,6 +42,6 @@ struct hotkey {
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 		uint8_t op, uint64_t opargs);
 
-void process_hotkey(struct hotkey *hk);
+int process_hotkey(struct hotkey *hk);
 
 #endif /* KBM_HOTKEY_H */

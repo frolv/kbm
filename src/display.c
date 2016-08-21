@@ -91,10 +91,11 @@ void start_loop(struct hotkey *head)
 	xcb_key_press_event_t *evt;
 	xcb_keysym_t ks;
 	struct hotkey *hk;
+	unsigned int active = 1;
 
 	map_keys(head);
 
-	while ((e = xcb_wait_for_event(conn))) {
+	while (active && (e = xcb_wait_for_event(conn))) {
 		switch (e->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
 			evt = (xcb_key_press_event_t *)e;
@@ -111,7 +112,8 @@ void start_loop(struct hotkey *head)
 				 */
 				continue;
 			}
-			process_hotkey(hk);
+			if (process_hotkey(hk) == -1)
+				active = 0;
 			break;
 		default:
 			break;
@@ -196,7 +198,8 @@ void start_loop(struct hotkey *head)
 			if (!(hk = find_by_os_code(head, kc, mask)))
 				/* should never happen */
 				continue;
-			process_hotkey(hk);
+			if (process_hotkey(hk) == -1)
+				break;
 		}
 	}
 }
@@ -280,7 +283,8 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
 	if ((hk = find_by_os_code(keymaps, keycode, flags))) {
-		process_hotkey(hk);
+		if (process_hotkey(hk) == -1)
+			CFRunLoopStop();
 		/* prevent the event from propagating further */
 		return NULL;
 	}
