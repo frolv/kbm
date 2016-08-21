@@ -92,7 +92,6 @@ void start_loop(struct hotkey *head)
 	xcb_keysym_t ks;
 	struct hotkey *hk;
 
-	/* assign listeners for every mapped key */
 	map_keys(head);
 
 	while ((e = xcb_wait_for_event(conn))) {
@@ -106,9 +105,9 @@ void start_loop(struct hotkey *head)
 
 			if (!(hk = find_by_os_code(head, ks, evt->state))) {
 				/*
-				 * this sometimes happens when keys are
-				 * pressed in quick succession
-				 * the event should be sent back out
+				 * This sometimes happens when keys are
+				 * pressed in quick succession.
+				 * The event should be sent back out.
 				 */
 				continue;
 			}
@@ -141,15 +140,25 @@ static void map_keys(struct hotkey *head)
 						head->kbm_modmask));
 			free(err);
 		}
-		/* bind key with num lock active */
+
+		/*
+		 * In X11, caps lock and num lock are defined as modifiers and
+		 * events involving these keys held down are treated as
+		 * different events to those occuring without them.
+		 *
+		 * We don't want to distinguish between these events, so we
+		 * also grab the key with the caps and num lock masks.
+		 */
+
+		/* num lock */
 		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_2,
 				kc[0], XCB_GRAB_MODE_ASYNC,
 				XCB_GRAB_MODE_ASYNC);
-		/* bind key with caps lock active */
+		/* caps lock */
 		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-		/* bind key with both active */
+		/* both */
 		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
@@ -196,9 +205,9 @@ void start_loop(struct hotkey *head)
 static void map_keys(struct hotkey *head)
 {
 	/*
-	 * if $KEY and $MODS+$KEY are registered at the
+	 * If $KEY and $MODS+$KEY are registered at the
 	 * same time, it will fail if both have the same ID.
-	 * each registered key is given a unique ID to prevent this
+	 * Each registered key is given a unique ID to prevent this.
 	 */
 	int id = 1;
 
