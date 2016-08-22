@@ -268,6 +268,7 @@ static void unmap_keys()
 		++id;
 		UnregisterHotKey(NULL, id);
 	}
+	keys_active = 0;
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
