@@ -3,7 +3,7 @@ SHELL=/bin/sh
 PROGRAM=kbm
 
 CC=gcc
-CFLAGS=$(INC) -Wall -Wextra -std=c99
+CFLAGS=-Wall -Wextra -std=c99
 
 SRCDIR=src
 _SRC=main.c display.c keymap.c hotkey.c
