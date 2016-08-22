@@ -324,7 +324,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 	if ((hk = find_by_os_code(keymaps, keycode, flags))) {
 		if (process_hotkey(hk) == -1)
-			CFRunLoopStop();
+			CFRunLoopStop(CFRunLoopGetCurrent());
 		/* prevent the event from propagating further */
 		return NULL;
 	}
