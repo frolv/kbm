@@ -17,6 +17,7 @@
  */
 
 #include <stdlib.h>
+#include "display.h"
 #include "hotkey.h"
 #include "kbm.h"
 #include "keymap.h"
@@ -43,7 +44,13 @@ int process_hotkey(struct hotkey *hk)
 {
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
+	case OP_TOGGLE:
+		/* toggle operation: enable/disable hotkeys */
+		printf("OPERATION: toggle\n");
+		toggle_keys();
+		return 0;
 	case OP_QUIT:
+		/* exit operation: quit the program */
 		printf("OPERATION: quit\n");
 		return -1;
 	default:

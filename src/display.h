@@ -25,12 +25,15 @@
  * init_display: perform OS-specific initialization
  * actions for a graphical display
  */
-void init_display();
+void init_display(struct hotkey *head);
 
 /* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display();
 
 /* start_loop: map the provided hotkeys and begin an event loop */
-void start_loop(struct hotkey *head);
+void start_loop();
+
+/* toggle_keys: disable hotkeys if active, enable otherwise */
+void toggle_keys();
 
 #endif /* KBM_DISPLAY_H */
