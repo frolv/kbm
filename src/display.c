@@ -146,8 +146,7 @@ static void map_keys()
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(hk->kbm_code,
-						hk->kbm_modmask));
+					keystr(hk->kbm_code, hk->kbm_modmask));
 			free(err);
 		}
 
@@ -248,17 +247,30 @@ static void map_keys()
 	 * same time, it will fail if both have the same ID.
 	 * Each registered key is given a unique ID to prevent this.
 	 */
-	int id = 1;
+	int id = 0;
 	struct hotkey *hk;
 
 	for (hk = keymaps; hk; hk = hk->next) {
+		++id;
 		if (!RegisterHotKey(NULL, id, hk->os_modmask, hk->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
 					keystr(hk->kbm_code, hk->kbm_modmask));
-		++id;
 	}
 	keys_active = 1;
+}
+
+static void unmap_keys()
+{
+	int id = 0;
+	struct hotkey *hk;
+
+	for (hk = keymaps; hk; hk = hk->next) {
+		++id;
+		if (hk->op == OP_TOGGLE)
+			continue;
+		UnregisterHotKey(NULL, id);
+	}
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
