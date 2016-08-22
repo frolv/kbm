@@ -25,9 +25,6 @@
 #include <getopt.h>
 #endif
 
-/* temp */
-static void add_key(struct hotkey **head, struct hotkey **tail, struct hotkey *hk);
-
 int main(int argc, char **argv)
 {
 #if defined(__linux__) || defined(__APPLE__)
@@ -49,27 +46,18 @@ int main(int argc, char **argv)
 	}
 #endif
 	/* temp for testing purposes */
-	struct hotkey *head, *tail;
-	head = tail = NULL;
-	add_key(&head, &tail, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
-	add_key(&head, &tail, create_hotkey(KEY_W, 0, OP_JUMP, 0));
-	add_key(&head, &tail, create_hotkey(KEY_E, 0, OP_CLICK, 0));
-	add_key(&head, &tail, create_hotkey(KEY_Q, KBM_SHIFT_MASK, OP_TOGGLE, 0));
-	add_key(&head, &tail, create_hotkey(KEY_Q, KBM_CTRL_MASK | KBM_SHIFT_MASK, OP_QUIT, 0));
+	struct hotkey *head = NULL;
 
-	init_display(head);
+	add_hotkey(&head, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
+	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, 0));
+	add_hotkey(&head, create_hotkey(KEY_E, 0, OP_CLICK, 0));
+	add_hotkey(&head, create_hotkey(KEY_Q, KBM_SHIFT_MASK, OP_TOGGLE, 0));
+	add_hotkey(&head, create_hotkey(KEY_Q, KBM_CTRL_MASK | KBM_SHIFT_MASK, OP_QUIT, 0));
+
+	init_display();
+	load_keys(head);
 	start_loop();
+	unload_keys();
 	close_display();
 	return 0;
-}
-
-/* temp */
-static void add_key(struct hotkey **head, struct hotkey **tail, struct hotkey *hk)
-{
-	if (!*tail) {
-		*head = *tail = hk;
-		return;
-	}
-	(*tail)->next = hk;
-	*tail = hk;
 }

@@ -43,6 +43,9 @@ struct hotkey {
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 		uint8_t op, uint64_t opargs);
 
+void add_hotkey(struct hotkey **head, struct hotkey *hk);
+void free_keys(struct hotkey *head);
+
 int process_hotkey(struct hotkey *hk);
 
 #endif /* KBM_HOTKEY_H */

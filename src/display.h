@@ -25,13 +25,17 @@
  * init_display: perform OS-specific initialization
  * actions for a graphical display
  */
-void init_display(struct hotkey *head);
+void init_display();
 
 /* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display();
 
 /* start_loop: map the provided hotkeys and begin an event loop */
 void start_loop();
+
+void load_keys(struct hotkey *head);
+
+void unload_keys();
 
 /* toggle_keys: disable hotkeys if active, enable otherwise */
 void toggle_keys();

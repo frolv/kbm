@@ -53,14 +53,16 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 #endif
 
 
-/* head of the hotkey linked list */
-static struct hotkey *keymaps;
+/* all hotkey mappings excluding toggles */
+static struct hotkey *actions;
+/* toggle hotkey mappings */
+static struct hotkey *toggles;
 
 /* whether hotkeys are currently enabled */
 static int keys_active;
 
-static void map_keys();
-static void unmap_keys();
+static void map_keys(struct hotkey *head);
+static void unmap_keys(struct hotkey *head);
 
 static struct hotkey *find_by_os_code(struct hotkey *head,
 		uint32_t code, uint32_t mask);
@@ -68,7 +70,7 @@ static struct hotkey *find_by_os_code(struct hotkey *head,
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display(struct hotkey *head)
+void init_display()
 {
 	int screen;
 
@@ -81,14 +83,14 @@ void init_display(struct hotkey *head)
 	root = root_screen->root;
 	keysyms = xcb_key_symbols_alloc(conn);
 
-	keymaps = head;
-	map_keys();
+	actions = toggles = NULL;
 }
 
 /* close_display: disconnect from X server and clean up */
 void close_display()
 {
-	unmap_keys();
+	unmap_keys(actions);
+	unmap_keys(toggles);
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
 }
@@ -111,7 +113,9 @@ void start_loop()
 			/* unset the caps lock and num lock bits */
 			evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
 
-			if (!(hk = find_by_os_code(keymaps, ks, evt->state))) {
+			if (!(hk = find_by_os_code(actions, ks, evt->state))
+					&& !(hk = find_by_os_code(toggles,
+							ks, evt->state))) {
 				/*
 				 * This sometimes happens when keys are
 				 * pressed in quick succession.
@@ -130,23 +134,23 @@ void start_loop()
 }
 
 /* map_keys: grab all provided hotkeys */
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
 	xcb_keycode_t *kc;
 	xcb_void_cookie_t cookie;
 	xcb_generic_error_t *err;
-	struct hotkey *hk;
 
-	for (hk = keymaps; hk; hk = hk->next) {
-		kc = xcb_key_symbols_get_keycode(keysyms, hk->os_code);
-		cookie = xcb_grab_key_checked(conn, 1, root, hk->os_modmask,
+	for (; head; head = head->next) {
+		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
+		cookie = xcb_grab_key_checked(conn, 1, root, head->os_modmask,
 				kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(hk->kbm_code, hk->kbm_modmask));
+					keystr(head->kbm_code,
+						head->kbm_modmask));
 			free(err);
 		}
 
@@ -160,15 +164,15 @@ static void map_keys()
 		 */
 
 		/* num lock */
-		xcb_grab_key(conn, 1, root, hk->os_modmask | XCB_MOD_MASK_2,
+		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_2,
 				kc[0], XCB_GRAB_MODE_ASYNC,
 				XCB_GRAB_MODE_ASYNC);
 		/* caps lock */
-		xcb_grab_key(conn, 1, root, hk->os_modmask
+		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		/* both */
-		xcb_grab_key(conn, 1, root, hk->os_modmask
+		xcb_grab_key(conn, 1, root, head->os_modmask
 				| XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
 				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		free(kc);
@@ -178,25 +182,21 @@ static void map_keys()
 }
 
 /* unmap_keys: ungrab all assigned hotkeys */
-static void unmap_keys()
+static void unmap_keys(struct hotkey *head)
 {
 	xcb_keycode_t *kc;
-	struct hotkey *hk;
 
-	for (hk = keymaps; hk; hk = hk->next) {
-		/* ungrab everything except the toggle key */
-		if (hk->op == OP_TOGGLE)
-			continue;
+	for (; head; head = head->next) {
 
-		kc = xcb_key_symbols_get_keycode(keysyms, hk->os_code);
-		xcb_ungrab_key(conn, kc[0], root, hk->os_modmask);
+		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
+		xcb_ungrab_key(conn, kc[0], root, head->os_modmask);
 
 		/* account for num lock and caps lock modifiers */
-		xcb_ungrab_key(conn, kc[0], root, hk->os_modmask
+		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
 				| XCB_MOD_MASK_2);
-		xcb_ungrab_key(conn, kc[0], root, hk->os_modmask
+		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
 				| XCB_MOD_MASK_LOCK);
-		xcb_ungrab_key(conn, kc[0], root, hk->os_modmask
+		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
 				| XCB_MOD_MASK_2 | XCB_MOD_MASK_LOCK);
 	}
 	xcb_flush(conn);
@@ -208,7 +208,7 @@ static void unmap_keys()
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 void init_display(struct hotkey *head)
 {
-	keymaps = head;
+	actions = head;
 	map_keys();
 }
 
@@ -230,7 +230,7 @@ void start_loop()
 			mask = msg.lParam & 0xFFFF;
 			/* keycode is stored in the upper half of lParam */
 			kc = (msg.lParam >> 16) & 0xFFFF;
-			if (!(hk = find_by_os_code(keymaps, kc, mask)))
+			if (!(hk = find_by_os_code(actions, kc, mask)))
 				/* should never happen */
 				continue;
 			if (process_hotkey(hk) == -1)
@@ -248,14 +248,14 @@ static void map_keys()
 	 * Each registered key is given a unique ID to prevent this.
 	 */
 	int id = 0;
-	struct hotkey *hk;
 
-	for (hk = keymaps; hk; hk = hk->next) {
+	for (; head; head = head->next) {
 		++id;
-		if (!RegisterHotKey(NULL, id, hk->os_modmask, hk->os_code))
+		if (!RegisterHotKey(NULL, id, head->os_modmask, head->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
-					keystr(hk->kbm_code, hk->kbm_modmask));
+					keystr(head->kbm_code,
+						head->kbm_modmask));
 	}
 	keys_active = 1;
 }
@@ -263,12 +263,9 @@ static void map_keys()
 static void unmap_keys()
 {
 	int id = 0;
-	struct hotkey *hk;
 
-	for (hk = keymaps; hk; hk = hk->next) {
+	for (; head; head = head->next) {
 		++id;
-		if (hk->op == OP_TOGGLE)
-			continue;
 		UnregisterHotKey(NULL, id);
 	}
 }
@@ -296,7 +293,7 @@ void init_display(struct hotkey *head)
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
 
-	keymaps = head;
+	actions = head;
 	map_keys();
 }
 
@@ -334,7 +331,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
-	if ((hk = find_by_os_code(keymaps, keycode, flags))) {
+	if ((hk = find_by_os_code(actions, keycode, flags))) {
 		if (process_hotkey(hk) == -1)
 			CFRunLoopStop(CFRunLoopGetCurrent());
 		/* prevent the event from propagating further */
@@ -344,12 +341,37 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 }
 #endif /* __APPLE__ */
 
+void load_keys(struct hotkey *head)
+{
+	struct hotkey *tmp;
+
+	while (head) {
+		tmp = head;
+		head = head->next;
+		tmp->next = NULL;
+		if (tmp->op == OP_TOGGLE)
+			add_hotkey(&toggles, tmp);
+		else
+			add_hotkey(&actions, tmp);
+	}
+
+	map_keys(actions);
+	map_keys(toggles);
+}
+
+void unload_keys()
+{
+	free_keys(actions);
+	free_keys(toggles);
+	actions = toggles = NULL;
+}
+
 void toggle_keys()
 {
 	if (keys_active)
-		unmap_keys();
+		unmap_keys(actions);
 	else
-		map_keys();
+		map_keys(actions);
 }
 
 /* find_by_os_code: return the hotkey in head with os_code code */

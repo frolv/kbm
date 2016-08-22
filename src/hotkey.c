@@ -40,6 +40,20 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 	return hk;
 }
 
+void add_hotkey(struct hotkey **head, struct hotkey *hk)
+{
+	while (*head)
+		head = &(*head)->next;
+	*head = hk;
+}
+
+void free_keys(struct hotkey *head)
+{
+	if (head->next)
+		free_keys(head->next);
+	free(head);
+}
+
 int process_hotkey(struct hotkey *hk)
 {
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
