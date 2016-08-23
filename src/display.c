@@ -27,6 +27,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xtest.h>
 
 /* connection to the X server */
 static xcb_connection_t *conn;
@@ -132,6 +133,13 @@ void start_loop()
 		}
 		free(e);
 	}
+}
+
+void send_button(enum buttons button)
+{
+	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	xcb_flush(conn);
 }
 
 /* map_keys: grab all provided hotkeys */

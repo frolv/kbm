@@ -71,6 +71,16 @@ int process_hotkey(struct hotkey *hk)
 {
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
+	case OP_CLICK:
+		/* click operation: send a mouse click event */
+		printf("OPERATION: click\n");
+		send_button(KBM_BUTTON_LEFT);
+		return 0;
+	case OP_RCLICK:
+		/* rclick operation: send a mouse right click event */
+		printf("OPERATION: rclick\n");
+		send_button(KBM_BUTTON_RIGHT);
+		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */
 		printf("OPERATION: toggle\n");

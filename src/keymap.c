@@ -37,13 +37,13 @@ char *keystr(uint8_t keycode, uint8_t mask)
 
 	switch (keycode) {
 	case KEY_Q:
-		strcat(key_str, "q");
+		strcat(key_str, "Q");
 		break;
 	case KEY_W:
-		strcat(key_str, "w");
+		strcat(key_str, "W");
 		break;
 	case KEY_E:
-		strcat(key_str, "e");
+		strcat(key_str, "E");
 		break;
 	default:
 		key_str[0] = '\0';

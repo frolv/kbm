@@ -13,7 +13,7 @@ HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 
 ifeq ($(shell uname -s),Linux)
-	LDFLAGS+=-lxcb -lxcb-keysyms -lxcb-util
+	LDFLAGS+=-lxcb -lxcb-keysyms -lxcb-util -lxcb-xtest
 endif
 ifeq ($(shell uname -s),Darwin)
 	LDFLAGS+=-framework ApplicationServices

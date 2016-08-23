@@ -21,6 +21,12 @@
 
 #include "hotkey.h"
 
+enum buttons {
+	KBM_BUTTON_LEFT		= 1,
+	KBM_BUTTON_MIDDLE	= 2,
+	KBM_BUTTON_RIGHT	= 3
+};
+
 /*
  * init_display: perform OS-specific initialization
  * actions for a graphical display
@@ -36,6 +42,8 @@ void start_loop();
 void load_keys(struct hotkey *head);
 
 void unload_keys();
+
+void send_button(enum buttons button);
 
 /* toggle_keys: disable hotkeys if active, enable otherwise */
 void toggle_keys();

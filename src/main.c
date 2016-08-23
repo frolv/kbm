@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, 0));
 	add_hotkey(&head, create_hotkey(KEY_E, 0, OP_CLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_Q, KBM_SHIFT_MASK, OP_TOGGLE, 0));
-	add_hotkey(&head, create_hotkey(KEY_Q, KBM_CTRL_MASK | KBM_SHIFT_MASK, OP_QUIT, 0));
+	add_hotkey(&head, create_hotkey(KEY_E, KBM_CTRL_MASK, OP_QUIT, 0));
 
 	init_display();
 	load_keys(head);
