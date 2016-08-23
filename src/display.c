@@ -121,6 +121,7 @@ void start_loop()
 				 * pressed in quick succession.
 				 * The event should be sent back out.
 				 */
+				free(e);
 				continue;
 			}
 			if (process_hotkey(hk) == -1)
