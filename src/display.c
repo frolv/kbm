@@ -247,6 +247,48 @@ void start_loop()
 	}
 }
 
+void send_button(enum buttons button)
+{
+	INPUT ip;
+
+	ip.type = INPUT_MOUSE;
+
+	memset(&ip.mi, 0, sizeof(ip.mi));
+	ip.mi.mouseData = 0;
+
+	/* send the button press event */
+	switch (button) {
+	case KBM_BUTTON_LEFT:
+		ip.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+		break;
+	case KBM_BUTTON_MIDDLE:
+		ip.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+		break;
+	case KBM_BUTTON_RIGHT:
+		ip.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+		break;
+	default:
+		break;
+	}
+	SendInput(1, &ip, sizeof(ip));
+
+	/* send the button release event */
+	switch (button) {
+	case KBM_BUTTON_LEFT:
+		ip.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+		break;
+	case KBM_BUTTON_MIDDLE:
+		ip.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+		break;
+	case KBM_BUTTON_RIGHT:
+		ip.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+		break;
+	default:
+		break;
+	}
+	SendInput(1, &ip, sizeof(ip));
+}
+
 /* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
