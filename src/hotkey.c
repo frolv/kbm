@@ -29,6 +29,15 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 {
 	struct hotkey *hk;
 
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	/*
+	 * If $KEY and $MODS+$KEY are registered at the
+	 * same time, it will fail if both have the same ID.
+	 * Each registered key is given a unique ID to prevent this.
+	 */
+	static int id = 0;
+#endif
+
 	hk = malloc(sizeof(*hk));
 	hk->kbm_code = keycode;
 	hk->kbm_modmask = modmask;
@@ -36,6 +45,10 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 	hk->opargs = opargs;
 	hk->next = NULL;
 	get_os_codes(hk);
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	hk->id = ++id;
+#endif
 
 	return hk;
 }

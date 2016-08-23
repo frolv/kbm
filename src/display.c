@@ -206,15 +206,12 @@ static void unmap_keys(struct hotkey *head)
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display(struct hotkey *head)
+void init_display()
 {
-	actions = head;
-	map_keys();
 }
 
 void close_display()
 {
-	unmap_keys();
 }
 
 /* start_loop: map hotkeys and start listening for keypresses */
@@ -230,7 +227,9 @@ void start_loop()
 			mask = msg.lParam & 0xFFFF;
 			/* keycode is stored in the upper half of lParam */
 			kc = (msg.lParam >> 16) & 0xFFFF;
-			if (!(hk = find_by_os_code(actions, kc, mask)))
+			if (!(hk = find_by_os_code(actions, kc, mask))
+					&& !(hk = find_by_os_code(toggles,
+							kc, mask)))
 				/* should never happen */
 				continue;
 			if (process_hotkey(hk) == -1)
@@ -240,18 +239,11 @@ void start_loop()
 }
 
 /* map_keys: register all provided hotkeys */
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
-	/*
-	 * If $KEY and $MODS+$KEY are registered at the
-	 * same time, it will fail if both have the same ID.
-	 * Each registered key is given a unique ID to prevent this.
-	 */
-	int id = 0;
-
 	for (; head; head = head->next) {
-		++id;
-		if (!RegisterHotKey(NULL, id, head->os_modmask, head->os_code))
+		if (!RegisterHotKey(NULL, head->id, head->os_modmask,
+					head->os_code))
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
 					keystr(head->kbm_code,
@@ -260,13 +252,10 @@ static void map_keys()
 	keys_active = 1;
 }
 
-static void unmap_keys()
+static void unmap_keys(struct hotkey *head)
 {
-	int id = 0;
-
 	for (; head; head = head->next) {
-		++id;
-		UnregisterHotKey(NULL, id);
+		UnregisterHotKey(NULL, head->id);
 	}
 	keys_active = 0;
 }
