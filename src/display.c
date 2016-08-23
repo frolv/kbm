@@ -264,7 +264,7 @@ static void unmap_keys(struct hotkey *head)
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display(struct hotkey *head)
+void init_display()
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -282,14 +282,10 @@ void init_display(struct hotkey *head)
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
-
-	actions = head;
-	map_keys();
 }
 
 void close_display()
 {
-	unmap_keys();
 }
 
 void start_loop()
@@ -297,9 +293,16 @@ void start_loop()
 	CFRunLoopRun();
 }
 
-static void map_keys()
+static void map_keys(struct hotkey *head)
 {
-	keys_active = 1;
+	if (head->op != OP_TOGGLE)
+		keys_active = 1;
+}
+
+static void unmap_keys(struct hotkey *head)
+{
+	if (head->op != OP_TOGGLE)
+		keys_active = 0;
 }
 
 /* callback: function called when event is registered */
@@ -321,10 +324,14 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
-	if ((hk = find_by_os_code(actions, keycode, flags))) {
+	if (keys_active && (hk = find_by_os_code(actions, keycode, flags))) {
 		if (process_hotkey(hk) == -1)
 			CFRunLoopStop(CFRunLoopGetCurrent());
 		/* prevent the event from propagating further */
+		return NULL;
+	}
+	if ((hk = find_by_os_code(toggles, keycode, flags))) {
+		process_hotkey(hk);
 		return NULL;
 	}
 	return event;
