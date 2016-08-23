@@ -73,7 +73,6 @@ static struct hotkey *find_by_os_code(struct hotkey *head,
 void init_display()
 {
 	int screen;
-	static const uint32_t val[] = { XCB_EVENT_MASK_POINTER_MOTION };
 
 	if (!(conn = xcb_connect(NULL, &screen))) {
 		fprintf(stderr, "error: failed to connect to X server\n");
@@ -83,9 +82,6 @@ void init_display()
 	root_screen = xcb_aux_get_screen(conn, screen);
 	root = root_screen->root;
 	keysyms = xcb_key_symbols_alloc(conn);
-
-	/* listen for cursor movement */
-	xcb_change_window_attributes(conn, root, XCB_CW_EVENT_MASK, val);
 
 	actions = toggles = NULL;
 }
@@ -103,8 +99,7 @@ void close_display()
 void start_loop()
 {
 	xcb_generic_event_t *e;
-	xcb_key_press_event_t *key_evt;
-	xcb_motion_notify_event_t *cur_evt;
+	xcb_key_press_event_t *evt;
 	xcb_keysym_t ks;
 	struct hotkey *hk;
 	unsigned int running = 1;
@@ -112,15 +107,15 @@ void start_loop()
 	while (running && (e = xcb_wait_for_event(conn))) {
 		switch (e->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
-			key_evt = (xcb_key_press_event_t *)e;
-			ks = xcb_key_press_lookup_keysym(keysyms, key_evt, 0);
+			evt = (xcb_key_press_event_t *)e;
+			ks = xcb_key_press_lookup_keysym(keysyms, evt, 0);
 
 			/* unset the caps lock and num lock bits */
-			key_evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
+			evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
 
-			if (!(hk = find_by_os_code(actions, ks, key_evt->state))
+			if (!(hk = find_by_os_code(actions, ks, evt->state))
 					&& !(hk = find_by_os_code(toggles,
-							ks, key_evt->state))) {
+							ks, evt->state))) {
 				/*
 				 * This sometimes happens when keys are
 				 * pressed in quick succession.
@@ -131,11 +126,6 @@ void start_loop()
 			}
 			if (process_hotkey(hk) == -1)
 				running = 0;
-			break;
-		case XCB_MOTION_NOTIFY:
-			/* cursor movement */
-			cur_evt = (xcb_motion_notify_event_t *)e;
-			printf("(%d,%d)\n", cur_evt->event_x, cur_evt->event_y);
 			break;
 		default:
 			break;
