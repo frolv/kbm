@@ -166,7 +166,7 @@ static void map_keys(struct hotkey *head)
 		/*
 		 * In X11, caps lock and num lock are defined as modifiers and
 		 * events involving these keys held down are treated as
-		 * different events to those occuring without them.
+		 * different events to those occurring without them.
 		 *
 		 * We don't want to distinguish between these events, so we
 		 * also grab the key with the caps and num lock masks.
@@ -300,6 +300,48 @@ void close_display()
 void start_loop()
 {
 	CFRunLoopRun();
+}
+
+void send_button(enum buttons button)
+{
+	CGEventRef posevent, downevent, upevent;
+	CGPoint pos;
+	CGEventType dtype, utype;
+	CGMouseButton mb;
+
+	/* get the current position of the cursor by making an empty event */
+	posevent = CGEventCreate(NULL);
+	pos = CGEventGetLocation(posevent);
+
+	switch (button) {
+	case KBM_BUTTON_LEFT:
+		dtype = kCGEventLeftMouseDown;
+		utype = kCGEventLeftMouseUp;
+		mb = kCGMouseButtonLeft;
+		break;
+	case KBM_BUTTON_MIDDLE:
+		dtype = kCGEventOtherMouseDown;
+		utype = kCGEventOtherMouseUp;
+		mb = kCGMouseButtonCenter;
+		break;
+	case KBM_BUTTON_RIGHT:
+		dtype = kCGEventRightMouseDown;
+		utype = kCGEventRightMouseUp;
+		mb = kCGMouseButtonRight;
+		break;
+	default:
+		break;
+	}
+
+	downevent = CGEventCreateMouseEvent(NULL, dtype, pos, mb);
+	upevent = CGEventCreateMouseEvent(NULL, utype, pos, mb);
+
+	CGEventPost(kCGHIDEventTap, downevent);
+	CGEventPost(kCGHIDEventTap, upevent);
+
+	CFRelease(posevent);
+	CFRelease(downevent);
+	CFRelease(upevent);
 }
 
 static void map_keys(struct hotkey *head)
