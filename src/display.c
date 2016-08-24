@@ -138,8 +138,10 @@ void start_loop()
 /* send_button: send a button event */
 void send_button(enum buttons button)
 {
-	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
-	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button,
+			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button,
+			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	xcb_flush(conn);
 }
 
@@ -302,7 +304,6 @@ void move_cursor(int x, int y)
 	POINT pt;
 
 	GetCursorPos(&pt);
-	printf("%d %d\n", pt.x, pt.y);
 	SetCursorPos(pt.x + x, pt.y + y);
 }
 
@@ -322,9 +323,8 @@ static void map_keys(struct hotkey *head)
 
 static void unmap_keys(struct hotkey *head)
 {
-	for (; head; head = head->next) {
+	for (; head; head = head->next)
 		UnregisterHotKey(NULL, head->id);
-	}
 	keys_active = 0;
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
