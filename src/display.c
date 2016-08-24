@@ -403,6 +403,25 @@ void send_button(enum buttons button)
 	CFRelease(upevent);
 }
 
+/* move_cursor: move cursor along vector x,y from current position */
+void move_cursor(int x, int y)
+{
+	CGEventRef posevent, moveevent;
+	CGPoint pos;
+
+	/* get cursor position */
+	posevent = CGEventCreate(NULL);
+	pos = CGEventGetLocation(posevent);
+
+	pos.x += x;
+	pos.y += y;
+	moveevent = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, pos, 0);
+	CGEventPost(kCGHIDEventTap, moveevent);
+
+	CFRelease(posevent);
+	CFRelease(moveevent);
+}
+
 static void map_keys(struct hotkey *head)
 {
 	if (head->op != OP_TOGGLE)
