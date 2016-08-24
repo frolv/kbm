@@ -47,9 +47,12 @@ int main(int argc, char **argv)
 #endif
 	/* temp for testing purposes */
 	struct hotkey *head = NULL;
+	uint64_t jump = 55;
+	uint32_t *y = ((uint32_t *)&jump) + 1;
+	*y = 210;
 
 	add_hotkey(&head, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
-	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, 0));
+	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, jump));
 	add_hotkey(&head, create_hotkey(KEY_E, 0, OP_CLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_Q, KBM_SHIFT_MASK, OP_TOGGLE, 0));
 	add_hotkey(&head, create_hotkey(KEY_E, KBM_CTRL_MASK, OP_QUIT, 0));

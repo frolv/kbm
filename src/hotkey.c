@@ -69,6 +69,8 @@ void free_keys(struct hotkey *head)
 
 int process_hotkey(struct hotkey *hk)
 {
+	int x, y;
+
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
 	case OP_CLICK:
@@ -80,6 +82,14 @@ int process_hotkey(struct hotkey *hk)
 		/* rclick operation: send a mouse right click event */
 		printf("OPERATION: rclick\n");
 		send_button(KBM_BUTTON_RIGHT);
+		return 0;
+	case OP_JUMP:
+		/* jump operation: move the cursor */
+		/* x value is stored in lower 32 bits, y value in upper 32 */
+		x = hk->opargs & 0xFFFFFFFF;
+		y = (hk->opargs >> 32) & 0xFFFFFFFF;
+		printf("OPERATION: jump %d %d\n", x, y);
+		move_cursor(x, y);
 		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */

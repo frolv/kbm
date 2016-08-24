@@ -43,7 +43,11 @@ void load_keys(struct hotkey *head);
 
 void unload_keys();
 
+/* send_button: send a button event */
 void send_button(enum buttons button);
+
+/* move_cursor: move cursor along vector x,y from current position */
+void move_cursor(int x, int y);
 
 /* toggle_keys: disable hotkeys if active, enable otherwise */
 void toggle_keys();

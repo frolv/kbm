@@ -29,6 +29,7 @@
 #define OP_KEY		0xA3
 #define OP_TOGGLE	0xA4
 #define OP_QUIT		0xA5
+#define OP_EXEC		0xA6
 
 struct hotkey {
 	uint8_t kbm_code;	/* the kbm keycode of the hotkey */

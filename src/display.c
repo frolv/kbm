@@ -135,10 +135,18 @@ void start_loop()
 	}
 }
 
+/* send_button: send a button event */
 void send_button(enum buttons button)
 {
 	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button, XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	xcb_flush(conn);
+}
+
+/* move_cursor: move cursor along vector x,y from current position */
+void move_cursor(int x, int y)
+{
+	xcb_warp_pointer(conn, XCB_NONE, XCB_NONE, 0, 0, 0, 0, x, y);
 	xcb_flush(conn);
 }
 
