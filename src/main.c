@@ -17,17 +17,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <getopt.h>
 #include "kbm.h"
 #include "display.h"
 #include "hotkey.h"
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <getopt.h>
-#endif
-
 int main(int argc, char **argv)
 {
-#if defined(__linux__) || defined(__APPLE__)
 	int c;
 	static struct option long_opts[] = {
 		{ "help", no_argument, 0, 'h' },
@@ -44,7 +40,6 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-#endif
 	/* temp for testing purposes */
 	struct hotkey *head = NULL;
 	uint64_t jump = 55;

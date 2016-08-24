@@ -262,7 +262,6 @@ void send_button(enum buttons button)
 	ip.type = INPUT_MOUSE;
 
 	memset(&ip.mi, 0, sizeof(ip.mi));
-	ip.mi.mouseData = 0;
 
 	/* send the button press event */
 	switch (button) {
@@ -295,6 +294,16 @@ void send_button(enum buttons button)
 		break;
 	}
 	SendInput(1, &ip, sizeof(ip));
+}
+
+/* move_cursor: move cursor along vector x,y from current position */
+void move_cursor(int x, int y)
+{
+	POINT pt;
+
+	GetCursorPos(&pt);
+	printf("%d %d\n", pt.x, pt.y);
+	SetCursorPos(pt.x + x, pt.y + y);
 }
 
 /* map_keys: register all provided hotkeys */
