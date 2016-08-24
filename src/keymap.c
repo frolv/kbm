@@ -21,6 +21,16 @@
 
 static char key_str[32];
 
+/*
+ * String of all single character keys, in the order they are defined in
+ * keymap.h. The location of a key in the string can be found by multiplying
+ * its keycode by 2.
+ */
+static const char *SINGLE_KEYS =
+"z\0Q\0W\0E\0R\0T\0Y\0U\0I\0O\0P\0A\0S\0D\0F\0G\0H\0J\0K\0L\0Z\0X\0C\0V\0B\0N\0"
+"M\0" "1\0" "2\0" "3\0" "4\0" "5\0" "6\0" "7\0" "8\0" "9\0" "0\0`\0-\0=\0[\0]\0"
+"\\\0;\0'\0,\0.\0/\0";
+
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(uint8_t keycode, uint8_t mask)
 {
@@ -35,27 +45,22 @@ char *keystr(uint8_t keycode, uint8_t mask)
 	if (CHECK_MOD(mask, KBM_SHIFT_MASK))
 		strcat(key_str, "Shift-");
 
-	switch (keycode) {
-	case KEY_Q:
-		strcat(key_str, "Q");
-		break;
-	case KEY_W:
-		strcat(key_str, "W");
-		break;
-	case KEY_E:
-		strcat(key_str, "E");
-		break;
-	default:
-		key_str[0] = '\0';
-		break;
+	if (keycode <= KEY_FSLASH) {
+		strcat(key_str, SINGLE_KEYS + (keycode << 1));
+		return key_str;
 	}
+
 	return key_str;
 }
 
 
 #ifdef __linux__
 static const uint32_t x11_keysyms[] = {
-	0x00, XK_q, XK_w, XK_e
+	0x00, XK_q, XK_w, XK_e, XK_r, XK_t, XK_y, XK_u, XK_i, XK_o, XK_p, XK_a,
+	XK_s, XK_d, XK_f, XK_g, XK_h, XK_j, XK_k, XK_l, XK_z, XK_x, XK_c, XK_v,
+	XK_b, XK_n, XK_m, XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9,
+	XK_0, XK_grave, XK_minus, XK_equal, XK_bracketleft, XK_bracketright,
+	XK_backslash, XK_semicolon, XK_apostrophe, XK_comma, XK_period, XK_slash
 };
 
 unsigned int kbm_to_keysym(uint8_t keycode)
