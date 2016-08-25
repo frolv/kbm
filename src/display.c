@@ -43,6 +43,11 @@ static xcb_key_symbols_t *keysyms;
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
+
+HHOOK hook;
+
+static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static void check_modifiers(unsigned int *mods);
 #endif
 
 
@@ -227,33 +232,25 @@ static void unmap_keys(struct hotkey *head)
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 void init_display()
 {
+	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
+		fprintf(stderr, "error: failed to set keyboard hook\n");
+		exit(1);
+	}
 }
 
 void close_display()
 {
+	UnhookWindowsHookEx(hook);
 }
 
 /* start_loop: map hotkeys and start listening for keypresses */
 void start_loop()
 {
 	MSG msg;
-	struct hotkey *hk;
-	unsigned int kc, mask;
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
-		if (msg.message == WM_HOTKEY) {
-			/* mod mask is stored in the lower half of lParam */
-			mask = msg.lParam & 0xFFFF;
-			/* keycode is stored in the upper half of lParam */
-			kc = (msg.lParam >> 16) & 0xFFFF;
-			if (!(hk = find_by_os_code(actions, kc, mask))
-					&& !(hk = find_by_os_code(toggles,
-							kc, mask)))
-				/* should never happen */
-				continue;
-			if (process_hotkey(hk) == -1)
-				break;
-		}
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 }
 
@@ -307,25 +304,64 @@ void move_cursor(int x, int y)
 	SetCursorPos(pt.x + x, pt.y + y);
 }
 
+static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	KBDLLHOOKSTRUCT *kb;
+	unsigned int kc, mods;
+	struct hotkey *hk;
+
+	if (nCode != HC_ACTION)
+		return CallNextHookEx(hook, nCode, wParam, lParam);
+
+	kb = (KBDLLHOOKSTRUCT *)lParam;
+	kc = kb->vkCode;
+	if (kc == 0x0D && kb->flags & 1)
+		kc = 0x6C;
+
+	check_modifiers(&mods);
+
+	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
+			if (process_hotkey(hk) == -1)
+				PostQuitMessage(0);
+			/* prevent the event from propagating further */
+			return 1;
+		}
+		if ((hk = find_by_os_code(toggles, kc, mods))) {
+			process_hotkey(hk);
+			return 1;
+		}
+	} else {
+		printf("up: 0x%02X\n", kc);
+	}
+
+	return CallNextHookEx(hook, nCode, wParam, lParam);
+}
+
+static void check_modifiers(unsigned int *mods)
+{
+	*mods = 0;
+	if (GetKeyState(VK_SHIFT) & 0x8000)
+		*mods |= MOD_SHIFT;
+	if (GetKeyState(VK_CONTROL) & 0x8000)
+		*mods |= MOD_CONTROL;
+	if (GetKeyState(VK_MENU) & 0x8000)
+		*mods |= MOD_ALT;
+	if (GetKeyState(VK_LWIN) & 0x8000 || GetKeyState(VK_RWIN) & 0x8000)
+		*mods |= MOD_WIN;
+}
+
 /* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
-	for (; head; head = head->next) {
-		if (!RegisterHotKey(NULL, head->id, head->os_modmask,
-					head->os_code))
-			fprintf(stderr, "error: the key '%s' is already "
-					"mapped by another program\n",
-					keystr(head->kbm_code,
-						head->kbm_modmask));
-	}
-	keys_active = 1;
+	if (head->op != OP_TOGGLE)
+		keys_active = 1;
 }
 
 static void unmap_keys(struct hotkey *head)
 {
-	for (; head; head = head->next)
-		UnregisterHotKey(NULL, head->id);
-	keys_active = 0;
+	if (head->op != OP_TOGGLE)
+		keys_active = 0;
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
