@@ -122,7 +122,7 @@
 #define KEY_NUMMINUS	0x56
 #define KEY_NUMPLUS	0x57
 #define KEY_NUMENTER	0x58
-#define KEY_NUMDOT	0x59
+#define KEY_NUMDEC	0x59
 #define KEY_NUM0	0x5A
 #define KEY_NUM1	0x5B
 #define KEY_NUM2	0x5C
