@@ -19,7 +19,7 @@
 #include <string.h>
 #include "keymap.h"
 
-static char key_str[32];
+static char key_str[64];
 
 /*
  * String of all single character keys, in the order they are defined in
@@ -50,6 +50,168 @@ char *keystr(uint8_t keycode, uint8_t mask)
 		return key_str;
 	}
 
+	/* I love vim macros */
+	switch (keycode) {
+	case KEY_SPACE:
+		strcat(key_str, "Space");
+		break;
+	case KEY_ESCAPE:
+		strcat(key_str, "Escape");
+		break;
+	case KEY_BSPACE:
+		strcat(key_str, "Backspace");
+		break;
+	case KEY_TAB:
+		strcat(key_str, "Tab");
+		break;
+	case KEY_CAPS:
+		strcat(key_str, "CapsLock");
+		break;
+	case KEY_ENTER:
+		strcat(key_str, "Enter");
+		break;
+	case KEY_SHIFT:
+		strcat(key_str, "Shift");
+		break;
+	case KEY_CTRL:
+		strcat(key_str, "Control");
+		break;
+	case KEY_SUPER:
+		strcat(key_str, "Super");
+		break;
+	case KEY_META:
+		strcat(key_str, "Meta");
+		break;
+	case KEY_F1:
+		strcat(key_str, "F1");
+		break;
+	case KEY_F2:
+		strcat(key_str, "F2");
+		break;
+	case KEY_F3:
+		strcat(key_str, "F3");
+		break;
+	case KEY_F4:
+		strcat(key_str, "F4");
+		break;
+	case KEY_F5:
+		strcat(key_str, "F5");
+		break;
+	case KEY_F6:
+		strcat(key_str, "F6");
+		break;
+	case KEY_F7:
+		strcat(key_str, "F7");
+		break;
+	case KEY_F8:
+		strcat(key_str, "F8");
+		break;
+	case KEY_F9:
+		strcat(key_str, "F9");
+		break;
+	case KEY_F10:
+		strcat(key_str, "F10");
+		break;
+	case KEY_F11:
+		strcat(key_str, "F11");
+		break;
+	case KEY_F12:
+		strcat(key_str, "F12");
+		break;
+	case KEY_PRTSCR:
+		strcat(key_str, "PrintScreen");
+		break;
+	case KEY_SCRLCK:
+		strcat(key_str, "ScrollLock");
+		break;
+	case KEY_PAUSE:
+		strcat(key_str, "Pause");
+		break;
+	case KEY_INSERT:
+		strcat(key_str, "Insert");
+		break;
+	case KEY_DELETE:
+		strcat(key_str, "Delete");
+		break;
+	case KEY_HOME:
+		strcat(key_str, "Home");
+		break;
+	case KEY_END:
+		strcat(key_str, "End");
+		break;
+	case KEY_PGUP:
+		strcat(key_str, "PageUp");
+		break;
+	case KEY_PGDOWN:
+		strcat(key_str, "PageDown");
+		break;
+	case KEY_LARROW:
+		strcat(key_str, "Left");
+		break;
+	case KEY_RARROW:
+		strcat(key_str, "Right");
+		break;
+	case KEY_UARROW:
+		strcat(key_str, "Up");
+		break;
+	case KEY_DARROW:
+		strcat(key_str, "Down");
+		break;
+	case KEY_NUMLOCK:
+		strcat(key_str, "NumLock");
+		break;
+	case KEY_NUMDIV:
+		strcat(key_str, "NumDiv");
+		break;
+	case KEY_NUMMULT:
+		strcat(key_str, "NumMult");
+		break;
+	case KEY_NUMMINUS:
+		strcat(key_str, "NumMinus");
+		break;
+	case KEY_NUMPLUS:
+		strcat(key_str, "NumPlus");
+		break;
+	case KEY_NUMENTER:
+		strcat(key_str, "NumEnter");
+		break;
+	case KEY_NUMDOT:
+		strcat(key_str, "NumDot");
+		break;
+	case KEY_NUM0:
+		strcat(key_str, "Num0");
+		break;
+	case KEY_NUM1:
+		strcat(key_str, "Num1");
+		break;
+	case KEY_NUM2:
+		strcat(key_str, "Num2");
+		break;
+	case KEY_NUM3:
+		strcat(key_str, "Num3");
+		break;
+	case KEY_NUM4:
+		strcat(key_str, "Num4");
+		break;
+	case KEY_NUM5:
+		strcat(key_str, "Num5");
+		break;
+	case KEY_NUM6:
+		strcat(key_str, "Num6");
+		break;
+	case KEY_NUM7:
+		strcat(key_str, "Num7");
+		break;
+	case KEY_NUM8:
+		strcat(key_str, "Num8");
+		break;
+	case KEY_NUM9:
+		strcat(key_str, "Num9");
+		break;
+	default:
+		break;
+	}
+
 	return key_str;
 }
 
@@ -60,7 +222,15 @@ static const uint32_t x11_keysyms[] = {
 	XK_s, XK_d, XK_f, XK_g, XK_h, XK_j, XK_k, XK_l, XK_z, XK_x, XK_c, XK_v,
 	XK_b, XK_n, XK_m, XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9,
 	XK_0, XK_grave, XK_minus, XK_equal, XK_bracketleft, XK_bracketright,
-	XK_backslash, XK_semicolon, XK_apostrophe, XK_comma, XK_period, XK_slash
+	XK_backslash, XK_semicolon, XK_apostrophe, XK_comma, XK_period,
+	XK_slash, XK_space, XK_Escape, XK_BackSpace, XK_Tab, XK_Caps_Lock,
+	XK_Return, XK_Shift_L, XK_Control_L, XK_Super_L, XK_Alt_L, XK_F1, XK_F2,
+	XK_F3, XK_F4, XK_F5, XK_F6, XK_F7, XK_F8, XK_F9, XK_F10, XK_F11, XK_F12,
+	XK_Print, XK_Scroll_Lock, XK_Pause, XK_Insert, XK_Delete, XK_Home,
+	XK_End, XK_Page_Up, XK_Page_Down, XK_Left, XK_Right, XK_Up, XK_Down,
+	XK_Num_Lock, XK_KP_Divide, XK_KP_Multiply, XK_KP_Subtract, XK_KP_Add,
+	XK_KP_Enter, XK_KP_Decimal, XK_KP_0, XK_KP_1, XK_KP_2, XK_KP_3, XK_KP_4,
+	XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8, XK_KP_9
 };
 
 unsigned int kbm_to_keysym(uint8_t keycode)
