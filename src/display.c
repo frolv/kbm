@@ -44,6 +44,7 @@ static xcb_key_symbols_t *keysyms;
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
+/* hook for keyboard input */
 HHOOK hook;
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
@@ -257,41 +258,32 @@ void start_loop()
 void send_button(enum buttons button)
 {
 	INPUT ip;
+	unsigned int dnflags, upflags;
 
 	ip.type = INPUT_MOUSE;
-
 	memset(&ip.mi, 0, sizeof(ip.mi));
 
-	/* send the button press event */
 	switch (button) {
 	case KBM_BUTTON_LEFT:
-		ip.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+		dnflags = MOUSEEVENTF_LEFTDOWN;
+		upflags = MOUSEEVENTF_LEFTUP;
 		break;
 	case KBM_BUTTON_MIDDLE:
-		ip.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+		dnflags = MOUSEEVENTF_MIDDLEDOWN;
+		upflags = MOUSEEVENTF_MIDDLEUP;
 		break;
 	case KBM_BUTTON_RIGHT:
-		ip.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+		dnflags = MOUSEEVENTF_RIGHTDOWN;
+		upflags = MOUSEEVENTF_RIGHTUP;
 		break;
 	default:
 		break;
 	}
-	SendInput(1, &ip, sizeof(ip));
 
-	/* send the button release event */
-	switch (button) {
-	case KBM_BUTTON_LEFT:
-		ip.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-		break;
-	case KBM_BUTTON_MIDDLE:
-		ip.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-		break;
-	case KBM_BUTTON_RIGHT:
-		ip.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
-		break;
-	default:
-		break;
-	}
+	/* send the button press and release events */
+	ip.mi.dwFlags = dnflags;
+	SendInput(1, &ip, sizeof(ip));
+	ip.mi.dwFlags = upflags;
 	SendInput(1, &ip, sizeof(ip));
 }
 
@@ -304,6 +296,7 @@ void move_cursor(int x, int y)
 	SetCursorPos(pt.x + x, pt.y + y);
 }
 
+/* kbproc: process a keyboard event */
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	KBDLLHOOKSTRUCT *kb;
@@ -315,7 +308,8 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	kb = (KBDLLHOOKSTRUCT *)lParam;
 	kc = kb->vkCode;
-	if (kc == 0x0D && kb->flags & 1)
+	/* return key sent with lowest bit of flags set is NumEnter */
+	if (kc == VK_RETURN && kb->flags & 1)
 		kc = 0x6C;
 
 	check_modifiers(&mods);
@@ -338,6 +332,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hook, nCode, wParam, lParam);
 }
 
+/* check_modifiers: check active modifiers and set mods to their bitmasks */
 static void check_modifiers(unsigned int *mods)
 {
 	*mods = 0;
@@ -351,7 +346,6 @@ static void check_modifiers(unsigned int *mods)
 		*mods |= MOD_WIN;
 }
 
-/* map_keys: register all provided hotkeys */
 static void map_keys(struct hotkey *head)
 {
 	if (head->op != OP_TOGGLE)
