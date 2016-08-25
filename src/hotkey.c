@@ -91,6 +91,12 @@ int process_hotkey(struct hotkey *hk)
 		printf("OPERATION: jump %d %d\n", x, y);
 		move_cursor(x, y);
 		return 0;
+	case OP_KEY:
+		/* key operation: simulate a keypress */
+		x = hk->opargs & 0xFFFF;
+		y = (hk->opargs >> 16) & 0xFFFF;
+		printf("OPERATION: key %s\n", keystr(x, y));
+		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */
 		printf("OPERATION: toggle\n");
