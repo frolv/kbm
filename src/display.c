@@ -48,6 +48,7 @@ static xcb_key_symbols_t *keysyms;
 HHOOK hook;
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 #endif
 
@@ -312,6 +313,12 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (kc == VK_RETURN && kb->flags & 1)
 		kc = 0x6C;
 
+	/* differentiate between numpad keys with numlock off and normal keys */
+	if (kc >= VK_PRIOR && kc <= VK_DELETE) {
+		if (!(kb->flags & 1))
+			kc = numpad_keycode(kc);
+	}
+
 	check_modifiers(&mods);
 
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
@@ -326,10 +333,38 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 			return 1;
 		}
 	} else {
-		printf("up: 0x%02X\n", kc);
+		/* for future use */
 	}
 
 	return CallNextHookEx(hook, nCode, wParam, lParam);
+}
+
+static unsigned int numpad_keycode(unsigned int kc)
+{
+	switch (kc) {
+	case VK_DELETE:
+		return kbm_to_win32(KEY_NUMDEL);
+	case VK_INSERT:
+		return kbm_to_win32(KEY_NUMINS);
+	case VK_END:
+		return kbm_to_win32(KEY_NUMEND);
+	case VK_DOWN:
+		return kbm_to_win32(KEY_NUMDOWN);
+	case VK_NEXT:
+		return kbm_to_win32(KEY_NUMPGDN);
+	case VK_LEFT:
+		return kbm_to_win32(KEY_NUMLEFT);
+	case VK_RIGHT:
+		return kbm_to_win32(KEY_NUMRIGHT);
+	case VK_HOME:
+		return kbm_to_win32(KEY_NUMHOME);
+	case VK_UP:
+		return kbm_to_win32(KEY_NUMUP);
+	case VK_PRIOR:
+		return kbm_to_win32(KEY_NUMPGUP);
+	default:
+		return kc;
+	}
 }
 
 /* check_modifiers: check active modifiers and set mods to their bitmasks */

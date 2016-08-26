@@ -122,17 +122,30 @@
 #define KEY_NUMMINUS	0x56
 #define KEY_NUMPLUS	0x57
 #define KEY_NUMENTER	0x58
-#define KEY_NUMDEC	0x59
-#define KEY_NUM0	0x5A
-#define KEY_NUM1	0x5B
-#define KEY_NUM2	0x5C
-#define KEY_NUM3	0x5D
-#define KEY_NUM4	0x5E
-#define KEY_NUM5	0x5F
-#define KEY_NUM6	0x60
-#define KEY_NUM7	0x61
-#define KEY_NUM8	0x62
-#define KEY_NUM9	0x63
+/* num lock off */
+#define KEY_NUMDEL	0x59
+#define KEY_NUMINS	0x5A
+#define KEY_NUMEND	0x5B
+#define KEY_NUMDOWN	0x5C
+#define KEY_NUMPGDN	0x5D
+#define KEY_NUMLEFT	0x5E
+#define KEY_NUMCLEAR	0x5F
+#define KEY_NUMRIGHT	0x60
+#define KEY_NUMHOME	0x61
+#define KEY_NUMUP	0x62
+#define KEY_NUMPGUP	0x63
+/* num lock on */
+#define KEY_NUMDEC	0x64
+#define KEY_NUM0	0x65
+#define KEY_NUM1	0x66
+#define KEY_NUM2	0x67
+#define KEY_NUM3	0x68
+#define KEY_NUM4	0x69
+#define KEY_NUM5	0x6A
+#define KEY_NUM6	0x6B
+#define KEY_NUM7	0x6C
+#define KEY_NUM8	0x6D
+#define KEY_NUM9	0x6E
 
 
 /* Bitmasks for the various modifier keys */

@@ -56,6 +56,10 @@ int main(int argc, char **argv)
 	add_hotkey(&head, create_hotkey(KEY_BTICK, 0, OP_TOGGLE, 0));
 	add_hotkey(&head, create_hotkey(KEY_E, KBM_CTRL_MASK, OP_QUIT, 0));
 	add_hotkey(&head, create_hotkey(KEY_BSLASH, 0, OP_KEY, key));
+	/* numpad testing */
+	add_hotkey(&head, create_hotkey(KEY_NUM5, 0, OP_CLICK, 0));
+	add_hotkey(&head, create_hotkey(KEY_NUMCLEAR, 0, OP_RCLICK, 0));
+	add_hotkey(&head, create_hotkey(KEY_NUMENTER, 0, OP_QUIT, 0));
 
 	init_display();
 	load_keys(head);
