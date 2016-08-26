@@ -311,7 +311,7 @@ void send_button(unsigned int button)
 		upflags = MOUSEEVENTF_RIGHTUP;
 		break;
 	default:
-		break;
+		return;
 	}
 
 	/* send the button press and release events */
@@ -487,7 +487,7 @@ void send_button(unsigned int button)
 		mb = kCGMouseButtonRight;
 		break;
 	default:
-		break;
+		return;
 	}
 
 	downevent = CGEventCreateMouseEvent(NULL, dtype, pos, mb);
