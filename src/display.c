@@ -38,6 +38,8 @@ static xcb_window_t root;
 
 /* X11 keysyms */
 static xcb_key_symbols_t *keysyms;
+
+static int isnummod(unsigned int keysym);
 #endif
 
 
@@ -118,8 +120,16 @@ void start_loop()
 			evt = (xcb_key_press_event_t *)e;
 			ks = xcb_key_press_lookup_keysym(keysyms, evt, 0);
 
-			/* unset the caps lock and num lock bits */
-			evt->state &= ~(XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2);
+			/*
+			 * If the key is not a numpad key, unset the Num Lock
+			 * bit as it is irrelevant. If it is a numpad key, the
+			 * Num Lock bit differentiates between the key's two
+			 * functions.
+			 */
+			if (!isnummod(ks))
+				evt->state &= ~XCB_MOD_MASK_2;
+			/* unset the caps lock bit for every key */
+			evt->state &= ~XCB_MOD_MASK_LOCK;
 
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
 					&& !(hk = find_by_os_code(toggles,
@@ -168,8 +178,10 @@ static void map_keys(struct hotkey *head)
 
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
-		cookie = xcb_grab_key_checked(conn, 1, root, head->os_modmask,
-				kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		cookie = xcb_grab_key_checked(conn, 1, root,
+				head->os_modmask, kc[0],
+				XCB_GRAB_MODE_ASYNC,
+				XCB_GRAB_MODE_ASYNC);
 
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
@@ -227,6 +239,27 @@ static void unmap_keys(struct hotkey *head)
 	}
 	xcb_flush(conn);
 	keys_active = 0;
+}
+
+/* isnummod: check if a key is modifiable through num lock */
+static int isnummod(unsigned int keysym)
+{
+	switch (keysym) {
+	case XK_KP_Delete:
+	case XK_KP_Insert:
+	case XK_KP_End:
+	case XK_KP_Down:
+	case XK_KP_Next:
+	case XK_KP_Left:
+	case XK_KP_Begin:
+	case XK_KP_Right:
+	case XK_KP_Home:
+	case XK_KP_Up:
+	case XK_KP_Prior:
+		return 1;
+	default:
+		return 0;
+	}
 }
 #endif /* __linux__ */
 

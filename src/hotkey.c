@@ -117,6 +117,13 @@ static void get_os_codes(struct hotkey *hk)
 #ifdef __linux__
 	hk->os_code = kbm_to_keysym(hk->kbm_code);
 	hk->os_modmask = kbm_to_xcb_masks(hk->kbm_modmask);
+
+	/*
+	 * The keys NUMDEC through NUM9 are only accessible when Num Lock is
+	 * on. Set the Num Lock bit to active to indicate this.
+	 */
+	if (hk->kbm_code >= KEY_NUMDEC)
+		hk->os_modmask |= XCB_MOD_MASK_2;
 #endif
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
