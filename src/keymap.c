@@ -270,7 +270,7 @@ static const uint32_t x11_keysyms[] = {
 	XK_Num_Lock, XK_KP_Divide, XK_KP_Multiply, XK_KP_Subtract, XK_KP_Add,
 	XK_KP_Enter, XK_KP_Delete, XK_KP_Insert, XK_KP_End, XK_KP_Down,
 	XK_KP_Next, XK_KP_Left, XK_KP_Begin, XK_KP_Right, XK_KP_Home, XK_KP_Up,
-	XK_KP_Prior, XP_KP_Decimal, XK_KP_0, XK_KP_1, XK_KP_2, XK_KP_3, XK_KP_4,
+	XK_KP_Prior, XK_KP_Decimal, XK_KP_0, XK_KP_1, XK_KP_2, XK_KP_3, XK_KP_4,
 	XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8, XK_KP_9
 };
 
