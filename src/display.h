@@ -21,7 +21,7 @@
 
 #include "hotkey.h"
 
-enum buttons {
+enum {
 	KBM_BUTTON_LEFT		= 1,
 	KBM_BUTTON_MIDDLE	= 2,
 	KBM_BUTTON_RIGHT	= 3
@@ -44,7 +44,7 @@ void load_keys(struct hotkey *head);
 void unload_keys();
 
 /* send_button: send a button event */
-void send_button(enum buttons button);
+void send_button(unsigned int button);
 
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y);

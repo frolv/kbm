@@ -142,7 +142,7 @@ void start_loop()
 }
 
 /* send_button: send a button event */
-void send_button(enum buttons button)
+void send_button(unsigned int button)
 {
 	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button,
 			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
@@ -255,7 +255,7 @@ void start_loop()
 	}
 }
 
-void send_button(enum buttons button)
+void send_button(unsigned int button)
 {
 	INPUT ip;
 	unsigned int dnflags, upflags;
@@ -391,7 +391,7 @@ void start_loop()
 	CFRunLoopRun();
 }
 
-void send_button(enum buttons button)
+void send_button(unsigned int button)
 {
 	CGEventRef posevent, downevent, upevent;
 	CGPoint pos;
