@@ -270,7 +270,8 @@ static const uint32_t x11_keysyms[] = {
 	XK_Num_Lock, XK_KP_Divide, XK_KP_Multiply, XK_KP_Subtract, XK_KP_Add,
 	XK_KP_Enter, XK_KP_Delete, XK_KP_Insert, XK_KP_End, XK_KP_Down,
 	XK_KP_Next, XK_KP_Left, XK_KP_Begin, XK_KP_Right, XK_KP_Home, XK_KP_Up,
-	XK_KP_Prior
+	XK_KP_Prior, XP_KP_Decimal, XK_KP_0, XK_KP_1, XK_KP_2, XK_KP_3, XK_KP_4,
+	XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8, XK_KP_9
 };
 
 unsigned int kbm_to_keysym(uint8_t keycode)
@@ -297,7 +298,7 @@ unsigned int kbm_to_xcb_masks(uint8_t modmask)
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 /*
- * Give numpad Insert and Delete in unassigned keycodes 0x88 and 0x89 and numpad
+ * Give numpad Insert and Delete unassigned keycodes 0x88 and 0x89 and numpad
  * End through PageUp keycodes 0x97 through 0x9E (excluding NumClear which is
  * already mapped to 0x0C).
  */
@@ -352,7 +353,15 @@ static const uint32_t osx_keycodes[] = {
 	kVK_Option, kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7,
 	kVK_F8, kVK_F9, kVK_F10, kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15,
 	kVK_Help, kVK_ForwardDelete, kVK_Home, kVK_End, kVK_PageUp,
-	kVK_PageDown, kVK_LeftArrow, kVK_RightArrow, kVK_DownArrow, kVK_UpArrow
+	kVK_PageDown, kVK_LeftArrow, kVK_RightArrow, kVK_DownArrow, kVK_UpArrow,
+	kVK_ANSI_KeypadClear, kVK_ANSI_KeypadDivide, kVK_ANSI_KeypadMultiply,
+	kVK_ANSI_KeypadMinus, kVK_ANSI_KeypadPlus, kVK_ANSI_KeypadEnter,
+	kVK_ANSI_KeypadDecimal, kVK_ANSI_Keypad0, kVK_ANSI_Keypad1,
+	kVK_ANSI_Keypad2, kVK_ANSI_Keypad3, kVK_ANSI_Keypad4, kVK_ANSI_Keypad5,
+	kVK_ANSI_Keypad6, kVK_ANSI_Keypad7, kVK_ANSI_Keypad8, kVK_ANSI_Keypad9,
+	kVK_ANSI_KeypadDecimal, kVK_ANSI_Keypad0, kVK_ANSI_Keypad1,
+	kVK_ANSI_Keypad2, kVK_ANSI_Keypad3, kVK_ANSI_Keypad4, kVK_ANSI_Keypad5,
+	kVK_ANSI_Keypad6, kVK_ANSI_Keypad7, kVK_ANSI_Keypad8, kVK_ANSI_Keypad9,
 };
 
 unsigned int kbm_to_carbon(uint8_t keycode)
