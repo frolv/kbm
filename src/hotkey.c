@@ -22,6 +22,19 @@
 #include "kbm.h"
 #include "keymap.h"
 
+#ifdef __linux__
+#define OSCODE(x) kbm_to_keysym(x)
+#define OSMASK(x) kbm_to_xcb_masks(x)
+#endif
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#define OSCODE(x) kbm_to_win32(x)
+#define OSMASK(x) kbm_to_win_masks(x)
+#endif
+#ifdef __APPLE__
+#define OSCODE(x) kbm_to_carbon(x)
+#define OSMASK(x) kbm_to_osx_masks(x)
+#endif
+
 static void get_os_codes(struct hotkey *hk);
 
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
@@ -67,9 +80,16 @@ void free_keys(struct hotkey *head)
 	free(head);
 }
 
-int process_hotkey(struct hotkey *hk)
+int process_hotkey(struct hotkey *hk, unsigned int type)
 {
 	int x, y;
+
+	if (type == KBM_RELEASE) {
+		/* send a release event for a key mapping on key release */
+		if (hk->op == OP_KEY)
+			send_key(OSCODE(hk->opargs), type);
+		return 0;
+	}
 
 	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
@@ -93,9 +113,8 @@ int process_hotkey(struct hotkey *hk)
 		return 0;
 	case OP_KEY:
 		/* key operation: simulate a keypress */
-		x = hk->opargs & 0xFFFF;
-		y = (hk->opargs >> 16) & 0xFFFF;
-		printf("OPERATION: key %s\n", keystr(x, y));
+		printf("OPERATION: key %s\n", keystr(hk->opargs, 0));
+		send_key(OSCODE(hk->opargs), type);
 		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */
@@ -114,25 +133,15 @@ int process_hotkey(struct hotkey *hk)
 /* get_os_codes: load os-specific keycodes and mod masks into hk */
 static void get_os_codes(struct hotkey *hk)
 {
-#ifdef __linux__
-	hk->os_code = kbm_to_keysym(hk->kbm_code);
-	hk->os_modmask = kbm_to_xcb_masks(hk->kbm_modmask);
+	hk->os_code = OSCODE(hk->kbm_code);
+	hk->os_modmask = OSMASK(hk->kbm_modmask);
 
+#ifdef __linux__
 	/*
 	 * The keys NUMDEC through NUM9 are only accessible when Num Lock is
 	 * on. Set the Num Lock bit to active to indicate this.
 	 */
 	if (hk->kbm_code >= KEY_NUMDEC)
 		hk->os_modmask |= XCB_MOD_MASK_2;
-#endif
-
-#if defined(__CYGWIN__) || defined (__MINGW32__)
-	hk->os_code = kbm_to_win32(hk->kbm_code);
-	hk->os_modmask = kbm_to_win_masks(hk->kbm_modmask);
-#endif
-
-#ifdef __APPLE__
-	hk->os_code = kbm_to_carbon(hk->kbm_code);
-	hk->os_modmask = kbm_to_osx_masks(hk->kbm_modmask);
 #endif
 }

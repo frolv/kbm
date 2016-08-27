@@ -142,8 +142,29 @@ void start_loop()
 				free(e);
 				continue;
 			}
-			if (process_hotkey(hk) == -1)
+			if (process_hotkey(hk, 0) == -1)
 				running = 0;
+			break;
+		case XCB_KEY_RELEASE:
+			evt = (xcb_key_press_event_t *)e;
+			ks = xcb_key_press_lookup_keysym(keysyms, evt, 0);
+
+			if (!isnummod(ks))
+				evt->state &= ~XCB_MOD_MASK_2;
+			evt->state &= ~XCB_MOD_MASK_LOCK;
+
+			if (!(hk = find_by_os_code(actions, ks, evt->state))
+					&& !(hk = find_by_os_code(toggles,
+							ks, evt->state))) {
+				/*
+				 * This sometimes happens when keys are
+				 * pressed in quick succession.
+				 * The event should be sent back out.
+				 */
+				free(e);
+				continue;
+			}
+			process_hotkey(hk, 1);
 			break;
 		default:
 			break;
@@ -160,6 +181,23 @@ void send_button(unsigned int button)
 	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button,
 			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	xcb_flush(conn);
+}
+
+/* send_key: send a key event */
+void send_key(unsigned int keycode, unsigned int type)
+{
+	xcb_keycode_t *kc;
+
+	kc = xcb_key_symbols_get_keycode(keysyms, keycode);
+	if (type == KBM_PRESS) {
+		xcb_test_fake_input(conn, XCB_KEY_PRESS, kc[0],
+				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	} else {
+		xcb_test_fake_input(conn, XCB_KEY_RELEASE, kc[0],
+				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		xcb_flush(conn);
+	}
+	free(kc);
 }
 
 /* move_cursor: move cursor along vector x,y from current position */

@@ -46,6 +46,9 @@ void unload_keys();
 /* send_button: send a button event */
 void send_button(unsigned int button);
 
+/* send_key: send a key event */
+void send_key(unsigned int keycode, unsigned int type);
+
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y);
 

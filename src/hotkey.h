@@ -31,6 +31,10 @@
 #define OP_QUIT		0xA5
 #define OP_EXEC		0xA6
 
+/* keypress and key release */
+#define KBM_PRESS	0x00
+#define KBM_RELEASE	0x01
+
 struct hotkey {
 	uint8_t kbm_code;	/* the kbm keycode of the hotkey */
 	uint8_t kbm_modmask;	/* kbm modifier masks */
@@ -50,6 +54,6 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 void add_hotkey(struct hotkey **head, struct hotkey *hk);
 void free_keys(struct hotkey *head);
 
-int process_hotkey(struct hotkey *hk);
+int process_hotkey(struct hotkey *hk, unsigned int type);
 
 #endif /* KBM_HOTKEY_H */
