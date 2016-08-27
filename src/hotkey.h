@@ -42,9 +42,6 @@ struct hotkey {
 	uint32_t os_modmask;	/* os-specific modifier masks */
 	uint8_t op;		/* the operation to perform when key pressed */
 	uint64_t opargs;	/* arguments for the operation */
-#if defined(__CYGWIN__) || defined (__MINGW32__)
-	uint8_t id;		/* ID for RegisterHotKey function */
-#endif
 	struct hotkey *next;	/* next key binding */
 };
 
