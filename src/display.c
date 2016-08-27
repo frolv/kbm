@@ -184,7 +184,7 @@ void send_button(unsigned int button)
 }
 
 /* send_key: send a key event */
-void send_key(unsigned int keycode, unsigned int type)
+void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 {
 	xcb_keycode_t *kc;
 

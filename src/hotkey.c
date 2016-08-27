@@ -73,8 +73,11 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 
 	if (type == KBM_RELEASE) {
 		/* send a release event for a key mapping on key release */
-		if (hk->op == OP_KEY)
-			send_key(OSCODE(hk->opargs), type);
+		if (hk->op == OP_KEY) {
+			x = hk->opargs & 0xFFFFFFFF;
+			y = (hk->opargs >> 32) & 0xFFFFFFFF;
+			send_key(OSCODE(x), OSMASK(y), type);
+		}
 		return 0;
 	}
 
@@ -100,8 +103,11 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 		return 0;
 	case OP_KEY:
 		/* key operation: simulate a keypress */
-		printf("OPERATION: key %s\n", keystr(hk->opargs, 0));
-		send_key(OSCODE(hk->opargs), type);
+		/* keycode is stored in lower 32 bits, modmask in upper 32 */
+		x = hk->opargs & 0xFFFFFFFF;
+		y = (hk->opargs >> 32) & 0xFFFFFFFF;
+		printf("OPERATION: key %s\n", keystr(x, y));
+		send_key(OSCODE(x), OSMASK(y), type);
 		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */
