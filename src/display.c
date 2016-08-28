@@ -186,18 +186,64 @@ void send_button(unsigned int button)
 /* send_key: send a key event */
 void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 {
-	xcb_keycode_t *kc;
+	xcb_keycode_t *kc, *mod;
 
 	kc = xcb_key_symbols_get_keycode(keysyms, keycode);
+	mod = NULL;
 	if (type == KBM_PRESS) {
+		/* press all required modifier keys */
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_SHIFT)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
+			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_CONTROL)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
+			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_4)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
+			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_1)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
+			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		/* press the requested key */
 		xcb_test_fake_input(conn, XCB_KEY_PRESS, kc[0],
 				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	} else {
+		/* release the requested keys and then all modifiers */
 		xcb_test_fake_input(conn, XCB_KEY_RELEASE, kc[0],
 				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_SHIFT)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
+			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_CONTROL)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
+			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_4)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
+			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
+		if (CHECK_MOD(modmask, XCB_MOD_MASK_1)) {
+			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
+			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
+					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		}
 		xcb_flush(conn);
 	}
 	free(kc);
+	if (mod)
+		free(mod);
 }
 
 /* move_cursor: move cursor along vector x,y from current position */

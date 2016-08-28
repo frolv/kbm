@@ -45,7 +45,9 @@ int main(int argc, char **argv)
 	uint64_t jump = 55;
 	uint32_t *y = ((uint32_t *)&jump) + 1;
 	*y = 210;
-	uint64_t key = KEY_S;
+	uint64_t key = KEY_U;
+	y = ((uint32_t *)&key) + 1;
+	*y = KBM_CTRL_MASK;
 
 	add_hotkey(&head, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, jump));
