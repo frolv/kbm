@@ -419,7 +419,7 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	INPUT key;
 
 	/*
-	 * If the key is a modifier, it is sent as a fake modifier so that 
+	 * If the key is a modifier, it is sent as a fake modifier so that
 	 * it can be distinguished from physically held modifier keys.
 	 */
 	if (keycode == VK_SHIFT || keycode == VK_CONTROL
