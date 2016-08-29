@@ -49,9 +49,17 @@ static int isnummod(unsigned int keysym);
 /* hook for keyboard input */
 HHOOK hook;
 
+/*
+ * Track fake modifier keypresses and releases sent by the program.
+ * These are ignored when looking up active modifiers during a key release.
+ */
+static int fake_mods[4] = { 0, 0, 0, 0 };
+
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
 static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
+static void unset_fake_mods(unsigned int *mods);
+static void send_fake_mod(unsigned int keycode, int type);
 #endif
 
 
@@ -405,6 +413,36 @@ void send_button(unsigned int button)
 	SendInput(1, &ip, sizeof(ip));
 }
 
+/* send_key: send a key event */
+void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
+{
+	INPUT key;
+
+	key.type = INPUT_KEYBOARD;
+	memset(&key.ki, 0, sizeof(key.ki));
+	key.ki.wVk = keycode;
+
+	if (type == KBM_RELEASE)
+		key.ki.dwFlags = KEYEVENTF_KEYUP;
+
+	/* release key before mods */
+	if (type == KBM_RELEASE)
+		SendInput(1, &key, sizeof(key));
+
+	if (CHECK_MOD(modmask, MOD_SHIFT))
+		send_fake_mod(VK_SHIFT, type);
+	if (CHECK_MOD(modmask, MOD_CONTROL))
+		send_fake_mod(VK_CONTROL, type);
+	if (CHECK_MOD(modmask, MOD_ALT))
+		send_fake_mod(VK_MENU, type);
+	if (CHECK_MOD(modmask, MOD_WIN))
+		send_fake_mod(VK_LWIN, type);
+
+	/* press key after mods (of course) */
+	if (type == KBM_PRESS)
+		SendInput(1, &key, sizeof(key));
+}
+
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y)
 {
@@ -440,17 +478,23 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
-			if (process_hotkey(hk) == -1)
+			if (process_hotkey(hk, 0) == -1)
 				PostQuitMessage(0);
 			/* prevent the event from propagating further */
 			return 1;
 		}
 		if ((hk = find_by_os_code(toggles, kc, mods))) {
-			process_hotkey(hk);
+			process_hotkey(hk, 0);
 			return 1;
 		}
 	} else {
-		/* for future use */
+		/* explanatory comment */
+		unset_fake_mods(&mods);
+		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
+			process_hotkey(hk, 1);
+			/* prevent the event from propagating further */
+			return 1;
+		}
 	}
 
 	return CallNextHookEx(hook, nCode, wParam, lParam);
@@ -496,6 +540,52 @@ static void check_modifiers(unsigned int *mods)
 		*mods |= MOD_ALT;
 	if (GetKeyState(VK_LWIN) & 0x8000 || GetKeyState(VK_RWIN) & 0x8000)
 		*mods |= MOD_WIN;
+}
+
+static void unset_fake_mods(unsigned int *mods)
+{
+	if (fake_mods[0])
+		*mods &= ~MOD_SHIFT;
+	if (fake_mods[1])
+		*mods &= ~MOD_CONTROL;
+	if (fake_mods[2])
+		*mods &= ~MOD_ALT;
+	if (fake_mods[3])
+		*mods &= ~MOD_WIN;
+}
+
+/* send_fake_mod: send a fake modifier key event */
+static void send_fake_mod(unsigned int keycode, int type)
+{
+	INPUT mod;
+	size_t i;
+
+	mod.type = INPUT_KEYBOARD;
+	memset(&mod.ki, 0, sizeof(mod.ki));
+	mod.ki.wVk = keycode;
+
+	switch (keycode) {
+	case VK_SHIFT:
+		i = 0;
+		break;
+	case VK_CONTROL:
+		i = 1;
+		break;
+	case VK_MENU:
+		i = 2;
+		break;
+	case VK_LWIN:
+		i = 3;
+		break;
+	default:
+		return;
+	}
+
+	if (type == KBM_RELEASE)
+		mod.ki.dwFlags = KEYEVENTF_KEYUP;
+
+	SendInput(1, &mod, sizeof(mod));
+	fake_mods[i] = type == KBM_PRESS;
 }
 
 static void map_keys(struct hotkey *head)
