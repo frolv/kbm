@@ -418,6 +418,16 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 {
 	INPUT key;
 
+	/*
+	 * If the key is a modifier, it is sent as a fake modifier so that 
+	 * it can be distinguished from physically held modifier keys.
+	 */
+	if (keycode == VK_SHIFT || keycode == VK_CONTROL
+			|| keycode == VK_MENU || keycode == VK_LWIN) {
+		send_fake_mod(keycode, type);
+		return;
+	}
+
 	key.type = INPUT_KEYBOARD;
 	memset(&key.ki, 0, sizeof(key.ki));
 	key.ki.wVk = keycode;
@@ -488,7 +498,10 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 			return 1;
 		}
 	} else {
-		/* explanatory comment */
+		/*
+		 * Fake modifiers sent by the program should
+		 * be ignored when keys are released.
+		 */
 		unset_fake_mods(&mods);
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
 			process_hotkey(hk, 1);
