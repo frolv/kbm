@@ -36,19 +36,23 @@
 #define KBM_RELEASE	0x01
 
 struct hotkey {
-	uint8_t kbm_code;	/* the kbm keycode of the hotkey */
-	uint8_t kbm_modmask;	/* kbm modifier masks */
-	uint32_t os_code;	/* the os-specific keycode of the hotkey */
-	uint32_t os_modmask;	/* os-specific modifier masks */
-	uint8_t op;		/* the operation to perform when key pressed */
-	uint64_t opargs;	/* arguments for the operation */
-	struct hotkey *next;	/* next key binding */
+	uint8_t		kbm_code;	/* kbm keycode of the hotkey */
+	uint8_t		kbm_modmask;	/* kbm modifier masks */
+	uint32_t	os_code;	/* os-specific keycode of the hotkey */
+	uint32_t	os_modmask;	/* os-specific modifier masks */
+	uint8_t		op;		/* operation to perform on keypress */
+	uint64_t	opargs;		/* arguments for the operation */
+	struct hotkey	*next;		/* next key binding */
 };
 
+/* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
 		uint8_t op, uint64_t opargs);
 
+/* add_hotkey: append hotkey hk to the end of list head */
 void add_hotkey(struct hotkey **head, struct hotkey *hk);
+
+/* free_keys: free all hotkeys in list head */
 void free_keys(struct hotkey *head);
 
 int process_hotkey(struct hotkey *hk, unsigned int type);

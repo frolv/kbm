@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include "keymap.h"
 
@@ -23,17 +24,16 @@ static char key_str[64];
 
 /*
  * String of all single character keys, in the order they are defined in
- * keymap.h. The location of a key in the string can be found by multiplying
- * its keycode by 2.
+ * keymap.h. The location of a key in the string is equivalent to its keycode.
  */
 static const char *SINGLE_KEYS =
-"z\0Q\0W\0E\0R\0T\0Y\0U\0I\0O\0P\0A\0S\0D\0F\0G\0H\0J\0K\0L\0Z\0X\0C\0V\0B\0N\0"
-"M\0" "1\0" "2\0" "3\0" "4\0" "5\0" "6\0" "7\0" "8\0" "9\0" "0\0`\0-\0=\0[\0]\0"
-"\\\0;\0'\0,\0.\0/\0";
+"_QWERTYUIOPASDFGHJKLZXCVBNM1234567890`-=[]\\;'./";
 
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(uint8_t keycode, uint8_t mask)
 {
+	char *s;
+
 	key_str[0] = '\0';
 
 	if (CHECK_MOD(mask, KBM_CTRL_MASK))
@@ -45,201 +45,202 @@ char *keystr(uint8_t keycode, uint8_t mask)
 	if (CHECK_MOD(mask, KBM_SHIFT_MASK))
 		strcat(key_str, "Shift-");
 
+	s = strchr(key_str, '\0');
 	if (keycode <= KEY_FSLASH) {
-		strcat(key_str, SINGLE_KEYS + (keycode << 1));
+		sprintf(s, "%c", SINGLE_KEYS[keycode]);
 		return key_str;
 	}
 
 	/* I love vim macros */
 	switch (keycode) {
 	case KEY_SPACE:
-		strcat(key_str, "Space");
+		strcat(s, "Space");
 		break;
 	case KEY_ESCAPE:
-		strcat(key_str, "Escape");
+		strcat(s, "Escape");
 		break;
 	case KEY_BSPACE:
-		strcat(key_str, "Backspace");
+		strcat(s, "Backspace");
 		break;
 	case KEY_TAB:
-		strcat(key_str, "Tab");
+		strcat(s, "Tab");
 		break;
 	case KEY_CAPS:
-		strcat(key_str, "CapsLock");
+		strcat(s, "CapsLock");
 		break;
 	case KEY_ENTER:
-		strcat(key_str, "Enter");
+		strcat(s, "Enter");
 		break;
 	case KEY_SHIFT:
-		strcat(key_str, "Shift");
+		strcat(s, "Shift");
 		break;
 	case KEY_CTRL:
-		strcat(key_str, "Control");
+		strcat(s, "Control");
 		break;
 	case KEY_SUPER:
-		strcat(key_str, "Super");
+		strcat(s, "Super");
 		break;
 	case KEY_META:
-		strcat(key_str, "Meta");
+		strcat(s, "Alt");
 		break;
 	case KEY_F1:
-		strcat(key_str, "F1");
+		strcat(s, "F1");
 		break;
 	case KEY_F2:
-		strcat(key_str, "F2");
+		strcat(s, "F2");
 		break;
 	case KEY_F3:
-		strcat(key_str, "F3");
+		strcat(s, "F3");
 		break;
 	case KEY_F4:
-		strcat(key_str, "F4");
+		strcat(s, "F4");
 		break;
 	case KEY_F5:
-		strcat(key_str, "F5");
+		strcat(s, "F5");
 		break;
 	case KEY_F6:
-		strcat(key_str, "F6");
+		strcat(s, "F6");
 		break;
 	case KEY_F7:
-		strcat(key_str, "F7");
+		strcat(s, "F7");
 		break;
 	case KEY_F8:
-		strcat(key_str, "F8");
+		strcat(s, "F8");
 		break;
 	case KEY_F9:
-		strcat(key_str, "F9");
+		strcat(s, "F9");
 		break;
 	case KEY_F10:
-		strcat(key_str, "F10");
+		strcat(s, "F10");
 		break;
 	case KEY_F11:
-		strcat(key_str, "F11");
+		strcat(s, "F11");
 		break;
 	case KEY_F12:
-		strcat(key_str, "F12");
+		strcat(s, "F12");
 		break;
 	case KEY_PRTSCR:
-		strcat(key_str, "PrintScreen");
+		strcat(s, "PrintScreen");
 		break;
 	case KEY_SCRLCK:
-		strcat(key_str, "ScrollLock");
+		strcat(s, "ScrollLock");
 		break;
 	case KEY_PAUSE:
-		strcat(key_str, "Pause");
+		strcat(s, "Pause");
 		break;
 	case KEY_INSERT:
-		strcat(key_str, "Insert");
+		strcat(s, "Insert");
 		break;
 	case KEY_DELETE:
-		strcat(key_str, "Delete");
+		strcat(s, "Delete");
 		break;
 	case KEY_HOME:
-		strcat(key_str, "Home");
+		strcat(s, "Home");
 		break;
 	case KEY_END:
-		strcat(key_str, "End");
+		strcat(s, "End");
 		break;
 	case KEY_PGUP:
-		strcat(key_str, "PageUp");
+		strcat(s, "PageUp");
 		break;
 	case KEY_PGDOWN:
-		strcat(key_str, "PageDown");
+		strcat(s, "PageDown");
 		break;
 	case KEY_LARROW:
-		strcat(key_str, "Left");
+		strcat(s, "Left");
 		break;
 	case KEY_RARROW:
-		strcat(key_str, "Right");
+		strcat(s, "Right");
 		break;
 	case KEY_UARROW:
-		strcat(key_str, "Up");
+		strcat(s, "Up");
 		break;
 	case KEY_DARROW:
-		strcat(key_str, "Down");
+		strcat(s, "Down");
 		break;
 	case KEY_NUMLOCK:
-		strcat(key_str, "NumLock");
+		strcat(s, "NumLock");
 		break;
 	case KEY_NUMDIV:
-		strcat(key_str, "NumDiv");
+		strcat(s, "NumDiv");
 		break;
 	case KEY_NUMMULT:
-		strcat(key_str, "NumMult");
+		strcat(s, "NumMult");
 		break;
 	case KEY_NUMMINUS:
-		strcat(key_str, "NumMinus");
+		strcat(s, "NumMinus");
 		break;
 	case KEY_NUMPLUS:
-		strcat(key_str, "NumPlus");
+		strcat(s, "NumPlus");
 		break;
 	case KEY_NUMENTER:
-		strcat(key_str, "NumEnter");
+		strcat(s, "NumEnter");
 		break;
 	case KEY_NUMDEL:
-		strcat(key_str, "NumDelete");
+		strcat(s, "NumDelete");
 		break;
 	case KEY_NUMINS:
-		strcat(key_str, "NumInsert");
+		strcat(s, "NumInsert");
 		break;
 	case KEY_NUMEND:
-		strcat(key_str, "NumEnd");
+		strcat(s, "NumEnd");
 		break;
 	case KEY_NUMDOWN:
-		strcat(key_str, "NumDown");
+		strcat(s, "NumDown");
 		break;
 	case KEY_NUMPGDN:
-		strcat(key_str, "NumPageDown");
+		strcat(s, "NumPageDown");
 		break;
 	case KEY_NUMLEFT:
-		strcat(key_str, "NumLeft");
+		strcat(s, "NumLeft");
 		break;
 	case KEY_NUMCLEAR:
-		strcat(key_str, "NumClear");
+		strcat(s, "NumClear");
 		break;
 	case KEY_NUMRIGHT:
-		strcat(key_str, "NumRight");
+		strcat(s, "NumRight");
 		break;
 	case KEY_NUMHOME:
-		strcat(key_str, "NumHome");
+		strcat(s, "NumHome");
 		break;
 	case KEY_NUMUP:
-		strcat(key_str, "NumUp");
+		strcat(s, "NumUp");
 		break;
 	case KEY_NUMPGUP:
-		strcat(key_str, "NumPageUp");
+		strcat(s, "NumPageUp");
 		break;
 	case KEY_NUMDEC:
-		strcat(key_str, "NumDecimal");
+		strcat(s, "NumDecimal");
 		break;
 	case KEY_NUM0:
-		strcat(key_str, "Num0");
+		strcat(s, "Num0");
 		break;
 	case KEY_NUM1:
-		strcat(key_str, "Num1");
+		strcat(s, "Num1");
 		break;
 	case KEY_NUM2:
-		strcat(key_str, "Num2");
+		strcat(s, "Num2");
 		break;
 	case KEY_NUM3:
-		strcat(key_str, "Num3");
+		strcat(s, "Num3");
 		break;
 	case KEY_NUM4:
-		strcat(key_str, "Num4");
+		strcat(s, "Num4");
 		break;
 	case KEY_NUM5:
-		strcat(key_str, "Num5");
+		strcat(s, "Num5");
 		break;
 	case KEY_NUM6:
-		strcat(key_str, "Num6");
+		strcat(s, "Num6");
 		break;
 	case KEY_NUM7:
-		strcat(key_str, "Num7");
+		strcat(s, "Num7");
 		break;
 	case KEY_NUM8:
-		strcat(key_str, "Num8");
+		strcat(s, "Num8");
 		break;
 	case KEY_NUM9:
-		strcat(key_str, "Num9");
+		strcat(s, "Num9");
 		break;
 	default:
 		break;
