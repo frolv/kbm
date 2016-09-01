@@ -340,6 +340,10 @@ unsigned int kbm_to_win_masks(uint8_t modmask)
 #endif
 
 #ifdef __APPLE__
+/*
+ * As there is no Num Lock on OS X, the Numpad keys each only have
+ * a single function.
+ */
 static const uint32_t osx_keycodes[] = {
 	0x00, kVK_ANSI_Q, kVK_ANSI_W, kVK_ANSI_E, kVK_ANSI_R, kVK_ANSI_T,
 	kVK_ANSI_Y, kVK_ANSI_U, kVK_ANSI_I, kVK_ANSI_O, kVK_ANSI_P, kVK_ANSI_A,
