@@ -58,4 +58,7 @@ void move_cursor(int x, int y);
 /* toggle_keys: disable hotkeys if active; enable otherwise */
 void toggle_keys();
 
+/* kbm_exec: execute the specified program */
+void kbm_exec(const void *args);
+
 #endif /* KBM_DISPLAY_H */

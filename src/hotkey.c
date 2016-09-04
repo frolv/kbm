@@ -70,6 +70,7 @@ void free_keys(struct hotkey *head)
 int process_hotkey(struct hotkey *hk, unsigned int type)
 {
 	int x, y;
+	char **s;
 
 	if (type == KBM_RELEASE) {
 		/* send a release event for a key mapping on key release */
@@ -81,16 +82,16 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 		return 0;
 	}
 
-	printf("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
+	PRINT_DEBUG("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
 	case OP_CLICK:
 		/* click operation: send a mouse click event */
-		printf("OPERATION: click\n");
+		PRINT_DEBUG("OPERATION: click\n");
 		send_button(KBM_BUTTON_LEFT);
 		return 0;
 	case OP_RCLICK:
 		/* rclick operation: send a mouse right click event */
-		printf("OPERATION: rclick\n");
+		PRINT_DEBUG("OPERATION: rclick\n");
 		send_button(KBM_BUTTON_RIGHT);
 		return 0;
 	case OP_JUMP:
@@ -98,7 +99,7 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 		/* x value is stored in lower 32 bits, y value in upper 32 */
 		x = hk->opargs & 0xFFFFFFFF;
 		y = (hk->opargs >> 32) & 0xFFFFFFFF;
-		printf("OPERATION: jump %d %d\n", x, y);
+		PRINT_DEBUG("OPERATION: jump %d %d\n", x, y);
 		move_cursor(x, y);
 		return 0;
 	case OP_KEY:
@@ -106,18 +107,40 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 		/* keycode is stored in lower 32 bits, modmask in upper 32 */
 		x = hk->opargs & 0xFFFFFFFF;
 		y = (hk->opargs >> 32) & 0xFFFFFFFF;
-		printf("OPERATION: key %s\n", keystr(x, y));
+		PRINT_DEBUG("OPERATION: key %s\n", keystr(x, y));
 		send_key(OSCODE(x), OSMASK(y), type);
 		return 0;
 	case OP_TOGGLE:
 		/* toggle operation: enable/disable hotkeys */
-		printf("OPERATION: toggle\n");
+		PRINT_DEBUG("OPERATION: toggle\n");
 		toggle_keys();
 		return 0;
 	case OP_QUIT:
 		/* exit operation: quit the program */
-		printf("OPERATION: quit\n");
+		PRINT_DEBUG("OPERATION: quit\n");
 		return -1;
+	case OP_EXEC:
+		/* exec operation: execute command or program */
+		PRINT_DEBUG("OPERATION: exec");
+#if defined(__linux__) || defined(__APPLE__)
+		/*
+		 * On Unix-based systems, opargs is the start of the
+		 * argv array of the command to be executed.
+		 */
+		s = (char **)hk->opargs;
+		for (; *s; ++s)
+			PRINT_DEBUG(" %s", *s);
+		putchar('\n');
+#endif
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+		/*
+		 * On Windows, opargs is the address of the string
+		 * detailing the command to execute.
+		 */
+		PRINT_DEBUG(" %s\n", (char *)hk->opargs);
+#endif
+		kbm_exec((void *)hk->opargs);
+		return 0;
 	default:
 		return 0;
 	}

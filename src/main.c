@@ -48,6 +48,9 @@ int main(int argc, char **argv)
 	uint64_t key = KEY_U;
 	y = ((uint32_t *)&key) + 1;
 	*y = KBM_CTRL_MASK;
+	if (argc == 1)
+		return 1;
+	++argv;
 
 	add_hotkey(&head, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, jump));
@@ -55,6 +58,12 @@ int main(int argc, char **argv)
 	add_hotkey(&head, create_hotkey(KEY_BTICK, 0, OP_TOGGLE, 0));
 	add_hotkey(&head, create_hotkey(KEY_E, KBM_CTRL_MASK, OP_QUIT, 0));
 	add_hotkey(&head, create_hotkey(KEY_BSLASH, 0, OP_KEY, key));
+#if defined(__linux__) || defined(__APPLE__)
+	add_hotkey(&head, create_hotkey(KEY_O, KBM_META_MASK | KBM_SHIFT_MASK, OP_EXEC, *(uint64_t *)&argv));
+#endif
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	add_hotkey(&head, create_hotkey(KEY_O, KBM_META_MASK | KBM_SHIFT_MASK, OP_EXEC, *argv));
+#endif
 	/* numpad testing */
 	add_hotkey(&head, create_hotkey(KEY_NUM5, 0, OP_CLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_NUMCLEAR, 0, OP_RCLICK, 0));
