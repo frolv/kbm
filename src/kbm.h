@@ -24,4 +24,10 @@
 /* working title of program for now */
 #define PROGRAM_NAME "kbm"
 
+#ifdef KBM_DEBUG
+#define PRINT_DEBUG(...) printf(__VA_ARGS__)
+#else
+#define PRINT_DEBUG(...) ((void)0)
+#endif
+
 #endif /* KBM_H */
