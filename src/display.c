@@ -77,8 +77,6 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-int cmd_path(const char *cmd, char *buf, size_t blen);
 #endif
 
 
@@ -790,52 +788,19 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 void kbm_exec(const void *args)
 {
 	char **argv;
-	char buf[MAX_PATH];
 
 	argv = (char **)args;
-
-	/* get the path to the command to execute */
-	if (cmd_path(argv[0], buf, sizeof(buf)) != 0) {
-		fprintf(stderr, "error: cannot find %s in $PATH\n", argv[0]);
-		return;
-	}
-
-	printf("%s\n", buf);
-}
-
-/* cmd_path: write the path of command cmd into buf */
-int cmd_path(const char *cmd, char *buf, size_t blen)
-{
-	int pipefd[2];
-	int status, bytes;
-
-	buf[0] = '\0';
-	pipe(pipefd);
-
 	switch (fork()) {
 	case -1:
 		perror("fork");
-		return 1;
+		return;
 	case 0:
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[0]);
-		close(pipefd[1]);
-		execl("/usr/bin/which", "which", cmd, (char *)NULL);
-		perror("/usr/bin/which");
+		execvp(argv[0], argv);
+		perror(argv[0]);
 		exit(1);
 	default:
-		close(pipefd[1]);
-		wait(&status);
-		if ((bytes = read(pipefd[0], buf, blen - 1)) < 0) {
-			perror("read");
-			return 1;
-		}
-		buf[bytes] = '\0';
+		break;
 	}
-
-	if (buf[bytes - 1] == '\n')
-		buf[bytes - 1] = '\0';
-	return status;
 }
 #endif /* __linux__ || __APPLE__ */
 

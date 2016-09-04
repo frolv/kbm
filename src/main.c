@@ -48,9 +48,9 @@ int main(int argc, char **argv)
 	uint64_t key = KEY_U;
 	y = ((uint32_t *)&key) + 1;
 	*y = KBM_CTRL_MASK;
-	if (argc == 1)
+	if (optind == argc)
 		return 1;
-	++argv;
+	argv += optind;
 
 	add_hotkey(&head, create_hotkey(KEY_Q, 0, OP_RCLICK, 0));
 	add_hotkey(&head, create_hotkey(KEY_W, 0, OP_JUMP, jump));
