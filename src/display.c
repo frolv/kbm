@@ -150,7 +150,7 @@ void start_loop()
 				free(e);
 				continue;
 			}
-			if (process_hotkey(hk, 0) == -1)
+			if (process_hotkey(hk, KBM_PRESS) == -1)
 				running = 0;
 			break;
 		case XCB_KEY_RELEASE:
@@ -164,15 +164,10 @@ void start_loop()
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
 					&& !(hk = find_by_os_code(toggles,
 							ks, evt->state))) {
-				/*
-				 * This sometimes happens when keys are
-				 * pressed in quick succession.
-				 * The event should be sent back out.
-				 */
 				free(e);
 				continue;
 			}
-			process_hotkey(hk, 1);
+			process_hotkey(hk, KBM_RELEASE);
 			break;
 		default:
 			break;
@@ -488,13 +483,13 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
-			if (process_hotkey(hk, 0) == -1)
+			if (process_hotkey(hk, KBM_PRESS) == -1)
 				PostQuitMessage(0);
 			/* prevent the event from propagating further */
 			return 1;
 		}
 		if ((hk = find_by_os_code(toggles, kc, mods))) {
-			process_hotkey(hk, 0);
+			process_hotkey(hk, KBM_PRESS);
 			return 1;
 		}
 	} else {
@@ -504,7 +499,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		 */
 		unset_fake_mods(&mods);
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
-			process_hotkey(hk, 1);
+			process_hotkey(hk, KBM_RELEASE);
 			/* prevent the event from propagating further */
 			return 1;
 		}
@@ -623,7 +618,7 @@ void init_display()
 	CGEventMask mask;
 	CFRunLoopSourceRef src;
 
-	mask = 1 << kCGEventKeyDown;
+	mask = (1 << kCGEventKeyDown) | (1 << kCGEventKeyUp);
 	tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
 			0, mask, callback, NULL);
 	if (!tap) {
@@ -688,6 +683,24 @@ void send_button(unsigned int button)
 	CFRelease(upevent);
 }
 
+/* send_key: send a key event */
+void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
+{
+	CGEventRef key;
+
+	if (type == KBM_PRESS) {
+		key = CGEventCreateKeyboardEvent(NULL, keycode, true);
+		CGEventSetFlags(key, modmask);
+		CGEventPost(kCGHIDEventTap, key);
+	} else {
+		key = CGEventCreateKeyboardEvent(NULL, keycode, false);
+		CGEventSetFlags(key, modmask);
+		CGEventPost(kCGHIDEventTap, key);
+	}
+
+	CFRelease(key);
+}
+
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y)
 {
@@ -728,7 +741,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	struct hotkey *hk;
 
 	/* just in case */
-	if (type != kCGEventKeyDown)
+	if (type != kCGEventKeyDown && type != kCGEventKeyUp)
 		return event;
 
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
@@ -738,15 +751,24 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
-	if (keys_active && (hk = find_by_os_code(actions, keycode, flags))) {
-		if (process_hotkey(hk) == -1)
-			CFRunLoopStop(CFRunLoopGetCurrent());
-		/* prevent the event from propagating further */
-		return NULL;
-	}
-	if ((hk = find_by_os_code(toggles, keycode, flags))) {
-		process_hotkey(hk);
-		return NULL;
+	if (type == kCGEventKeyDown) {
+		if (keys_active && (hk = find_by_os_code(actions,
+						keycode, flags))) {
+			if (process_hotkey(hk, KBM_PRESS) == -1)
+				CFRunLoopStop(CFRunLoopGetCurrent());
+			/* prevent the event from propagating further */
+			return NULL;
+		}
+		if ((hk = find_by_os_code(toggles, keycode, flags))) {
+			process_hotkey(hk, KBM_PRESS);
+			return NULL;
+		}
+	} else {
+		if (keys_active && (hk = find_by_os_code(actions,
+						keycode, flags))) {
+			process_hotkey(hk, KBM_RELEASE);
+			return NULL;
+		}
 	}
 	return event;
 }
