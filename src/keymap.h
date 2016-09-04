@@ -19,47 +19,50 @@
 #ifndef KBM_KEYMAP_H
 #define KBM_KEYMAP_H
 
-/* Keycode definitions for all the keys on a standard ANSI keyboard */
+/*
+ * Keycodes for all keys on a standard ANSI keyboard
+ * and both functions of Numpad keys.
+ */
 
 /* alphabetic keys */
-#define KEY_Q 0x01
-#define KEY_W 0x02
-#define KEY_E 0x03
-#define KEY_R 0x04
-#define KEY_T 0x05
-#define KEY_Y 0x06
-#define KEY_U 0x07
-#define KEY_I 0x08
-#define KEY_O 0x09
-#define KEY_P 0x0A
-#define KEY_A 0x0B
-#define KEY_S 0x0C
-#define KEY_D 0x0D
-#define KEY_F 0x0E
-#define KEY_G 0x0F
-#define KEY_H 0x10
-#define KEY_J 0x11
-#define KEY_K 0x12
-#define KEY_L 0x13
-#define KEY_Z 0x14
-#define KEY_X 0x15
-#define KEY_C 0x16
-#define KEY_V 0x17
-#define KEY_B 0x18
-#define KEY_N 0x19
-#define KEY_M 0x1A
+#define KEY_Q		0x01
+#define KEY_W		0x02
+#define KEY_E		0x03
+#define KEY_R		0x04
+#define KEY_T		0x05
+#define KEY_Y		0x06
+#define KEY_U		0x07
+#define KEY_I		0x08
+#define KEY_O		0x09
+#define KEY_P		0x0A
+#define KEY_A		0x0B
+#define KEY_S		0x0C
+#define KEY_D		0x0D
+#define KEY_F		0x0E
+#define KEY_G		0x0F
+#define KEY_H		0x10
+#define KEY_J		0x11
+#define KEY_K		0x12
+#define KEY_L		0x13
+#define KEY_Z		0x14
+#define KEY_X		0x15
+#define KEY_C		0x16
+#define KEY_V		0x17
+#define KEY_B		0x18
+#define KEY_N		0x19
+#define KEY_M		0x1A
 
 /* numeric keys */
-#define KEY_1 0x1B
-#define KEY_2 0x1C
-#define KEY_3 0x1D
-#define KEY_4 0x1E
-#define KEY_5 0x1F
-#define KEY_6 0x20
-#define KEY_7 0x21
-#define KEY_8 0x22
-#define KEY_9 0x23
-#define KEY_0 0x24
+#define KEY_1		0x1B
+#define KEY_2		0x1C
+#define KEY_3		0x1D
+#define KEY_4		0x1E
+#define KEY_5		0x1F
+#define KEY_6		0x20
+#define KEY_7		0x21
+#define KEY_8		0x22
+#define KEY_9		0x23
+#define KEY_0		0x24
 
 /* other keys */
 #define KEY_BTICK	0x25
@@ -154,7 +157,7 @@
 #define KBM_SUPER_MASK	0x04	/* command on OS X */
 #define KBM_META_MASK	0x08	/* option  on OS X */
 
-/* Macro to check whether a modifer is set */
+/* Check whether a modifer is set */
 #define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
 
 #include <stdint.h>

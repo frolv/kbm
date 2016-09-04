@@ -55,6 +55,7 @@ void add_hotkey(struct hotkey **head, struct hotkey *hk);
 /* free_keys: free all hotkeys in list head */
 void free_keys(struct hotkey *head);
 
+/* process_hotkey: perform the operation of hotkey hk */
 int process_hotkey(struct hotkey *hk, unsigned int type);
 
 #endif /* KBM_HOTKEY_H */

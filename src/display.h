@@ -21,6 +21,7 @@
 
 #include "hotkey.h"
 
+/* buttons on a mouse */
 enum {
 	KBM_BUTTON_LEFT		= 1,
 	KBM_BUTTON_MIDDLE	= 2,
@@ -39,8 +40,10 @@ void close_display();
 /* start_loop: map the provided hotkeys and begin an event loop */
 void start_loop();
 
+/* load_keys: store list of keys starting at head */
 void load_keys(struct hotkey *head);
 
+/* unload_keys: remove and free stored hotkey lists */
 void unload_keys();
 
 /* send_button: send a button event */
@@ -52,7 +55,7 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type);
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y);
 
-/* toggle_keys: disable hotkeys if active, enable otherwise */
+/* toggle_keys: disable hotkeys if active; enable otherwise */
 void toggle_keys();
 
 #endif /* KBM_DISPLAY_H */
