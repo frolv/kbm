@@ -70,7 +70,9 @@ void free_keys(struct hotkey *head)
 int process_hotkey(struct hotkey *hk, unsigned int type)
 {
 	int x, y;
+#if defined(__linux__) || defined(__APPLE__)
 	char **s;
+#endif
 
 	if (type == KBM_RELEASE) {
 		/* send a release event for a key mapping on key release */

@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	add_hotkey(&head, create_hotkey(KEY_O, KBM_META_MASK | KBM_SHIFT_MASK, OP_EXEC, *(uint64_t *)&argv));
 #endif
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-	add_hotkey(&head, create_hotkey(KEY_O, KBM_META_MASK | KBM_SHIFT_MASK, OP_EXEC, *argv));
+	add_hotkey(&head, create_hotkey(KEY_O, KBM_META_MASK | KBM_SHIFT_MASK, OP_EXEC, *(uint64_t *)argv));
 #endif
 	/* numpad testing */
 	add_hotkey(&head, create_hotkey(KEY_NUM5, 0, OP_CLICK, 0));

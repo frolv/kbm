@@ -466,6 +466,36 @@ void move_cursor(int x, int y)
 	SetCursorPos(pt.x + x, pt.y + y);
 }
 
+/* kbm_exec: execute the specified program */
+void kbm_exec(void *args)
+{
+	char *cmd;
+	char err[256];
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	memset(&si, 0, sizeof(si));
+	si.cb = sizeof(si);
+
+	/*
+	 * The CreateProcess function can modify the string
+	 * passed to it, so we create a copy of args to use.
+	 */
+	cmd = strdup(args);
+	if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE,
+				0, NULL, NULL, &si, &pi)) {
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				err, 256, NULL);
+		fprintf(stderr, "%s\n", err);
+		return;
+	}
+
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	free(cmd);
+}
+
 /* kbproc: process a keyboard event */
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -785,11 +815,11 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 
 #if defined(__linux__) || defined(__APPLE__)
 /* kbm_exec: execute the specified program */
-void kbm_exec(const void *args)
+void kbm_exec(void *args)
 {
 	char **argv;
 
-	argv = (char **)args;
+	argv = args;
 	switch (fork()) {
 	case -1:
 		perror("fork");

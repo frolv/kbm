@@ -59,6 +59,6 @@ void move_cursor(int x, int y);
 void toggle_keys();
 
 /* kbm_exec: execute the specified program */
-void kbm_exec(const void *args);
+void kbm_exec(void *args);
 
 #endif /* KBM_DISPLAY_H */
