@@ -68,6 +68,7 @@ static void send_fake_mod(unsigned int keycode, int type);
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		CGEventRef event, void *refcon);
+static int open_app(char **argv);
 #endif
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -811,6 +812,26 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	}
 	return event;
 }
+
+static int open_app(char **argv)
+{
+	int status;
+
+	switch (fork()) {
+	case -1:
+		perror("fork");
+		return 1;
+	case 0:
+		close(STDERR_FILENO);
+		execv("/usr/bin/open", argv);
+		perror(argv[0]);
+		exit(1);
+	default:
+		wait(&status);
+		break;
+	}
+	return status >> 8;
+}
 #endif /* __APPLE__ */
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -820,6 +841,19 @@ void kbm_exec(void *args)
 	char **argv;
 
 	argv = args;
+
+#ifdef __APPLE__
+	/*
+	 * Try to open the program as an app first.
+	 * If not found, treat it as a regular program.
+	 */
+	if (open_app(argv) == 0)
+		return;
+
+	/* jump over the 'open -a' */
+	argv += 2;
+#endif
+
 	switch (fork()) {
 	case -1:
 		perror("fork");
