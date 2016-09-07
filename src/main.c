@@ -22,9 +22,18 @@
 #include "display.h"
 #include "hotkey.h"
 
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
+static FILE *open_file(const char *path);
+
 int main(int argc, char **argv)
 {
 	int c;
+	FILE *f;
 	struct hotkey *head;
 
 	static struct option long_opts[] = {
@@ -43,7 +52,14 @@ int main(int argc, char **argv)
 		}
 	}
 
-	head = NULL;
+	if (optind == argc) {
+		f = NULL;
+		head = NULL;
+	} else if (!(f = open_file(argv[optind]))) {
+		return 1;
+	} else {
+		/* head = parse_file(f); */
+	}
 
 	init_display();
 	load_keys(head);
@@ -52,3 +68,28 @@ int main(int argc, char **argv)
 	close_display();
 	return 0;
 }
+
+#if defined(__linux__) || defined(__APPLE__)
+/* open_file: open the file at path with error checking */
+static FILE *open_file(const char *path)
+{
+	struct stat statbuf;
+	FILE *f;
+
+	if (stat(path, &statbuf) != 0) {
+		perror(path);
+		return NULL;
+	}
+
+	if (!S_ISREG(statbuf.st_mode)) {
+		fprintf(stderr, "%s: not a regular file\n", path);
+		return NULL;
+	}
+
+	if (!(f = fopen(path, "r"))) {
+		perror(path);
+		return NULL;
+	}
+	return f;
+}
+#endif
