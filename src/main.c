@@ -22,7 +22,7 @@
 #include "kbm.h"
 #include "display.h"
 #include "hotkey.h"
-/* #include "parser.h" */
+#include "parser.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/types.h>
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 	}
 
 	if (f) {
-		/* head = parse_file(f); */
+		head = parse_file(f);
 		fclose(f);
 	}
 

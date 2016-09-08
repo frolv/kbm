@@ -3,12 +3,12 @@ SHELL=/bin/sh
 PROGRAM=kbm
 
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c99 -DKBM_DEBUG
+CFLAGS=-Wall -Wextra -DKBM_DEBUG
 
 SRCDIR=src
-_SRC=main.c display.c keymap.c hotkey.c
+_SRC=main.c display.c keymap.c hotkey.c parser.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
-_HEAD=kbm.h display.h keymap.h hotkey.h
+_HEAD=kbm.h display.h keymap.h hotkey.h parser.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 
