@@ -888,8 +888,10 @@ void load_keys(struct hotkey *head)
 
 void unload_keys()
 {
-	free_keys(actions);
-	free_keys(toggles);
+	if (actions)
+		free_keys(actions);
+	if (toggles)
+		free_keys(toggles);
 	actions = toggles = NULL;
 }
 
