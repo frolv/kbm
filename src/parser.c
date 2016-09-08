@@ -54,6 +54,9 @@ struct hotkey *parse_file(FILE *f)
 	peek = ' ';
 	line = 1;
 
+	while ((t = scan(f)))
+		free_token(t);
+
 	return head;
 }
 
@@ -68,12 +71,20 @@ static struct token *scan(FILE *f)
 	char buf[BUFFER_SIZE];
 
 	for (;; peek = fgetc(f)) {
-		if (peek == ' ' || peek == '\t')
+		if (peek == ' ' || peek == '\t') {
 			continue;
-		else if (peek == '\n')
+		} else if (peek == '\n') {
 			++line;
-		else
+		} else if (peek == '#') {
+			/* rest of line is a comment */
+			while ((peek = fgetc(f)) != EOF && peek != '\n')
+				;
+			if (peek == EOF)
+				return NULL;
+			++line;
+		} else {
 			break;
+		}
 	}
 	if (isdigit(peek)) {
 		i = 0;
@@ -84,25 +95,25 @@ static struct token *scan(FILE *f)
 		PRINT_DEBUG("%d\n", i);
 		return create_token(TOK_NUM, &i);
 	}
-	if (isalpha(peek)) {
+	if (isalpha(peek) || peek == '_') {
 		i = 0;
 		do {
 			buf[i++] = peek;
 			peek = fgetc(f);
-		} while (isalnum(peek) && i < BUFFER_SIZE - 1);
+		} while ((isalnum(peek) || peek == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
 		PRINT_DEBUG("%s\n", buf);
 		return create_token(TOK_ID, &buf);
 	}
 	if (peek == '-') {
-		if ((peek = fgetc(f)) != '>') {
-			fprintf(stderr, "syntax error on line %u: expected '>' "
-					"after '-'\n", line);
-			exit(1);
+		if ((peek = fgetc(f)) == '>') {
+			peek = ' ';
+			PRINT_DEBUG("->\n");
+			return create_token(TOK_ARROW, NULL);
 		}
-		peek = ' ';
-		PRINT_DEBUG("->\n");
-		return create_token(TOK_ARROW, NULL);
+		/* unary minus sign */
+		PRINT_DEBUG("-\n");
+		return create_token('-', NULL);
 	}
 	if (peek == EOF)
 		return NULL;
@@ -126,10 +137,8 @@ static struct token *create_token(int tag, void *info)
 		t->lexeme = strdup((char *)info);
 		break;
 	case TOK_ARROW:
-		break;
 	default:
-		free(t);
-		return NULL;
+		break;
 	}
 
 	return t;
