@@ -18,9 +18,11 @@
  */
 
 #include <getopt.h>
+#include <string.h>
 #include "kbm.h"
 #include "display.h"
 #include "hotkey.h"
+/* #include "parser.h" */
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/types.h>
@@ -41,24 +43,34 @@ int main(int argc, char **argv)
 		{ 0, 0, 0, 0 }
 	};
 
+	f = NULL;
+	head = NULL;
+
 	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'h':
-			printf("usage: %s FILE\n", PROGRAM_NAME);
+			printf("usage: %s [FILE]\n", PROGRAM_NAME);
 			return 0;
 		default:
-			fprintf(stderr, "usage: %s FILE\n", argv[0]);
+			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
 			return 1;
 		}
 	}
 
-	if (optind == argc) {
-		f = NULL;
-		head = NULL;
-	} else if (!(f = open_file(argv[optind]))) {
-		return 1;
-	} else {
+	if (optind != argc) {
+		if (optind != argc - 1) {
+			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
+			return 1;
+		}
+		if (strcmp(argv[optind], "-") == 0)
+			f = stdin;
+		else if (!(f = open_file(argv[optind])))
+			return 1;
+	}
+
+	if (f) {
 		/* head = parse_file(f); */
+		fclose(f);
 	}
 
 	init_display();

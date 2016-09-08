@@ -290,12 +290,12 @@ static void map_keys(struct hotkey *head)
 		}
 
 		/*
-		 * In X11, caps lock and num lock are defined as modifiers and
+		 * In X11, Caps Lock and Num Lock are defined as modifiers and
 		 * events involving these keys held down are treated as
 		 * different events to those occurring without them.
 		 *
 		 * We don't want to distinguish between these events, so we
-		 * also grab the key with the caps and num lock masks.
+		 * also grab the key with the Caps and Num Lock masks.
 		 */
 
 		/* num lock */
