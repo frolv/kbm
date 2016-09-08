@@ -20,11 +20,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
+#include "uthash.h"
 
 #define BUFFER_SIZE 4096
-
-static int peek;
-static unsigned int line;
 
 enum {
 	TOK_NUM = 256,
@@ -38,7 +36,14 @@ struct token {
 		int num;
 		char *lexeme;
 	};
+	UT_hash_handle hh;
 };
+
+static int peek;
+static unsigned int line;
+
+/* hash table of reserved keywords */
+static struct token *reserved;
 
 static void reserve(struct token *word);
 static struct token *scan(FILE *f);
@@ -48,20 +53,36 @@ static void free_token(struct token *t);
 struct hotkey *parse_file(FILE *f)
 {
 	struct hotkey *head;
-	struct token *t;
+	struct token *t, *tmp;
 
 	head = NULL;
 	peek = ' ';
 	line = 1;
+	reserved = NULL;
+
+	reserve(create_token(TOK_ID, "click"));
+	reserve(create_token(TOK_ID, "rclick"));
+	reserve(create_token(TOK_ID, "jump"));
+	reserve(create_token(TOK_ID, "key"));
+	reserve(create_token(TOK_ID, "toggle"));
+	reserve(create_token(TOK_ID, "quit"));
+	reserve(create_token(TOK_ID, "exec"));
 
 	while ((t = scan(f)))
+		;
+
+	/* free hash table contents */
+	HASH_ITER(hh, reserved, t, tmp) {
+		HASH_DEL(reserved, t);
 		free_token(t);
+	}
 
 	return head;
 }
 
 static void reserve(struct token *word)
 {
+	HASH_ADD_KEYPTR(hh, reserved, word->lexeme, strlen(word->lexeme), word);
 }
 
 /* scan: read the next token from f */
@@ -69,6 +90,7 @@ static struct token *scan(FILE *f)
 {
 	int i;
 	char buf[BUFFER_SIZE];
+	struct token *t;
 
 	for (;; peek = fgetc(f)) {
 		if (peek == ' ' || peek == '\t') {
@@ -102,8 +124,13 @@ static struct token *scan(FILE *f)
 			peek = fgetc(f);
 		} while ((isalnum(peek) || peek == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
+		HASH_FIND_STR(reserved, buf, t);
+		if (t)
+			return t;
 		PRINT_DEBUG("%s\n", buf);
-		return create_token(TOK_ID, &buf);
+		t = create_token(TOK_ID, &buf);
+		HASH_ADD_KEYPTR(hh, reserved, t->lexeme, strlen(t->lexeme), t);
+		return t;
 	}
 	if (peek == '-') {
 		if ((peek = fgetc(f)) == '>') {
