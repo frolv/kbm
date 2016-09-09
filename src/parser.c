@@ -68,8 +68,22 @@ struct hotkey *parse_file(FILE *f)
 	reserve(create_token(TOK_ID, "quit"));
 	reserve(create_token(TOK_ID, "exec"));
 
-	while ((t = scan(f)))
-		;
+	while ((t = scan(f))) {
+		switch (t->tag) {
+		case TOK_NUM:
+			printf("%d\n", t->num);
+			break;
+		case TOK_ID:
+			printf("%s\n", t->lexeme);
+			break;
+		case TOK_ARROW:
+			printf("->\n");
+			break;
+		default:
+			printf("%c\n", t->tag);
+			break;
+		}
+	}
 
 	/* free hash table contents */
 	HASH_ITER(hh, reserved, t, tmp) {
@@ -108,13 +122,13 @@ static struct token *scan(FILE *f)
 			break;
 		}
 	}
+
 	if (isdigit(peek)) {
 		i = 0;
 		do {
 			i = 10 * i + (peek - '0');
 			peek = fgetc(f);
 		} while (isdigit(peek));
-		PRINT_DEBUG("%d\n", i);
 		return create_token(TOK_NUM, &i);
 	}
 	if (isalpha(peek) || peek == '_') {
@@ -127,7 +141,6 @@ static struct token *scan(FILE *f)
 		HASH_FIND_STR(reserved, buf, t);
 		if (t)
 			return t;
-		PRINT_DEBUG("%s\n", buf);
 		t = create_token(TOK_ID, &buf);
 		HASH_ADD_KEYPTR(hh, reserved, t->lexeme, strlen(t->lexeme), t);
 		return t;
@@ -135,18 +148,17 @@ static struct token *scan(FILE *f)
 	if (peek == '-') {
 		if ((peek = fgetc(f)) == '>') {
 			peek = ' ';
-			PRINT_DEBUG("->\n");
 			return create_token(TOK_ARROW, NULL);
 		}
 		/* unary minus sign */
-		PRINT_DEBUG("-\n");
 		return create_token('-', NULL);
 	}
 	if (peek == EOF)
 		return NULL;
-	fprintf(stderr, "syntax error on line %u: unrecognized token '%c'\n",
-			line, peek);
-	exit(1);
+
+	t = create_token(peek, NULL);
+	peek = ' ';
+	return t;
 }
 
 static struct token *create_token(int tag, void *info)
