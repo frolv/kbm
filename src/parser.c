@@ -27,7 +27,10 @@
 enum {
 	TOK_NUM = 256,
 	TOK_ID,
-	TOK_ARROW
+	TOK_ARROW,
+	TOK_FUNC,
+	TOK_STRLIT,
+	TOK_SMOD
 };
 
 struct token {
@@ -35,6 +38,8 @@ struct token {
 	union {
 		int num;
 		char *lexeme;
+		char *fname;
+		char *str;
 	};
 	UT_hash_handle hh;
 };
@@ -42,11 +47,12 @@ struct token {
 static int peek;
 static unsigned int line;
 
-/* hash table of reserved keywords */
-static struct token *reserved;
+/* hash table of words/symbols */
+static struct token *words;
 
-static void reserve(struct token *word);
 static struct token *scan(FILE *f);
+static struct token *read_str(FILE *f);
+static void reserve(struct token *word);
 static struct token *create_token(int tag, void *info);
 static void free_token(struct token *t);
 
@@ -58,15 +64,15 @@ struct hotkey *parse_file(FILE *f)
 	head = NULL;
 	peek = ' ';
 	line = 1;
-	reserved = NULL;
+	words = NULL;
 
-	reserve(create_token(TOK_ID, "click"));
-	reserve(create_token(TOK_ID, "rclick"));
-	reserve(create_token(TOK_ID, "jump"));
-	reserve(create_token(TOK_ID, "key"));
-	reserve(create_token(TOK_ID, "toggle"));
-	reserve(create_token(TOK_ID, "quit"));
-	reserve(create_token(TOK_ID, "exec"));
+	reserve(create_token(TOK_FUNC, "click"));
+	reserve(create_token(TOK_FUNC, "rclick"));
+	reserve(create_token(TOK_FUNC, "jump"));
+	reserve(create_token(TOK_FUNC, "key"));
+	reserve(create_token(TOK_FUNC, "toggle"));
+	reserve(create_token(TOK_FUNC, "quit"));
+	reserve(create_token(TOK_FUNC, "exec"));
 
 	while ((t = scan(f))) {
 		switch (t->tag) {
@@ -79,6 +85,9 @@ struct hotkey *parse_file(FILE *f)
 		case TOK_ARROW:
 			printf("->\n");
 			break;
+		case TOK_FUNC:
+			printf("%s\n", t->fname);
+			break;
 		default:
 			printf("%c\n", t->tag);
 			break;
@@ -86,17 +95,12 @@ struct hotkey *parse_file(FILE *f)
 	}
 
 	/* free hash table contents */
-	HASH_ITER(hh, reserved, t, tmp) {
-		HASH_DEL(reserved, t);
+	HASH_ITER(hh, words, t, tmp) {
+		HASH_DEL(words, t);
 		free_token(t);
 	}
 
 	return head;
-}
-
-static void reserve(struct token *word)
-{
-	HASH_ADD_KEYPTR(hh, reserved, word->lexeme, strlen(word->lexeme), word);
 }
 
 /* scan: read the next token from f */
@@ -138,11 +142,11 @@ static struct token *scan(FILE *f)
 			peek = fgetc(f);
 		} while ((isalnum(peek) || peek == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
-		HASH_FIND_STR(reserved, buf, t);
+		HASH_FIND_STR(words, buf, t);
 		if (t)
 			return t;
 		t = create_token(TOK_ID, &buf);
-		HASH_ADD_KEYPTR(hh, reserved, t->lexeme, strlen(t->lexeme), t);
+		HASH_ADD_KEYPTR(hh, words, t->lexeme, strlen(t->lexeme), t);
 		return t;
 	}
 	if (peek == '-') {
@@ -153,12 +157,25 @@ static struct token *scan(FILE *f)
 		/* unary minus sign */
 		return create_token('-', NULL);
 	}
+	if (peek == '"' || peek == '\'')
+		return read_str(f);
+
 	if (peek == EOF)
 		return NULL;
 
 	t = create_token(peek, NULL);
 	peek = ' ';
 	return t;
+}
+
+static struct token *read_str(FILE *f)
+{
+	return NULL;
+}
+
+static void reserve(struct token *word)
+{
+	HASH_ADD_KEYPTR(hh, words, word->lexeme, strlen(word->lexeme), word);
 }
 
 static struct token *create_token(int tag, void *info)
@@ -175,6 +192,9 @@ static struct token *create_token(int tag, void *info)
 	case TOK_ID:
 		t->lexeme = strdup((char *)info);
 		break;
+	case TOK_FUNC:
+		t->fname = strdup((char *)info);
+		break;
 	case TOK_ARROW:
 	default:
 		break;
@@ -187,5 +207,7 @@ static void free_token(struct token *t)
 {
 	if (t->tag == TOK_ID)
 		free(t->lexeme);
+	if (t->tag == TOK_FUNC)
+		free(t->fname);
 	free(t);
 }
