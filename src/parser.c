@@ -88,6 +88,9 @@ struct hotkey *parse_file(FILE *f)
 		case TOK_FUNC:
 			printf("%s\n", t->fname);
 			break;
+		case TOK_STRLIT:
+			printf("%s\n", t->str);
+			break;
 		default:
 			printf("%c\n", t->tag);
 			break;
@@ -168,9 +171,41 @@ static struct token *scan(FILE *f)
 	return t;
 }
 
+/* read_str: read a string literal from file, return token containing it */
 static struct token *read_str(FILE *f)
 {
-	return NULL;
+	int quote, i;
+	char buf[BUFFER_SIZE];
+
+	quote = peek;
+	for (i = 0; (peek = fgetc(f)) != EOF; ++i) {
+		if (peek == quote) {
+			if (buf[i - 1] == '\\')
+				--i;
+			else
+				break;
+		}
+		if (peek == '\n') {
+			if (buf[i - 1] != '\\') {
+				peek = EOF;
+				break;
+			} else {
+				/* skip backslash and newline */
+				i -= 2;
+				++line;
+				continue;
+			}
+		}
+		buf[i] = peek;
+	}
+	buf[i] = '\0';
+	if (peek == EOF) {
+		fprintf(stderr, "line %u: unterminated string literal\n", line);
+		return NULL;
+	}
+
+	peek = ' ';
+	return create_token(TOK_STRLIT, &buf);
 }
 
 static void reserve(struct token *word)
@@ -195,6 +230,9 @@ static struct token *create_token(int tag, void *info)
 	case TOK_FUNC:
 		t->fname = strdup((char *)info);
 		break;
+	case TOK_STRLIT:
+		t->str = strdup((char *)info);
+		break;
 	case TOK_ARROW:
 	default:
 		break;
@@ -209,5 +247,7 @@ static void free_token(struct token *t)
 		free(t->lexeme);
 	if (t->tag == TOK_FUNC)
 		free(t->fname);
+	if (t->tag == TOK_STRLIT)
+		free(t->str);
 	free(t);
 }
