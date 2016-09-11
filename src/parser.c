@@ -37,8 +37,6 @@ struct token {
 	int tag;
 	union {
 		int num;
-		char *lexeme;
-		char *fname;
 		char *str;
 	};
 	UT_hash_handle hh;
@@ -79,15 +77,11 @@ struct hotkey *parse_file(FILE *f)
 		case TOK_NUM:
 			printf("%d\n", t->num);
 			break;
-		case TOK_ID:
-			printf("%s\n", t->lexeme);
-			break;
 		case TOK_ARROW:
 			printf("->\n");
 			break;
+		case TOK_ID:
 		case TOK_FUNC:
-			printf("%s\n", t->fname);
-			break;
 		case TOK_STRLIT:
 			printf("%s\n", t->str);
 			break;
@@ -95,6 +89,9 @@ struct hotkey *parse_file(FILE *f)
 			printf("%c\n", t->tag);
 			break;
 		}
+
+		if (t->tag != TOK_FUNC)
+			free_token(t);
 	}
 
 	/* free hash table contents */
@@ -223,7 +220,7 @@ static struct token *read_str(FILE *f)
 
 static void reserve(struct token *word)
 {
-	HASH_ADD_KEYPTR(hh, reserved, word->lexeme, strlen(word->lexeme), word);
+	HASH_ADD_KEYPTR(hh, reserved, word->str, strlen(word->str), word);
 }
 
 static struct token *create_token(int tag, void *info)
@@ -238,11 +235,7 @@ static struct token *create_token(int tag, void *info)
 		t->num = *(int *)info;
 		break;
 	case TOK_ID:
-		t->lexeme = strdup((char *)info);
-		break;
 	case TOK_FUNC:
-		t->fname = strdup((char *)info);
-		break;
 	case TOK_STRLIT:
 		t->str = strdup((char *)info);
 		break;
@@ -256,11 +249,7 @@ static struct token *create_token(int tag, void *info)
 
 static void free_token(struct token *t)
 {
-	if (t->tag == TOK_ID)
-		free(t->lexeme);
-	if (t->tag == TOK_FUNC)
-		free(t->fname);
-	if (t->tag == TOK_STRLIT)
+	if (t->tag == TOK_ID || t->tag == TOK_FUNC || t->tag == TOK_STRLIT)
 		free(t->str);
 	free(t);
 }

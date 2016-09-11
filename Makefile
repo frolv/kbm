@@ -3,7 +3,7 @@ SHELL=/bin/sh
 PROGRAM=kbm
 
 CC=gcc
-CFLAGS=-Wall -Wextra -DKBM_DEBUG
+CFLAGS=-Wall -Wextra -g -DKBM_DEBUG
 
 SRCDIR=src
 _SRC=main.c display.c keymap.c hotkey.c parser.c
