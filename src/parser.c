@@ -47,8 +47,8 @@ struct token {
 static int peek;
 static unsigned int line;
 
-/* hash table of words/symbols */
-static struct token *words;
+/* hash table of reserved words */
+static struct token *reserved;
 
 static struct token *scan(FILE *f);
 static struct token *read_str(FILE *f);
@@ -64,7 +64,7 @@ struct hotkey *parse_file(FILE *f)
 	head = NULL;
 	peek = ' ';
 	line = 1;
-	words = NULL;
+	reserved = NULL;
 
 	reserve(create_token(TOK_FUNC, "click"));
 	reserve(create_token(TOK_FUNC, "rclick"));
@@ -98,9 +98,14 @@ struct hotkey *parse_file(FILE *f)
 	}
 
 	/* free hash table contents */
-	HASH_ITER(hh, words, t, tmp) {
-		HASH_DEL(words, t);
+	HASH_ITER(hh, reserved, t, tmp) {
+		HASH_DEL(reserved, t);
 		free_token(t);
+	}
+
+	if (peek != EOF) {
+		fprintf(stderr, "line %u: unrecognized token '%c'\n", line, peek);
+		exit(1);
 	}
 
 	return head;
@@ -145,12 +150,10 @@ static struct token *scan(FILE *f)
 			peek = fgetc(f);
 		} while ((isalnum(peek) || peek == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
-		HASH_FIND_STR(words, buf, t);
+		HASH_FIND_STR(reserved, buf, t);
 		if (t)
 			return t;
-		t = create_token(TOK_ID, &buf);
-		HASH_ADD_KEYPTR(hh, words, t->lexeme, i, t);
-		return t;
+		return create_token(TOK_ID, &buf);
 	}
 	if (peek == '-') {
 		if ((peek = fgetc(f)) == '>') {
@@ -160,15 +163,16 @@ static struct token *scan(FILE *f)
 		/* unary minus sign */
 		return create_token('-', NULL);
 	}
+	if (peek == '^' || peek == '~' || peek == '!' || peek == '#') {
+		t = create_token(peek, NULL);
+		peek = ' ';
+		return t;
+	}
 	if (peek == '"' || peek == '\'')
 		return read_str(f);
 
-	if (peek == EOF)
-		return NULL;
-
-	t = create_token(peek, NULL);
-	peek = ' ';
-	return t;
+	/* EOF or invalid token */
+	return NULL;
 }
 
 /* read_str: read a string literal from file, return token containing it */
@@ -219,7 +223,7 @@ static struct token *read_str(FILE *f)
 
 static void reserve(struct token *word)
 {
-	HASH_ADD_KEYPTR(hh, words, word->lexeme, strlen(word->lexeme), word);
+	HASH_ADD_KEYPTR(hh, reserved, word->lexeme, strlen(word->lexeme), word);
 }
 
 static struct token *create_token(int tag, void *info)
