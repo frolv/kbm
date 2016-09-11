@@ -113,6 +113,7 @@ static struct token *scan(FILE *f)
 	char buf[BUFFER_SIZE];
 	struct token *t;
 
+	/* skip over whitespace */
 	for (;; peek = fgetc(f)) {
 		if (peek == ' ' || peek == '\t') {
 			continue;
@@ -134,8 +135,7 @@ static struct token *scan(FILE *f)
 		i = 0;
 		do {
 			i = 10 * i + (peek - '0');
-			peek = fgetc(f);
-		} while (isdigit(peek));
+		} while (isdigit((peek = fgetc(f))));
 		return create_token(TOK_NUM, &i);
 	}
 	if (isalpha(peek) || peek == '_') {
@@ -149,7 +149,7 @@ static struct token *scan(FILE *f)
 		if (t)
 			return t;
 		t = create_token(TOK_ID, &buf);
-		HASH_ADD_KEYPTR(hh, words, t->lexeme, strlen(t->lexeme), t);
+		HASH_ADD_KEYPTR(hh, words, t->lexeme, i, t);
 		return t;
 	}
 	if (peek == '-') {
@@ -174,11 +174,12 @@ static struct token *scan(FILE *f)
 /* read_str: read a string literal from file, return token containing it */
 static struct token *read_str(FILE *f)
 {
-	int quote, i;
+	int quote;
+	size_t i;
 	char buf[BUFFER_SIZE];
 
 	quote = peek;
-	for (i = 0; (peek = fgetc(f)) != EOF; ++i) {
+	for (i = 0; i < BUFFER_SIZE - 1 && (peek = fgetc(f)) != EOF; ++i) {
 		if (peek == quote) {
 			if (buf[i - 1] == '\\')
 				--i;
@@ -204,7 +205,15 @@ static struct token *read_str(FILE *f)
 		return NULL;
 	}
 
-	peek = ' ';
+	if (i == BUFFER_SIZE - 1) {
+		fprintf(stderr, "line %u: warning - string literal exceeding %u"
+				" characters truncated\n", line,
+				BUFFER_SIZE - 1);
+		/* read the rest of string as its own literal */
+		peek = quote;
+	} else {
+		peek = ' ';
+	}
 	return create_token(TOK_STRLIT, &buf);
 }
 
