@@ -22,48 +22,89 @@
 #include "parser.h"
 #include "uthash.h"
 
-#define BUFFER_SIZE 4096
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
+#define BUFFER_SIZE	4096
+#define MAX_STR		1024
+
+/* print a nice looking error message */
+#define PUTERR(fmt, ...) \
+	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+		KRED "error: " KNRM fmt, \
+		file_path, line_num, pos - line + 1, \
+		##__VA_ARGS__)
+
+#define PUTWARN(fmt, ...) \
+	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+		KMAG "warning: " KNRM fmt, \
+		file_path, line_num, pos - line + 1, \
+		##__VA_ARGS__)
+
+#define GET_OFFSET(offset) ((((pos - line) + (offset)) < 0) \
+		? 0 : ((pos - line) + (offset)))
 
 enum {
-	TOK_NUM = 256,
+	TOK_NUM = 0x100,
 	TOK_ID,
 	TOK_ARROW,
 	TOK_FUNC,
 	TOK_STRLIT,
-	TOK_SMOD
+	TOK_MOD
 };
 
 struct token {
 	int tag;
 	union {
-		int num;
+		int val;
 		char *str;
 	};
 	UT_hash_handle hh;
 };
 
-static int peek;
-static unsigned int line;
+static const char *file_path;
+static unsigned int line_num;
+static char line[BUFFER_SIZE];
+static char *pos;
 
 /* hash table of reserved words */
 static struct token *reserved;
 
+static FILE *open_file(const char *path);
 static struct token *scan(FILE *f);
 static struct token *read_str(FILE *f);
-static void reserve(struct token *word);
 static struct token *create_token(int tag, void *info);
 static void free_token(struct token *t);
+static void reserve(struct token *word);
+static char *next_line(FILE *f);
 
-struct hotkey *parse_file(FILE *f)
+static void print_segment(size_t start, size_t end);
+static void print_carat(size_t nspace, const char *colour);
+
+struct hotkey *parse_file(const char *path)
 {
 	struct hotkey *head;
 	struct token *t, *tmp;
+	FILE *f;
+	size_t start, end;
 
 	head = NULL;
-	peek = ' ';
-	line = 1;
-	reserved = NULL;
+	file_path = path;
 
+	if (strcmp(path, "-") == 0) {
+		f = stdin;
+		file_path = "<stdin>";
+	} else if (!(f = open_file(path))) {
+		exit(1);
+	}
+
+	line_num = 0;
+	pos = next_line(f);
+
+	reserved = NULL;
 	reserve(create_token(TOK_FUNC, "click"));
 	reserve(create_token(TOK_FUNC, "rclick"));
 	reserve(create_token(TOK_FUNC, "jump"));
@@ -75,18 +116,21 @@ struct hotkey *parse_file(FILE *f)
 	while ((t = scan(f))) {
 		switch (t->tag) {
 		case TOK_NUM:
-			printf("%d\n", t->num);
+			PRINT_DEBUG("%d\n", t->val);
 			break;
 		case TOK_ARROW:
-			printf("->\n");
+			PRINT_DEBUG("->\n");
 			break;
 		case TOK_ID:
 		case TOK_FUNC:
 		case TOK_STRLIT:
-			printf("%s\n", t->str);
+			PRINT_DEBUG("%s\n", t->str);
+			break;
+		case TOK_MOD:
+			PRINT_DEBUG("%c\n", t->val);
 			break;
 		default:
-			printf("%c\n", t->tag);
+			PRINT_DEBUG("%c\n", t->tag);
 			break;
 		}
 
@@ -100,13 +144,47 @@ struct hotkey *parse_file(FILE *f)
 		free_token(t);
 	}
 
-	if (peek != EOF) {
-		fprintf(stderr, "line %u: unrecognized token '%c'\n", line, peek);
+	if (pos) {
+		PUTERR("unrecognized token '%c'\n", *pos);
+		start = GET_OFFSET(-40);
+		end = start + 80;
+		print_segment(start, pos - line);
+		fprintf(stderr, KRED "%c" KNRM, *pos);
+		print_segment(pos - line + 1, end);
+		if (end < strlen(line))
+			putc('\n', stderr);
+		print_carat(pos - line - start, KRED);
 		exit(1);
 	}
 
+	fclose(f);
 	return head;
 }
+
+#if defined(__linux__) || defined(__APPLE__)
+/* open_file: open the file at path with error checking */
+static FILE *open_file(const char *path)
+{
+	struct stat statbuf;
+	FILE *f;
+
+	if (stat(path, &statbuf) != 0) {
+		perror(path);
+		return NULL;
+	}
+
+	if (!S_ISREG(statbuf.st_mode)) {
+		fprintf(stderr, "%s: not a regular file\n", path);
+		return NULL;
+	}
+
+	if (!(f = fopen(path, "r"))) {
+		perror(path);
+		return NULL;
+	}
+	return f;
+}
+#endif
 
 /* scan: read the next token from f */
 static struct token *scan(FILE *f)
@@ -116,105 +194,107 @@ static struct token *scan(FILE *f)
 	struct token *t;
 
 	/* skip over whitespace */
-	for (;; peek = fgetc(f)) {
-		if (peek == ' ' || peek == '\t') {
-			continue;
-		} else if (peek == '\n') {
-			++line;
-		} else if (peek == '#') {
-			/* rest of line is a comment */
-			while ((peek = fgetc(f)) != EOF && peek != '\n')
-				;
-			if (peek == EOF)
+	for (;; ++pos) {
+		while (*pos == '\n' || *pos == '#') {
+			if (!(pos = next_line(f)))
 				return NULL;
-			++line;
-		} else {
-			break;
 		}
+
+		if (*pos != ' ' && *pos != '\t')
+			break;
+
+		/* makes printing an arrow on error messages easier */
+		if (*pos == '\t')
+			*pos = ' ';
 	}
 
-	if (isdigit(peek)) {
+	if (isdigit(*pos)) {
 		i = 0;
 		do {
-			i = 10 * i + (peek - '0');
-		} while (isdigit((peek = fgetc(f))));
+			i = 10 * i + (*pos - '0');
+		} while (isdigit(*++pos));
 		return create_token(TOK_NUM, &i);
 	}
-	if (isalpha(peek) || peek == '_') {
+	if (isalpha(*pos) || *pos == '_') {
 		i = 0;
 		do {
-			buf[i++] = peek;
-			peek = fgetc(f);
-		} while ((isalnum(peek) || peek == '_') && i < BUFFER_SIZE - 1);
+			buf[i++] = *pos++;
+		} while ((isalnum(*pos) || *pos == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
 		HASH_FIND_STR(reserved, buf, t);
 		if (t)
 			return t;
 		return create_token(TOK_ID, &buf);
 	}
-	if (peek == '-') {
-		if ((peek = fgetc(f)) == '>') {
-			peek = ' ';
+	if (*pos == '-') {
+		if (*++pos == '>') {
+			++pos;
 			return create_token(TOK_ARROW, NULL);
 		}
 		/* unary minus sign */
 		return create_token('-', NULL);
 	}
-	if (peek == '^' || peek == '~' || peek == '!' || peek == '#') {
-		t = create_token(peek, NULL);
-		peek = ' ';
-		return t;
+	if (*pos == '^' || *pos == '~' || *pos == '!' || *pos == '#') {
+		i = *pos++;
+		return create_token(TOK_MOD, &i);
 	}
-	if (peek == '"' || peek == '\'')
+	if (*pos == '"' || *pos == '\'')
 		return read_str(f);
 
 	/* EOF or invalid token */
 	return NULL;
 }
 
-/* read_str: read a string literal from file, return token containing it */
+static void err_unterm();
+
+/* read_str: read a string literal from f, return token containing it */
 static struct token *read_str(FILE *f)
 {
-	int quote;
-	size_t i;
-	char buf[BUFFER_SIZE];
+	int quote, i, start;
+	char buf[MAX_STR];
 
-	quote = peek;
-	for (i = 0; i < BUFFER_SIZE - 1 && (peek = fgetc(f)) != EOF; ++i) {
-		if (peek == quote) {
-			if (buf[i - 1] == '\\')
+	quote = *pos++;
+	for (i = 0; i < MAX_STR - 1; ++i) {
+		if (*pos == '\n') {
+			if ((i && buf[i - 1] != '\\') || (!(pos = next_line(f))))
+				break;
+			--i;
+		}
+		if (*pos == quote) {
+			if (i && buf[i - 1] == '\\')
 				--i;
 			else
 				break;
 		}
-		if (peek == '\n') {
-			if (buf[i - 1] != '\\') {
-				peek = EOF;
-				break;
-			} else {
-				/* skip backslash and newline */
-				i -= 2;
-				++line;
-				continue;
-			}
-		}
-		buf[i] = peek;
+		buf[i] = *pos++;
 	}
 	buf[i] = '\0';
-	if (peek == EOF) {
-		fprintf(stderr, "line %u: unterminated string literal\n", line);
-		return NULL;
+
+	if (i == MAX_STR - 1) {
+		PUTWARN("string literal exceeding %d characters truncated\n",
+				MAX_STR - 1);
+		start = GET_OFFSET(-79);
+		print_segment(start, pos - line);
+		printf(KMAG "%c" KNRM "\n", quote);
+		print_carat(pos - line - start, KMAG);
+
+		/* skip over the rest of the string */
+		while (1) {
+			if (*pos == '\n' && (*(pos - 1) != '\\'
+						|| !(pos = next_line(f))))
+				err_unterm();
+			if (*pos == quote && (pos == line || *(pos - 1) != '\\'))
+				break;
+			++pos;
+		}
+		++pos;
+		return create_token(TOK_STRLIT, &buf);
 	}
 
-	if (i == BUFFER_SIZE - 1) {
-		fprintf(stderr, "line %u: warning - string literal exceeding %u"
-				" characters truncated\n", line,
-				BUFFER_SIZE - 1);
-		/* read the rest of string as its own literal */
-		peek = quote;
-	} else {
-		peek = ' ';
-	}
+	if (!pos || *pos != quote)
+		err_unterm();
+
+	++pos;
 	return create_token(TOK_STRLIT, &buf);
 }
 
@@ -232,7 +312,8 @@ static struct token *create_token(int tag, void *info)
 
 	switch (tag) {
 	case TOK_NUM:
-		t->num = *(int *)info;
+	case TOK_MOD:
+		t->val = *(int *)info;
 		break;
 	case TOK_ID:
 	case TOK_FUNC:
@@ -252,4 +333,51 @@ static void free_token(struct token *t)
 	if (t->tag == TOK_ID || t->tag == TOK_FUNC || t->tag == TOK_STRLIT)
 		free(t->str);
 	free(t);
+}
+
+/* next_line: read from file until the next non-empty line */
+static char *next_line(FILE *f)
+{
+	char *s;
+
+	do {
+		++line_num;
+		s = fgets(line, BUFFER_SIZE, f);
+	} while (s && (!*s || *s == '\n'));
+
+	return s;
+}
+
+/* print_segment: print line from start to end */
+static void print_segment(size_t start, size_t end)
+{
+	size_t i;
+
+	i = strlen(line);
+	if (end > i)
+		end = i;
+
+	for (i = start; i < end; ++i)
+		putc(line[i], stderr);
+}
+
+static void print_carat(size_t nspace, const char *colour)
+{
+	size_t i;
+
+	for (i = 0; i < nspace; ++i)
+		putc(' ', stderr);
+	fprintf(stderr, "%s^" KNRM "\n", colour);
+}
+
+static void err_unterm()
+{
+	int start;
+
+	PUTERR("unterminated string literal\n");
+	start = GET_OFFSET(-79);
+	print_segment(start, pos - line);
+	putc('\n', stderr);
+	print_carat(pos - line - start, KRED);
+	exit(1);
 }

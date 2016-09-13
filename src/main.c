@@ -24,27 +24,15 @@
 #include "hotkey.h"
 #include "parser.h"
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
-static FILE *open_file(const char *path);
-
 int main(int argc, char **argv)
 {
 	int c;
-	FILE *f;
 	struct hotkey *head;
 
 	static struct option long_opts[] = {
 		{ "help", no_argument, 0, 'h' },
 		{ 0, 0, 0, 0 }
 	};
-
-	f = NULL;
-	head = NULL;
 
 	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
 		switch (c) {
@@ -57,20 +45,13 @@ int main(int argc, char **argv)
 		}
 	}
 
+	head = NULL;
 	if (optind != argc) {
 		if (optind != argc - 1) {
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
 			return 1;
 		}
-		if (strcmp(argv[optind], "-") == 0)
-			f = stdin;
-		else if (!(f = open_file(argv[optind])))
-			return 1;
-	}
-
-	if (f) {
-		head = parse_file(f);
-		fclose(f);
+		head = parse_file(argv[optind]);
 	}
 
 	/* temp */
@@ -83,28 +64,3 @@ int main(int argc, char **argv)
 	close_display();
 	return 0;
 }
-
-#if defined(__linux__) || defined(__APPLE__)
-/* open_file: open the file at path with error checking */
-static FILE *open_file(const char *path)
-{
-	struct stat statbuf;
-	FILE *f;
-
-	if (stat(path, &statbuf) != 0) {
-		perror(path);
-		return NULL;
-	}
-
-	if (!S_ISREG(statbuf.st_mode)) {
-		fprintf(stderr, "%s: not a regular file\n", path);
-		return NULL;
-	}
-
-	if (!(f = fopen(path, "r"))) {
-		perror(path);
-		return NULL;
-	}
-	return f;
-}
-#endif

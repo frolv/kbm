@@ -19,4 +19,4 @@
 #include "hotkey.h"
 #include "kbm.h"
 
-struct hotkey *parse_file(FILE *f);
+struct hotkey *parse_file(const char *path);
