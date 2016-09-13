@@ -285,8 +285,10 @@ static struct token *read_str(FILE *f)
 		/* skip over the rest of the string */
 		while (1) {
 			if (*pos == '\n' && (*(pos - 1) != '\\'
-						|| !(pos = next_line(f))))
+						|| !(pos = next_line(f)))) {
 				err_unterm();
+				exit(1);
+			}
 			if (*pos == quote && (pos == line || *(pos - 1) != '\\'))
 				break;
 			++pos;
@@ -295,8 +297,10 @@ static struct token *read_str(FILE *f)
 		return create_token(TOK_STRLIT, &buf);
 	}
 
-	if (!pos || *pos != quote)
+	if (!pos || *pos != quote) {
 		err_unterm();
+		exit(1);
+	}
 
 	++pos;
 	return create_token(TOK_STRLIT, &buf);
@@ -386,5 +390,4 @@ static void err_unterm()
 	print_segment(start, pos - line);
 	putc('\n', stderr);
 	print_carat(pos - line - start, 1, KRED);
-	exit(1);
 }
