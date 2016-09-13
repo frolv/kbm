@@ -82,7 +82,7 @@ static void reserve(struct token *word);
 static char *next_line(FILE *f);
 
 static void print_segment(size_t start, size_t end);
-static void print_carat(size_t nspace, const char *colour);
+static void print_carat(size_t nspace, size_t len, const char *colour);
 
 struct hotkey *parse_file(const char *path)
 {
@@ -153,7 +153,7 @@ struct hotkey *parse_file(const char *path)
 		print_segment(pos - line + 1, end);
 		if (end < strlen(line))
 			putc('\n', stderr);
-		print_carat(pos - line - start, KRED);
+		print_carat(pos - line - start, 1, KRED);
 		exit(1);
 	}
 
@@ -189,6 +189,8 @@ static FILE *open_file(const char *path)
 /* scan: read the next token from f */
 static struct token *scan(FILE *f)
 {
+	static const char *misc_keys = "`-=[]\\;',./";
+
 	int i;
 	char buf[BUFFER_SIZE];
 	struct token *t;
@@ -238,7 +240,9 @@ static struct token *scan(FILE *f)
 		i = *pos++;
 		return create_token(TOK_MOD, &i);
 	}
-	if (*pos == '"' || *pos == '\'')
+	if (strchr(misc_keys, *pos))
+		return create_token(*pos++, NULL);
+	if (*pos == '"')
 		return read_str(f);
 
 	/* EOF or invalid token */
@@ -276,7 +280,7 @@ static struct token *read_str(FILE *f)
 		start = GET_OFFSET(-79);
 		print_segment(start, pos - line);
 		printf(KMAG "%c" KNRM "\n", quote);
-		print_carat(pos - line - start, KMAG);
+		print_carat(pos - line - start, 1, KMAG);
 
 		/* skip over the rest of the string */
 		while (1) {
@@ -361,13 +365,16 @@ static void print_segment(size_t start, size_t end)
 		putc(line[i], stderr);
 }
 
-static void print_carat(size_t nspace, const char *colour)
+static void print_carat(size_t nspace, size_t len, const char *colour)
 {
 	size_t i;
 
 	for (i = 0; i < nspace; ++i)
 		putc(' ', stderr);
-	fprintf(stderr, "%s^" KNRM "\n", colour);
+	fprintf(stderr, "%s^", colour);
+	for (i = 0; i < len - 1; ++i)
+		putc('~', stderr);
+	fprintf(stderr, KNRM "\n");
 }
 
 static void err_unterm()
@@ -378,6 +385,6 @@ static void err_unterm()
 	start = GET_OFFSET(-79);
 	print_segment(start, pos - line);
 	putc('\n', stderr);
-	print_carat(pos - line - start, KRED);
+	print_carat(pos - line - start, 1, KRED);
 	exit(1);
 }
