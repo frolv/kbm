@@ -210,15 +210,14 @@ static struct token *scan(FILE *f)
 			*pos = ' ';
 	}
 
+	i = 0;
 	if (isdigit(*pos)) {
-		i = 0;
 		do {
 			i = 10 * i + (*pos - '0');
 		} while (isdigit(*++pos));
 		return create_token(TOK_NUM, &i);
 	}
 	if (isalpha(*pos) || *pos == '_') {
-		i = 0;
 		do {
 			buf[i++] = *pos++;
 		} while ((isalnum(*pos) || *pos == '_') && i < BUFFER_SIZE - 1);
@@ -260,7 +259,7 @@ static struct token *read_str(FILE *f)
 	quote = *pos++;
 	for (i = 0; i < MAX_STR - 1; ++i) {
 		if (*pos == '\n') {
-			if ((i && buf[i - 1] != '\\') || (!(pos = next_line(f))))
+			if ((i && buf[i - 1] != '\\') || !(pos = next_line(f)))
 				break;
 			--i;
 		}
@@ -361,8 +360,7 @@ static void print_segment(size_t start, size_t end)
 {
 	size_t i;
 
-	i = strlen(line);
-	if (end > i)
+	if (end > (i = strlen(line)))
 		end = i;
 
 	for (i = start; i < end; ++i)

@@ -32,19 +32,19 @@ enum {
  * init_display: perform OS-specific initialization
  * actions for a graphical display
  */
-void init_display();
+void init_display(void);
 
 /* close_display: perform OS-specific cleanup actions for a graphical display */
-void close_display();
+void close_display(void);
 
 /* start_loop: map the provided hotkeys and begin an event loop */
-void start_loop();
+void start_loop(void);
 
 /* load_keys: store list of keys starting at head */
 void load_keys(struct hotkey *head);
 
 /* unload_keys: remove and free stored hotkey lists */
-void unload_keys();
+void unload_keys(void);
 
 /* send_button: send a button event */
 void send_button(unsigned int button);
@@ -56,7 +56,7 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type);
 void move_cursor(int x, int y);
 
 /* toggle_keys: disable hotkeys if active; enable otherwise */
-void toggle_keys();
+void toggle_keys(void);
 
 /* kbm_exec: execute the specified program */
 void kbm_exec(void *args);

@@ -98,7 +98,7 @@ static struct hotkey *find_by_os_code(struct hotkey *head,
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display()
+void init_display(void)
 {
 	int screen;
 
@@ -115,7 +115,7 @@ void init_display()
 }
 
 /* close_display: disconnect from X server and clean up */
-void close_display()
+void close_display(void)
 {
 	unmap_keys(actions);
 	unmap_keys(toggles);
@@ -124,7 +124,7 @@ void close_display()
 }
 
 /* start_loop: map all hotkeys and start listening for keypresses */
-void start_loop()
+void start_loop(void)
 {
 	xcb_generic_event_t *e;
 	xcb_key_press_event_t *evt;
@@ -362,7 +362,7 @@ static int isnummod(unsigned int keysym)
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display()
+void init_display(void)
 {
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
@@ -370,13 +370,13 @@ void init_display()
 	}
 }
 
-void close_display()
+void close_display(void)
 {
 	UnhookWindowsHookEx(hook);
 }
 
 /* start_loop: map hotkeys and start listening for keypresses */
-void start_loop()
+void start_loop(void)
 {
 	MSG msg;
 
@@ -652,7 +652,7 @@ static void unmap_keys(struct hotkey *head)
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display()
+void init_display(void)
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -672,11 +672,11 @@ void init_display()
 	CGEventTapEnable(tap, true);
 }
 
-void close_display()
+void close_display(void)
 {
 }
 
-void start_loop()
+void start_loop(void)
 {
 	CFRunLoopRun();
 }
@@ -886,7 +886,7 @@ void load_keys(struct hotkey *head)
 	map_keys(toggles);
 }
 
-void unload_keys()
+void unload_keys(void)
 {
 	if (actions)
 		free_keys(actions);
@@ -895,7 +895,7 @@ void unload_keys()
 	actions = toggles = NULL;
 }
 
-void toggle_keys()
+void toggle_keys(void)
 {
 	if (keys_active)
 		unmap_keys(actions);
