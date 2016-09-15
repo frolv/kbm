@@ -45,6 +45,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	keymap_init();
+
 	head = NULL;
 	if (optind != argc) {
 		if (optind != argc - 1) {
@@ -62,5 +64,6 @@ int main(int argc, char **argv)
 	start_loop();
 	unload_keys();
 	close_display();
+	keymap_free();
 	return 0;
 }

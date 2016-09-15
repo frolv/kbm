@@ -19,236 +19,148 @@
 #include <stdio.h>
 #include <string.h>
 #include "keymap.h"
+#include "uthash.h"
+
+struct skey {
+	uint32_t	keycode;
+	const char	*keystr;
+	const char	*keyname;
+	UT_hash_handle	hh;
+};
 
 static char key_str[64];
+struct skey *keymap = NULL;
 
-/*
- * String of all single character keys, in the order they are defined in
- * keymap.h. The location of a key in the string is equivalent to its keycode.
- */
-static const char *SINGLE_KEYS =
-"_QWERTYUIOPASDFGHJKLZXCVBNM1234567890`-=[]\\;'./";
+static void add_key(uint32_t kc, const char *str, const char *name);
+
+/* keymap_init: populate the key hash table */
+void keymap_init(void)
+{
+	/* macros are good */
+	add_key(KEY_Q, "Q", "Q");
+	add_key(KEY_W, "W", "W");
+	add_key(KEY_E, "E", "E");
+	add_key(KEY_R, "R", "R");
+	add_key(KEY_T, "T", "T");
+	add_key(KEY_Y, "Y", "Y");
+	add_key(KEY_U, "U", "U");
+	add_key(KEY_I, "I", "I");
+	add_key(KEY_O, "O", "O");
+	add_key(KEY_P, "P", "P");
+	add_key(KEY_A, "A", "A");
+	add_key(KEY_S, "S", "S");
+	add_key(KEY_D, "D", "D");
+	add_key(KEY_F, "F", "F");
+	add_key(KEY_G, "G", "G");
+	add_key(KEY_H, "H", "H");
+	add_key(KEY_J, "J", "J");
+	add_key(KEY_K, "K", "K");
+	add_key(KEY_L, "L", "L");
+	add_key(KEY_Z, "Z", "Z");
+	add_key(KEY_X, "X", "X");
+	add_key(KEY_C, "C", "C");
+	add_key(KEY_V, "V", "V");
+	add_key(KEY_B, "B", "B");
+	add_key(KEY_N, "N", "N");
+	add_key(KEY_M, "M", "M");
+	add_key(KEY_1, "One",	"1");
+	add_key(KEY_2, "Two",	"2");
+	add_key(KEY_3, "Three",	"3");
+	add_key(KEY_4, "Four",	"4");
+	add_key(KEY_5, "Five",	"5");
+	add_key(KEY_6, "Six",	"6");
+	add_key(KEY_7, "Seven",	"7");
+	add_key(KEY_8, "Eight",	"8");
+	add_key(KEY_9, "Nine",	"9");
+	add_key(KEY_0, "Zero",	"0");
+	add_key(KEY_BTICK,	"Backtick", "`");
+	add_key(KEY_BTICK,	"Grave", "`");
+	add_key(KEY_MINUS,	"Minus", "-");
+	add_key(KEY_MINUS,	"Dash", "-");
+	add_key(KEY_EQUAL,	"Equals", "=");
+	add_key(KEY_LSQBR,	"LeftSq", "[");
+	add_key(KEY_LSQBR,	"LeftSquare", "[");
+	add_key(KEY_RSQBR,	"RightSq", "]");
+	add_key(KEY_LSQBR,	"RightSquare", "]");
+	add_key(KEY_BSLASH,	"Backslash", "\\");
+	add_key(KEY_SEMIC,	"Semicolon", ";");
+	add_key(KEY_QUOTE,	"Quote", "'");
+	add_key(KEY_QUOTE,	"Apostrophe", "'");
+	add_key(KEY_COMMA,	"Comma", ",");
+	add_key(KEY_PERIOD,	"Period", ".");
+	add_key(KEY_PERIOD,	"Dot", ".");
+	add_key(KEY_FSLASH,	"Slash", "/");
+	add_key(KEY_SPACE,	"Space", "Space");
+	add_key(KEY_ESCAPE,	"Esc", "Escape");
+	add_key(KEY_ESCAPE,	"Escape", "Escape");
+	add_key(KEY_BSPACE,	"Backspace", "Backspace");
+	add_key(KEY_TAB,	"Tab", "Tab");
+	add_key(KEY_CAPS,	"Caps", "CapsLock");
+	add_key(KEY_CAPS,	"CapsLock", "CapsLock");
+	add_key(KEY_ENTER,	"Enter", "Enter");
+	add_key(KEY_ENTER,	"Return", "Enter");
+	add_key(KEY_SHIFT,	"Shift", "Shift");
+	add_key(KEY_CTRL,	"Control", "Control");
+	add_key(KEY_CTRL,	"Ctrl", "Control");
+	add_key(KEY_SUPER,	"Super", "Super");
+	add_key(KEY_META,	"Meta", "Meta");
+	add_key(KEY_META,	"Alt", "Meta");
+}
+
+void keymap_free(void)
+{
+	struct skey *k, *tmp;
+
+	HASH_ITER(hh, keymap, k, tmp) {
+		HASH_DEL(keymap, k);
+		free(k);
+	}
+}
 
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(uint8_t keycode, uint8_t mask)
 {
-	char *s;
+	struct skey *k, *tmp;
 
 	key_str[0] = '\0';
 
-	if (CHECK_MOD(mask, KBM_CTRL_MASK))
+	if (CHECK_MASK(mask, KBM_CTRL_MASK))
 		strcat(key_str, "Ctrl-");
-	if (CHECK_MOD(mask, KBM_SUPER_MASK))
+	if (CHECK_MASK(mask, KBM_SUPER_MASK))
 		strcat(key_str, "Super-");
-	if (CHECK_MOD(mask, KBM_META_MASK))
+	if (CHECK_MASK(mask, KBM_META_MASK))
 		strcat(key_str, "Alt-");
-	if (CHECK_MOD(mask, KBM_SHIFT_MASK))
+	if (CHECK_MASK(mask, KBM_SHIFT_MASK))
 		strcat(key_str, "Shift-");
 
-	s = strchr(key_str, '\0');
-	if (keycode <= KEY_FSLASH) {
-		sprintf(s, "%c", SINGLE_KEYS[keycode]);
-		return key_str;
-	}
-
-	/* I love vim macros */
-	switch (keycode) {
-	case KEY_SPACE:
-		strcat(s, "Space");
-		break;
-	case KEY_ESCAPE:
-		strcat(s, "Escape");
-		break;
-	case KEY_BSPACE:
-		strcat(s, "Backspace");
-		break;
-	case KEY_TAB:
-		strcat(s, "Tab");
-		break;
-	case KEY_CAPS:
-		strcat(s, "CapsLock");
-		break;
-	case KEY_ENTER:
-		strcat(s, "Enter");
-		break;
-	case KEY_SHIFT:
-		strcat(s, "Shift");
-		break;
-	case KEY_CTRL:
-		strcat(s, "Control");
-		break;
-	case KEY_SUPER:
-		strcat(s, "Super");
-		break;
-	case KEY_META:
-		strcat(s, "Alt");
-		break;
-	case KEY_F1:
-		strcat(s, "F1");
-		break;
-	case KEY_F2:
-		strcat(s, "F2");
-		break;
-	case KEY_F3:
-		strcat(s, "F3");
-		break;
-	case KEY_F4:
-		strcat(s, "F4");
-		break;
-	case KEY_F5:
-		strcat(s, "F5");
-		break;
-	case KEY_F6:
-		strcat(s, "F6");
-		break;
-	case KEY_F7:
-		strcat(s, "F7");
-		break;
-	case KEY_F8:
-		strcat(s, "F8");
-		break;
-	case KEY_F9:
-		strcat(s, "F9");
-		break;
-	case KEY_F10:
-		strcat(s, "F10");
-		break;
-	case KEY_F11:
-		strcat(s, "F11");
-		break;
-	case KEY_F12:
-		strcat(s, "F12");
-		break;
-	case KEY_PRTSCR:
-		strcat(s, "PrintScreen");
-		break;
-	case KEY_SCRLCK:
-		strcat(s, "ScrollLock");
-		break;
-	case KEY_PAUSE:
-		strcat(s, "Pause");
-		break;
-	case KEY_INSERT:
-		strcat(s, "Insert");
-		break;
-	case KEY_DELETE:
-		strcat(s, "Delete");
-		break;
-	case KEY_HOME:
-		strcat(s, "Home");
-		break;
-	case KEY_END:
-		strcat(s, "End");
-		break;
-	case KEY_PGUP:
-		strcat(s, "PageUp");
-		break;
-	case KEY_PGDOWN:
-		strcat(s, "PageDown");
-		break;
-	case KEY_LARROW:
-		strcat(s, "Left");
-		break;
-	case KEY_RARROW:
-		strcat(s, "Right");
-		break;
-	case KEY_UARROW:
-		strcat(s, "Up");
-		break;
-	case KEY_DARROW:
-		strcat(s, "Down");
-		break;
-	case KEY_NUMLOCK:
-		strcat(s, "NumLock");
-		break;
-	case KEY_NUMDIV:
-		strcat(s, "NumDiv");
-		break;
-	case KEY_NUMMULT:
-		strcat(s, "NumMult");
-		break;
-	case KEY_NUMMINUS:
-		strcat(s, "NumMinus");
-		break;
-	case KEY_NUMPLUS:
-		strcat(s, "NumPlus");
-		break;
-	case KEY_NUMENTER:
-		strcat(s, "NumEnter");
-		break;
-	case KEY_NUMDEL:
-		strcat(s, "NumDelete");
-		break;
-	case KEY_NUMINS:
-		strcat(s, "NumInsert");
-		break;
-	case KEY_NUMEND:
-		strcat(s, "NumEnd");
-		break;
-	case KEY_NUMDOWN:
-		strcat(s, "NumDown");
-		break;
-	case KEY_NUMPGDN:
-		strcat(s, "NumPageDown");
-		break;
-	case KEY_NUMLEFT:
-		strcat(s, "NumLeft");
-		break;
-	case KEY_NUMCLEAR:
-		strcat(s, "NumClear");
-		break;
-	case KEY_NUMRIGHT:
-		strcat(s, "NumRight");
-		break;
-	case KEY_NUMHOME:
-		strcat(s, "NumHome");
-		break;
-	case KEY_NUMUP:
-		strcat(s, "NumUp");
-		break;
-	case KEY_NUMPGUP:
-		strcat(s, "NumPageUp");
-		break;
-	case KEY_NUMDEC:
-		strcat(s, "NumDecimal");
-		break;
-	case KEY_NUM0:
-		strcat(s, "Num0");
-		break;
-	case KEY_NUM1:
-		strcat(s, "Num1");
-		break;
-	case KEY_NUM2:
-		strcat(s, "Num2");
-		break;
-	case KEY_NUM3:
-		strcat(s, "Num3");
-		break;
-	case KEY_NUM4:
-		strcat(s, "Num4");
-		break;
-	case KEY_NUM5:
-		strcat(s, "Num5");
-		break;
-	case KEY_NUM6:
-		strcat(s, "Num6");
-		break;
-	case KEY_NUM7:
-		strcat(s, "Num7");
-		break;
-	case KEY_NUM8:
-		strcat(s, "Num8");
-		break;
-	case KEY_NUM9:
-		strcat(s, "Num9");
-		break;
-	default:
-		break;
+	HASH_ITER(hh, keymap, k, tmp) {
+		if (k->keycode == keycode) {
+			strcat(key_str, k->keyname);
+			break;
+		}
 	}
 
 	return key_str;
 }
 
+uint32_t lookup_keycode(const char *key)
+{
+	struct skey *k;
+
+	HASH_FIND_STR(keymap, key, k);
+	return k ? k->keycode : 0;
+}
+
+static void add_key(uint32_t kc, const char *str, const char *name)
+{
+	struct skey *k;
+
+	k = malloc(sizeof(*k));
+	k->keycode = kc;
+	k->keystr = str;
+	k->keyname = name;
+	HASH_ADD_KEYPTR(hh, keymap, k->keystr, strlen(k->keystr), k);
+}
 
 #ifdef __linux__
 /*
@@ -285,13 +197,13 @@ unsigned int kbm_to_xcb_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MOD(modmask, KBM_SHIFT_MASK))
+	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
 		mask |= XCB_MOD_MASK_SHIFT;
-	if (CHECK_MOD(modmask, KBM_CTRL_MASK))
+	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
 		mask |= XCB_MOD_MASK_CONTROL;
-	if (CHECK_MOD(modmask, KBM_SUPER_MASK))
+	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
 		mask |= XCB_MOD_MASK_4;
-	if (CHECK_MOD(modmask, KBM_META_MASK))
+	if (CHECK_MASK(modmask, KBM_META_MASK))
 		mask |= XCB_MOD_MASK_1;
 
 	return mask;
@@ -326,13 +238,13 @@ unsigned int kbm_to_win_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MOD(modmask, KBM_SHIFT_MASK))
+	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
 		mask |= MOD_SHIFT;
-	if (CHECK_MOD(modmask, KBM_CTRL_MASK))
+	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
 		mask |= MOD_CONTROL;
-	if (CHECK_MOD(modmask, KBM_SUPER_MASK))
+	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
 		mask |= MOD_WIN;
-	if (CHECK_MOD(modmask, KBM_META_MASK))
+	if (CHECK_MASK(modmask, KBM_META_MASK))
 		mask |= MOD_ALT;
 
 	return mask;
@@ -379,13 +291,13 @@ unsigned int kbm_to_osx_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MOD(modmask, KBM_SHIFT_MASK))
+	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
 		mask |= kCGEventFlagMaskShift;
-	if (CHECK_MOD(modmask, KBM_CTRL_MASK))
+	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
 		mask |= kCGEventFlagMaskControl;
-	if (CHECK_MOD(modmask, KBM_SUPER_MASK))
+	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
 		mask |= kCGEventFlagMaskCommand;
-	if (CHECK_MOD(modmask, KBM_META_MASK))
+	if (CHECK_MASK(modmask, KBM_META_MASK))
 		mask |= kCGEventFlagMaskAlternate;
 
 	return mask;

@@ -151,19 +151,30 @@
 #define KEY_NUM9	0x6E
 
 
-/* Bitmasks for the various modifier keys */
+/* bitmasks for the various modifier keys */
 #define KBM_SHIFT_MASK	0x01
 #define KBM_CTRL_MASK	0x02
 #define KBM_SUPER_MASK	0x04	/* command on OS X */
 #define KBM_META_MASK	0x08	/* option  on OS X */
 
-/* Check whether a modifer is set */
-#define CHECK_MOD(MODS,MODMASK) (((MODS) & (MODMASK)) == (MODMASK))
+/* check whether a bit is set */
+#define CHECK_MASK(I,MASK) (((I) & (MASK)) == (MASK))
+
+/* check if kc is the keycode of a modifier */
+#define K_ISMOD(kc) \
+	((kc) == KEY_CTRL || (kc) == KEY_SHIFT || \
+	(kc) == KEY_SUPER || (kc) == KEY_META)
 
 #include <stdint.h>
 
+void keymap_init(void);
+void keymap_free(void);
+
 /* keystr: return a string representation of key corresponding to keycode */
 char *keystr(uint8_t keycode, uint8_t mask);
+
+/* lookup_keycode: return the kbm keycode of key */
+uint32_t lookup_keycode(const char *key);
 
 
 /*

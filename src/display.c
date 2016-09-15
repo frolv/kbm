@@ -205,22 +205,22 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	mod = NULL;
 	if (type == KBM_PRESS) {
 		/* press all required modifier keys */
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_SHIFT)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_CONTROL)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_4)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_1)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
@@ -232,22 +232,22 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 		/* release the requested keys and then all modifiers */
 		xcb_test_fake_input(conn, XCB_KEY_RELEASE, kc[0],
 				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_SHIFT)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_CONTROL)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_4)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MOD(modmask, XCB_MOD_MASK_1)) {
+		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
@@ -444,13 +444,13 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	if (type == KBM_RELEASE)
 		SendInput(1, &key, sizeof(key));
 
-	if (CHECK_MOD(modmask, MOD_SHIFT))
+	if (CHECK_MASK(modmask, MOD_SHIFT))
 		send_fake_mod(VK_SHIFT, type);
-	if (CHECK_MOD(modmask, MOD_CONTROL))
+	if (CHECK_MASK(modmask, MOD_CONTROL))
 		send_fake_mod(VK_CONTROL, type);
-	if (CHECK_MOD(modmask, MOD_ALT))
+	if (CHECK_MASK(modmask, MOD_ALT))
 		send_fake_mod(VK_MENU, type);
-	if (CHECK_MOD(modmask, MOD_WIN))
+	if (CHECK_MASK(modmask, MOD_WIN))
 		send_fake_mod(VK_LWIN, type);
 
 	/* press key after mods (of course) */
