@@ -674,9 +674,8 @@ static void err_expected(const char *err)
 static void note_duplicate(const char *last)
 {
 	size_t start, end, len;
-	int i;
+	long i;
 
-	PUTNOTE(CURR_IND, "duplicate modifier declaration\n");
 	start = GET_OFFSET(-40);
 	len = curr->len;
 	end = CURR_START;
@@ -685,20 +684,21 @@ static void note_duplicate(const char *last)
 			end -= strlen(last);
 		else
 			end = 0;
-	}
-	print_segment(start, end);
-	if (last) {
 		len += strlen(last);
-		fprintf(stderr, KBLU "%s" KNRM, last);
 	}
+	if ((i = CURR_IND - len) < 0)
+		i = 0;
+	PUTNOTE(i, "duplicate modifier declaration\n");
+	print_segment(start, end);
+	if (last)
+		fprintf(stderr, KBLU "%s" KNRM, last);
 	end = start + 80;
 	print_token(curr, KBLU);
 	print_segment(CURR_IND, end);
 	if (end < strlen(line))
 		putc('\n', stderr);
 
-	i = CURR_IND - start - len;
-	if (i < 0)
+	if ((i = CURR_IND - start - len) < 0)
 		i = 0;
 	print_carat(i, len, KBLU);
 }
