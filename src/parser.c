@@ -127,8 +127,6 @@ struct hotkey *parse_file(const char *path)
 		exit(1);
 	}
 
-	line_num = 0;
-
 	reserved = NULL;
 	reserve(create_token(TOK_FUNC, "click"));
 	reserve(create_token(TOK_FUNC, "rclick"));
@@ -138,11 +136,12 @@ struct hotkey *parse_file(const char *path)
 	reserve(create_token(TOK_FUNC, "quit"));
 	reserve(create_token(TOK_FUNC, "exec"));
 
+	line_num = 0;
 	if (!(pos = next_line(f)))
 		return head;
 
 	/* grab the first token */
-	curr = scan(f);
+	next_token(f, &curr, 0, 0);
 	while (1) {
 		if (!(hk = parse_binding(f)))
 			exit(1);
@@ -368,7 +367,7 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 	char buf[BUFFER_SIZE];
 	size_t start;
 
-	if (free)
+	if (free && *ret)
 		free_token(*ret);
 	if (err)
 		strcpy(buf, line);
@@ -388,6 +387,12 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 	return 0;
 }
 
+/*
+ * parse_binding:
+ * Read a complete keybinding declaration from f.
+ * The format of a keybinding is KEY -> FUNC [ARGS].
+ * Return a struct hotkey representing the binding.
+ */
 static struct hotkey *parse_binding(FILE *f)
 {
 	size_t start, end;
@@ -397,6 +402,7 @@ static struct hotkey *parse_binding(FILE *f)
 	if (parse_key(f, &key) != 0)
 		return NULL;
 
+	/* match the arrow following the key */
 	if (curr->tag != TOK_ARROW) {
 		PUTERR(CURR_START, "expected '->' after key\n");
 		start = GET_OFFSET(-40);
@@ -411,6 +417,8 @@ static struct hotkey *parse_binding(FILE *f)
 	}
 	if (next_token(f, &curr, 1, 1) != 0)
 		return NULL;
+
+	/* match the hotkey operation */
 	if (curr->tag != TOK_FUNC) {
 		PUTERR(CURR_START, "expected function after '->'\n");
 		start = GET_OFFSET(-40);
@@ -425,12 +433,14 @@ static struct hotkey *parse_binding(FILE *f)
 	}
 	if (next_token(f, &curr, 1, 1) != 0)
 		return NULL;
+
 	return create_hotkey(key & 0xFFFFFFFF, (key >> 32) & 0xFFFFFFFF, 0, 0);
 }
 
-/* parse key: parse a key declaration and its modifiers */
+/* parse_key: parse a key declaration and its modifiers */
 static int parse_key(FILE *f, uint64_t *retval)
 {
+	/* valid nonalphanumeric key lexemes */
 	static const char *misc_keys = "`-=[]\\;',./";
 	size_t start, end;
 
