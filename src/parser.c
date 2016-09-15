@@ -47,6 +47,12 @@
 		file_path, line_num, (ind) + 1, \
 		##__VA_ARGS__)
 
+#define PUTNOTE(ind, fmt, ...) \
+	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+		KBLU "note: " KNRM fmt, \
+		file_path, line_num, (ind) + 1, \
+		##__VA_ARGS__)
+
 #define GET_OFFSET(offset) \
 	(((CURR_IND + (offset)) < 0) \
 	 ? 0 : (CURR_IND + (offset)))
@@ -61,13 +67,13 @@ enum {
 };
 
 struct token {
-	int tag;		/* type of the token */
-	size_t len;		/* length of token's lexeme */
+	int		tag;	/* type of the token */
+	size_t		len;	/* length of token's lexeme */
 	union {
-		int val;	/* each token has either a numeric */
-		char *str;	/* or string value associated with it */
+		int	val;	/* each token has either a numeric */
+		char	*str;	/* or string value associated with it */
 	};
-	UT_hash_handle hh;	/* handle for hashtable */
+	UT_hash_handle	hh;	/* handle for hashtable */
 };
 
 static const char *file_path;
@@ -89,6 +95,7 @@ static struct token *read_str(FILE *f);
 static struct token *create_token(int tag, void *info);
 static void free_token(struct token *t);
 static void reserve(struct token *word);
+static void free_reserved(void);
 static char *next_line(FILE *f);
 static int next_token(FILE *f, struct token **ret, int free, int err);
 
@@ -96,14 +103,17 @@ static struct hotkey *parse_binding(FILE *f);
 static int parse_key(FILE *f, uint64_t *retval);
 static int parse_mod(FILE *f, uint64_t *retval);
 static int parse_id(FILE *f, uint64_t *retval);
+static int parse_misc(FILE *f, uint64_t *retval);
+static void set_mods(uint32_t *mods, uint32_t mask);
 
 /* error/warning message functions */
 static void print_segment(size_t start, size_t end);
 static void print_carat(size_t nspace, size_t len, const char *colour);
 static void print_token(const struct token *t, const char *colour);
 
-static void warn_duplicate(void);
 static void err_unterm(void);
+static void err_expected(const char *err);
+static void note_duplicate(void);
 
 /*
  * parse_file:
@@ -114,7 +124,6 @@ static void err_unterm(void);
 struct hotkey *parse_file(const char *path)
 {
 	struct hotkey *head, *hk;
-	struct token *t, *tmp;
 	FILE *f;
 
 	head = NULL;
@@ -124,6 +133,7 @@ struct hotkey *parse_file(const char *path)
 		f = stdin;
 		file_path = "<stdin>";
 	} else if (!(f = open_file(path))) {
+		keymap_free();
 		exit(1);
 	}
 
@@ -143,19 +153,23 @@ struct hotkey *parse_file(const char *path)
 	/* grab the first token */
 	next_token(f, &curr, 0, 0);
 	while (1) {
-		if (!(hk = parse_binding(f)))
+		if (!(hk = parse_binding(f))) {
+			if (curr && (curr->tag == TOK_ID ||
+						curr->tag == TOK_STRLIT))
+				free_token(curr);
+			free_reserved();
+			keymap_free();
+			if (head)
+				free_keys(head);
+			fclose(f);
 			exit(1);
+		}
 		PRINT_DEBUG("hotkey parsed: %s\n",
 				keystr(hk->kbm_code, hk->kbm_modmask));
 		add_hotkey(&head, hk);
 	}
 
-	/* free hash table contents */
-	HASH_ITER(hh, reserved, t, tmp) {
-		HASH_DEL(reserved, t);
-		free_token(t);
-	}
-
+	free_reserved();
 	fclose(f);
 	return head;
 }
@@ -299,10 +313,22 @@ static void reserve(struct token *word)
 	HASH_ADD_KEYPTR(hh, reserved, word->str, strlen(word->str), word);
 }
 
+/* free_reserved: free reserved key hash table contents */
+static void free_reserved(void)
+{
+	struct token *t, *tmp;
+
+	HASH_ITER(hh, reserved, t, tmp) {
+		HASH_DEL(reserved, t);
+		free_token(t);
+	}
+}
+
 static struct token *create_token(int tag, void *info)
 {
 	struct token *t;
-	int i;
+	size_t i;
+	char *s;
 
 	t = malloc(sizeof(*t));
 	t->tag = tag;
@@ -322,8 +348,11 @@ static struct token *create_token(int tag, void *info)
 	case TOK_ID:
 	case TOK_FUNC:
 	case TOK_STRLIT:
-		t->str = strdup((char *)info);
-		t->len = strlen(t->str);
+		s = info;
+		t->len = strlen(s);
+		t->str = malloc(t->len);
+		for (i = 0; i < t->len + 1; ++i)
+			t->str[i] = tolower(s[i]);
 		break;
 	case TOK_ARROW:
 		t->len = 2;
@@ -395,7 +424,6 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
  */
 static struct hotkey *parse_binding(FILE *f)
 {
-	size_t start, end;
 	uint64_t key;
 
 	key = 0;
@@ -404,15 +432,7 @@ static struct hotkey *parse_binding(FILE *f)
 
 	/* match the arrow following the key */
 	if (curr->tag != TOK_ARROW) {
-		PUTERR(CURR_START, "expected '->' after key\n");
-		start = GET_OFFSET(-40);
-		end = start + 80;
-		print_segment(start, CURR_START);
-		print_token(curr, KRED);
-		print_segment(CURR_IND, end);
-		if (end < strlen(line))
-			putc('\n', stderr);
-		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		err_expected("expected '->' after key");
 		return NULL;
 	}
 	if (next_token(f, &curr, 1, 1) != 0)
@@ -420,18 +440,10 @@ static struct hotkey *parse_binding(FILE *f)
 
 	/* match the hotkey operation */
 	if (curr->tag != TOK_FUNC) {
-		PUTERR(CURR_START, "expected function after '->'\n");
-		start = GET_OFFSET(-40);
-		end = start + 80;
-		print_segment(start, CURR_START);
-		print_token(curr, KRED);
-		print_segment(CURR_IND, end);
-		if (end < strlen(line))
-			putc('\n', stderr);
-		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		err_expected("expected function after '->'");
 		return NULL;
 	}
-	if (next_token(f, &curr, 1, 1) != 0)
+	if (next_token(f, &curr, 0, 1) != 0)
 		return NULL;
 
 	return create_hotkey(key & 0xFFFFFFFF, (key >> 32) & 0xFFFFFFFF, 0, 0);
@@ -442,7 +454,6 @@ static int parse_key(FILE *f, uint64_t *retval)
 {
 	/* valid nonalphanumeric key lexemes */
 	static const char *misc_keys = "`-=[]\\;',./";
-	size_t start, end;
 
 	if (curr->tag == TOK_MOD) {
 		if (parse_mod(f, retval) != 0)
@@ -453,16 +464,10 @@ static int parse_key(FILE *f, uint64_t *retval)
 		if (parse_id(f, retval) == 1)
 			return 1;
 	} else if (strchr(misc_keys, curr->tag)) {
+		if (parse_misc(f, retval) != 0)
+			return 1;
 	} else {
-		PUTERR(CURR_START, "invalid token - expected a key\n");
-		start = GET_OFFSET(-40);
-		end = start + 80;
-		print_segment(start, CURR_START);
-		print_token(curr, KRED);
-		print_segment(CURR_IND, end);
-		if (end < strlen(line))
-			putc('\n', stderr);
-		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		err_expected("invalid token - expected a key");
 		return 1;
 	}
 	return 0;
@@ -476,24 +481,16 @@ static int parse_mod(FILE *f, uint64_t *retval)
 	mods = (uint32_t *)retval + 1;
 	switch (curr->val) {
 	case '^':
-		if (CHECK_MOD(*mods, KBM_CTRL_MASK))
-			warn_duplicate();
-		*mods |= KBM_CTRL_MASK;
+		set_mods(mods, KBM_CTRL_MASK);
 		break;
 	case '!':
-		if (CHECK_MOD(*mods, KBM_SHIFT_MASK))
-			warn_duplicate();
-		*mods |= KBM_SHIFT_MASK;
+		set_mods(mods, KBM_SHIFT_MASK);
 		break;
 	case '@':
-		if (CHECK_MOD(*mods, KBM_SUPER_MASK))
-			warn_duplicate();
-		*mods |= KBM_SUPER_MASK;
+		set_mods(mods, KBM_SUPER_MASK);
 		break;
 	case '~':
-		if (CHECK_MOD(*mods, KBM_META_MASK))
-			warn_duplicate();
-		*mods |= KBM_META_MASK;
+		set_mods(mods, KBM_META_MASK);
 		break;
 	default:
 		return 1;
@@ -510,17 +507,73 @@ static int parse_mod(FILE *f, uint64_t *retval)
 
 static int parse_id(FILE *f, uint64_t *retval)
 {
-	uint32_t *key;
+	uint32_t *key, *mods;
+	size_t start, end;
 
 	key = (uint32_t *)retval;
-	if (strcmp(curr->str, "E") == 0) {
-		*key = KEY_E;
+	mods = (uint32_t *)retval + 1;
+	if (!(*key = lookup_keycode(curr->str))) {
+		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
+		start = GET_OFFSET(-40);
+		end = start + 80;
+		print_segment(start, CURR_START);
+		print_token(curr, KRED);
+		print_segment(CURR_IND, end);
+		if (end < strlen(line))
+			putc('\n', stderr);
+		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		return 1;
 	}
 
 	if (next_token(f, &curr, 1, 1) != 0)
 		return 1;
 
+	if (K_ISMOD(*key) && curr->tag == '-') {
+		switch (*key) {
+		case KEY_CTRL:
+			set_mods(mods, KBM_CTRL_MASK);
+			break;
+		case KEY_SHIFT:
+			set_mods(mods, KBM_SHIFT_MASK);
+			break;
+		case KEY_SUPER:
+			set_mods(mods, KBM_SUPER_MASK);
+			break;
+		case KEY_META:
+			set_mods(mods, KBM_META_MASK);
+			break;
+		}
+		if (next_token(f, &curr, 1, 1) != 0)
+			return 1;
+		return parse_key(f, retval);
+	}
+
 	return 0;
+}
+
+static int parse_misc(FILE *f, uint64_t *retval)
+{
+	uint32_t *key;
+
+	key = (uint32_t *)retval;
+	switch (curr->tag) {
+	case '-':
+		*key = KEY_MINUS;
+		break;
+	default:
+		return 1;
+	}
+	if (next_token(f, &curr, 1, 1) != 0)
+		return 1;
+	return 0;
+}
+
+/* set_mods: set bitmask mask to mods with duplicate notice */
+static void set_mods(uint32_t *mods, uint32_t mask)
+{
+	if (CHECK_MASK(*mods, mask))
+		note_duplicate();
+	*mods |= mask;
 }
 
 /* print_segment: print line from start to end */
@@ -568,17 +621,32 @@ static void err_unterm(void)
 	print_carat(CURR_IND - start, 1, KRED);
 }
 
-static void warn_duplicate(void)
+static void err_expected(const char *err)
 {
 	size_t start, end;
 
-	PUTWARN(CURR_IND, "duplicate modifier declaration\n");
+	PUTERR(CURR_START, "%s\n", err);
 	start = GET_OFFSET(-40);
 	end = start + 80;
 	print_segment(start, CURR_START);
-	print_token(curr, KMAG);
+	print_token(curr, KRED);
 	print_segment(CURR_IND, end);
 	if (end < strlen(line))
 		putc('\n', stderr);
-	print_carat(CURR_IND - start - curr->len, curr->len, KMAG);
+	print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+}
+
+static void note_duplicate(void)
+{
+	size_t start, end;
+
+	PUTNOTE(CURR_IND, "duplicate modifier declaration\n");
+	start = GET_OFFSET(-40);
+	end = start + 80;
+	print_segment(start, CURR_START);
+	print_token(curr, KBLU);
+	print_segment(CURR_IND, end);
+	if (end < strlen(line))
+		putc('\n', stderr);
+	print_carat(CURR_IND - start - curr->len, curr->len, KBLU);
 }
