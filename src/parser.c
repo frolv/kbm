@@ -29,7 +29,7 @@
 #endif
 
 #define BUFFER_SIZE	4096
-#define MAX_STR		1024
+#define MAX_STRING	1024
 
 #define CURR_IND (pos - line)
 #define CURR_START (CURR_IND - curr->len)
@@ -47,8 +47,9 @@
 		file_path, line_num, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define GET_OFFSET(offset) ((((CURR_IND) + (offset)) < 0) \
-		? 0 : ((CURR_IND) + (offset)))
+#define GET_OFFSET(offset) \
+	(((CURR_IND + (offset)) < 0) \
+	 ? 0 : (CURR_IND + (offset)))
 
 enum {
 	TOK_NUM = 0x100,
@@ -89,6 +90,7 @@ static struct token *create_token(int tag, void *info);
 static void free_token(struct token *t);
 static void reserve(struct token *word);
 static char *next_line(FILE *f);
+static int next_token(FILE *f, struct token **ret, int free, int err);
 
 static struct hotkey *parse_binding(FILE *f);
 static int parse_key(FILE *f, uint64_t *retval);
@@ -219,16 +221,13 @@ static struct token *scan(FILE *f)
 		} while ((isalnum(*pos) || *pos == '_') && i < BUFFER_SIZE - 1);
 		buf[i] = '\0';
 		HASH_FIND_STR(reserved, buf, t);
-		if (t)
-			return t;
-		return create_token(TOK_ID, &buf);
+		return t ? t : create_token(TOK_ID, &buf);
 	}
 	if (*pos == '-') {
 		if (*++pos == '>') {
 			++pos;
 			return create_token(TOK_ARROW, NULL);
 		}
-		/* unary minus sign */
 		return create_token('-', NULL);
 	}
 	if (*pos == '^' || *pos == '~' || *pos == '!' || *pos == '@') {
@@ -245,10 +244,10 @@ static struct token *scan(FILE *f)
 static struct token *read_str(FILE *f)
 {
 	int quote, i, start;
-	char buf[MAX_STR];
+	char buf[MAX_STRING];
 
 	quote = *pos++;
-	for (i = 0; i < MAX_STR - 1; ++i) {
+	for (i = 0; i < MAX_STRING - 1; ++i) {
 		if (*pos == '\n') {
 			if ((i && buf[i - 1] != '\\') || !(pos = next_line(f)))
 				break;
@@ -264,9 +263,9 @@ static struct token *read_str(FILE *f)
 	}
 	buf[i] = '\0';
 
-	if (i == MAX_STR - 1) {
+	if (i == MAX_STRING - 1) {
 		PUTWARN(CURR_IND, "string literal exceeding "
-				"%d characters truncated\n", MAX_STR - 1);
+				"%d characters truncated\n", MAX_STRING - 1);
 		start = GET_OFFSET(-79);
 		print_segment(start, CURR_IND);
 		printf(KMAG "%c" KNRM "\n", quote);
@@ -358,6 +357,37 @@ static char *next_line(FILE *f)
 	return s;
 }
 
+/*
+ * next_token:
+ * Read the next token from f and store pointer to it in ret.
+ * The existing token in ret is freed if free is set.
+ * With err, an error message is printed if no token can be read.
+ */
+static int next_token(FILE *f, struct token **ret, int free, int err)
+{
+	char buf[BUFFER_SIZE];
+	size_t start;
+
+	if (free)
+		free_token(*ret);
+	if (err)
+		strcpy(buf, line);
+
+	if (!(*ret = scan(f))) {
+		if (err) {
+			PUTERR(-1L, "unexpected end of file when parsing\n");
+			pos = strchr(line, '\n');
+			start = GET_OFFSET(-79);
+			print_segment(start, CURR_IND);
+			putc('\n', stderr);
+			print_carat(CURR_IND - start, 1, KRED);
+			fprintf(stderr, "last statement here:\n%s", buf);
+		}
+		return 1;
+	}
+	return 0;
+}
+
 static struct hotkey *parse_binding(FILE *f)
 {
 	size_t start, end;
@@ -379,10 +409,8 @@ static struct hotkey *parse_binding(FILE *f)
 		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
 		return NULL;
 	}
-	if (!(curr = scan(f))) {
-		/* error */
+	if (next_token(f, &curr, 1, 1) != 0)
 		return NULL;
-	}
 	if (curr->tag != TOK_FUNC) {
 		PUTERR(CURR_START, "expected function after '->'\n");
 		start = GET_OFFSET(-40);
@@ -395,10 +423,8 @@ static struct hotkey *parse_binding(FILE *f)
 		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
 		return NULL;
 	}
-	if (!(curr = scan(f))) {
-		/* error */
+	if (next_token(f, &curr, 1, 1) != 0)
 		return NULL;
-	}
 	return create_hotkey(key & 0xFFFFFFFF, (key >> 32) & 0xFFFFFFFF, 0, 0);
 }
 
@@ -463,10 +489,8 @@ static int parse_mod(FILE *f, uint64_t *retval)
 		return 1;
 	}
 
-	if (!(curr = scan(f))) {
-		/* some error message */
+	if (next_token(f, &curr, 1, 1) != 0)
 		return 1;
-	}
 
 	if (curr->tag == TOK_MOD)
 		return parse_mod(f, retval);
@@ -483,10 +507,8 @@ static int parse_id(FILE *f, uint64_t *retval)
 		*key = KEY_E;
 	}
 
-	if (!(curr = scan(f))) {
-		/* some error message */
+	if (next_token(f, &curr, 1, 1) != 0)
 		return 1;
-	}
 
 	return 0;
 }
