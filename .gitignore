@@ -2,3 +2,4 @@ kbm
 *.o
 *.swp
 doc
+*.kbm
