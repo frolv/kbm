@@ -51,4 +51,6 @@
 #define KWHT	""
 #endif
 
+#define BUFFER_SIZE 4096
+
 #endif /* KBM_H */

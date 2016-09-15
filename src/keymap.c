@@ -16,8 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include "kbm.h"
 #include "keymap.h"
 #include "uthash.h"
 
@@ -146,8 +148,13 @@ char *keystr(uint8_t keycode, uint8_t mask)
 uint32_t lookup_keycode(const char *key)
 {
 	struct skey *k;
+	char buf[BUFFER_SIZE];
+	char *s;
 
-	HASH_FIND_STR(keymap, key, k);
+	strcpy(buf, key);
+	for (s = buf; *s; ++s)
+		*s = tolower(*s);
+	HASH_FIND_STR(keymap, buf, k);
 	return k ? k->keycode : 0;
 }
 

@@ -28,7 +28,6 @@
 #include <unistd.h>
 #endif
 
-#define BUFFER_SIZE	4096
 #define MAX_STRING	1024
 
 #define CURR_IND (pos - line)
@@ -104,7 +103,7 @@ static int parse_key(FILE *f, uint64_t *retval);
 static int parse_mod(FILE *f, uint64_t *retval);
 static int parse_id(FILE *f, uint64_t *retval);
 static int parse_misc(FILE *f, uint64_t *retval);
-static void set_mods(uint32_t *mods, uint32_t mask);
+static void set_mods(uint32_t *mods, uint32_t mask, const char *last);
 
 /* error/warning message functions */
 static void print_segment(size_t start, size_t end);
@@ -113,7 +112,7 @@ static void print_token(const struct token *t, const char *colour);
 
 static void err_unterm(void);
 static void err_expected(const char *err);
-static void note_duplicate(void);
+static void note_duplicate(const char *last);
 
 /*
  * parse_file:
@@ -327,8 +326,7 @@ static void free_reserved(void)
 static struct token *create_token(int tag, void *info)
 {
 	struct token *t;
-	size_t i;
-	char *s;
+	int i;
 
 	t = malloc(sizeof(*t));
 	t->tag = tag;
@@ -348,11 +346,8 @@ static struct token *create_token(int tag, void *info)
 	case TOK_ID:
 	case TOK_FUNC:
 	case TOK_STRLIT:
-		s = info;
-		t->len = strlen(s);
-		t->str = malloc(t->len);
-		for (i = 0; i < t->len + 1; ++i)
-			t->str[i] = tolower(s[i]);
+		t->str = strdup((char *)info);
+		t->len = strlen(t->str);
 		break;
 	case TOK_ARROW:
 		t->len = 2;
@@ -481,16 +476,16 @@ static int parse_mod(FILE *f, uint64_t *retval)
 	mods = (uint32_t *)retval + 1;
 	switch (curr->val) {
 	case '^':
-		set_mods(mods, KBM_CTRL_MASK);
+		set_mods(mods, KBM_CTRL_MASK, NULL);
 		break;
 	case '!':
-		set_mods(mods, KBM_SHIFT_MASK);
+		set_mods(mods, KBM_SHIFT_MASK, NULL);
 		break;
 	case '@':
-		set_mods(mods, KBM_SUPER_MASK);
+		set_mods(mods, KBM_SUPER_MASK, NULL);
 		break;
 	case '~':
-		set_mods(mods, KBM_META_MASK);
+		set_mods(mods, KBM_META_MASK, NULL);
 		break;
 	default:
 		return 1;
@@ -509,6 +504,7 @@ static int parse_id(FILE *f, uint64_t *retval)
 {
 	uint32_t *key, *mods;
 	size_t start, end;
+	char buf[32], *s;
 
 	key = (uint32_t *)retval;
 	mods = (uint32_t *)retval + 1;
@@ -525,22 +521,29 @@ static int parse_id(FILE *f, uint64_t *retval)
 		return 1;
 	}
 
+	if (K_ISMOD(*key)) {
+		/* copy the token's lexeme for potential error reporting */
+		for (start = 0, s = pos - curr->len; s < pos; ++s, ++start)
+			buf[start] = *s;
+		buf[start] = '\0';
+	}
+
 	if (next_token(f, &curr, 1, 1) != 0)
 		return 1;
 
 	if (K_ISMOD(*key) && curr->tag == '-') {
 		switch (*key) {
 		case KEY_CTRL:
-			set_mods(mods, KBM_CTRL_MASK);
+			set_mods(mods, KBM_CTRL_MASK, buf);
 			break;
 		case KEY_SHIFT:
-			set_mods(mods, KBM_SHIFT_MASK);
+			set_mods(mods, KBM_SHIFT_MASK, buf);
 			break;
 		case KEY_SUPER:
-			set_mods(mods, KBM_SUPER_MASK);
+			set_mods(mods, KBM_SUPER_MASK, buf);
 			break;
 		case KEY_META:
-			set_mods(mods, KBM_META_MASK);
+			set_mods(mods, KBM_META_MASK, buf);
 			break;
 		}
 		if (next_token(f, &curr, 1, 1) != 0)
@@ -557,8 +560,38 @@ static int parse_misc(FILE *f, uint64_t *retval)
 
 	key = (uint32_t *)retval;
 	switch (curr->tag) {
+	case '`':
+		*key = KEY_BTICK;
+		break;
 	case '-':
 		*key = KEY_MINUS;
+		break;
+	case '=':
+		*key = KEY_EQUAL;
+		break;
+	case '[':
+		*key = KEY_LSQBR;
+		break;
+	case ']':
+		*key = KEY_RSQBR;
+		break;
+	case '\\':
+		*key = KEY_BSLASH;
+		break;
+	case ';':
+		*key = KEY_SEMIC;
+		break;
+	case '\'':
+		*key = KEY_QUOTE;
+		break;
+	case ',':
+		*key = KEY_COMMA;
+		break;
+	case '.':
+		*key = KEY_PERIOD;
+		break;
+	case '/':
+		*key = KEY_QUOTE;
 		break;
 	default:
 		return 1;
@@ -569,10 +602,10 @@ static int parse_misc(FILE *f, uint64_t *retval)
 }
 
 /* set_mods: set bitmask mask to mods with duplicate notice */
-static void set_mods(uint32_t *mods, uint32_t mask)
+static void set_mods(uint32_t *mods, uint32_t mask, const char *last)
 {
 	if (CHECK_MASK(*mods, mask))
-		note_duplicate();
+		note_duplicate(last);
 	*mods |= mask;
 }
 
@@ -583,6 +616,8 @@ static void print_segment(size_t start, size_t end)
 
 	if (end > (i = strlen(line)))
 		end = i;
+	if (start > end)
+		return;
 
 	for (i = start; i < end; ++i)
 		putc(line[i], stderr);
@@ -636,17 +671,34 @@ static void err_expected(const char *err)
 	print_carat(CURR_IND - start - curr->len, curr->len, KRED);
 }
 
-static void note_duplicate(void)
+static void note_duplicate(const char *last)
 {
-	size_t start, end;
+	size_t start, end, len;
+	int i;
 
 	PUTNOTE(CURR_IND, "duplicate modifier declaration\n");
 	start = GET_OFFSET(-40);
+	len = curr->len;
+	end = CURR_START;
+	if (last) {
+		if (end > strlen(last))
+			end -= strlen(last);
+		else
+			end = 0;
+	}
+	print_segment(start, end);
+	if (last) {
+		len += strlen(last);
+		fprintf(stderr, KBLU "%s" KNRM, last);
+	}
 	end = start + 80;
-	print_segment(start, CURR_START);
 	print_token(curr, KBLU);
 	print_segment(CURR_IND, end);
 	if (end < strlen(line))
 		putc('\n', stderr);
-	print_carat(CURR_IND - start - curr->len, curr->len, KBLU);
+
+	i = CURR_IND - start - len;
+	if (i < 0)
+		i = 0;
+	print_carat(i, len, KBLU);
 }
