@@ -31,21 +31,24 @@
 #define BUFFER_SIZE	4096
 #define MAX_STR		1024
 
+#define CURR_IND (pos - line)
+#define CURR_START (CURR_IND - curr->len)
+
 /* print a nice looking error message */
-#define PUTERR(fmt, ...) \
+#define PUTERR(ind, fmt, ...) \
 	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
 		KRED "error: " KNRM fmt, \
-		file_path, line_num, pos - line + 1, \
+		file_path, line_num, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define PUTWARN(fmt, ...) \
+#define PUTWARN(ind, fmt, ...) \
 	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
 		KMAG "warning: " KNRM fmt, \
-		file_path, line_num, pos - line + 1, \
+		file_path, line_num, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define GET_OFFSET(offset) ((((pos - line) + (offset)) < 0) \
-		? 0 : ((pos - line) + (offset)))
+#define GET_OFFSET(offset) ((((CURR_IND) + (offset)) < 0) \
+		? 0 : ((CURR_IND) + (offset)))
 
 enum {
 	TOK_NUM = 0x100,
@@ -57,18 +60,24 @@ enum {
 };
 
 struct token {
-	int tag;
+	int tag;		/* type of the token */
+	size_t len;		/* length of token's lexeme */
 	union {
-		int val;
-		char *str;
+		int val;	/* each token has either a numeric */
+		char *str;	/* or string value associated with it */
 	};
-	UT_hash_handle hh;
+	UT_hash_handle hh;	/* handle for hashtable */
 };
 
 static const char *file_path;
 static unsigned int line_num;
 static char line[BUFFER_SIZE];
+
+/* the current character processed */
 static char *pos;
+
+/* token currently being processed */
+static struct token *curr;
 
 /* hash table of reserved words */
 static struct token *reserved;
@@ -81,15 +90,30 @@ static void free_token(struct token *t);
 static void reserve(struct token *word);
 static char *next_line(FILE *f);
 
+static struct hotkey *parse_binding(FILE *f);
+static int parse_key(FILE *f, uint64_t *retval);
+static int parse_mod(FILE *f, uint64_t *retval);
+static int parse_id(FILE *f, uint64_t *retval);
+
+/* error/warning message functions */
 static void print_segment(size_t start, size_t end);
 static void print_carat(size_t nspace, size_t len, const char *colour);
+static void print_token(const struct token *t, const char *colour);
 
+static void warn_duplicate(void);
+static void err_unterm(void);
+
+/*
+ * parse_file:
+ * Read the file at path, if it is accessible.
+ * Process the keybindings in the file and return
+ * a list of struct hotkeys representing them.
+ */
 struct hotkey *parse_file(const char *path)
 {
-	struct hotkey *head;
+	struct hotkey *head, *hk;
 	struct token *t, *tmp;
 	FILE *f;
-	size_t start, end;
 
 	head = NULL;
 	file_path = path;
@@ -102,7 +126,6 @@ struct hotkey *parse_file(const char *path)
 	}
 
 	line_num = 0;
-	pos = next_line(f);
 
 	reserved = NULL;
 	reserve(create_token(TOK_FUNC, "click"));
@@ -113,48 +136,23 @@ struct hotkey *parse_file(const char *path)
 	reserve(create_token(TOK_FUNC, "quit"));
 	reserve(create_token(TOK_FUNC, "exec"));
 
-	while ((t = scan(f))) {
-		switch (t->tag) {
-		case TOK_NUM:
-			PRINT_DEBUG("%d\n", t->val);
-			break;
-		case TOK_ARROW:
-			PRINT_DEBUG("->\n");
-			break;
-		case TOK_ID:
-		case TOK_FUNC:
-		case TOK_STRLIT:
-			PRINT_DEBUG("%s\n", t->str);
-			break;
-		case TOK_MOD:
-			PRINT_DEBUG("%c\n", t->val);
-			break;
-		default:
-			PRINT_DEBUG("%c\n", t->tag);
-			break;
-		}
+	if (!(pos = next_line(f)))
+		return head;
 
-		if (t->tag != TOK_FUNC)
-			free_token(t);
+	/* grab the first token */
+	curr = scan(f);
+	while (1) {
+		if (!(hk = parse_binding(f)))
+			exit(1);
+		PRINT_DEBUG("hotkey parsed: %s\n",
+				keystr(hk->kbm_code, hk->kbm_modmask));
+		add_hotkey(&head, hk);
 	}
 
 	/* free hash table contents */
 	HASH_ITER(hh, reserved, t, tmp) {
 		HASH_DEL(reserved, t);
 		free_token(t);
-	}
-
-	if (pos) {
-		PUTERR("unrecognized token '%c'\n", *pos);
-		start = GET_OFFSET(-40);
-		end = start + 80;
-		print_segment(start, pos - line);
-		fprintf(stderr, KRED "%c" KNRM, *pos);
-		print_segment(pos - line + 1, end);
-		if (end < strlen(line))
-			putc('\n', stderr);
-		print_carat(pos - line - start, 1, KRED);
-		exit(1);
 	}
 
 	fclose(f);
@@ -189,15 +187,13 @@ static FILE *open_file(const char *path)
 /* scan: read the next token from f */
 static struct token *scan(FILE *f)
 {
-	static const char *misc_keys = "`-=[]\\;',./";
-
 	int i;
 	char buf[BUFFER_SIZE];
 	struct token *t;
 
 	/* skip over whitespace */
 	for (;; ++pos) {
-		while (*pos == '\n' || *pos == '#') {
+		while (!*pos || *pos == '\n' || *pos == '#') {
 			if (!(pos = next_line(f)))
 				return NULL;
 		}
@@ -235,20 +231,15 @@ static struct token *scan(FILE *f)
 		/* unary minus sign */
 		return create_token('-', NULL);
 	}
-	if (*pos == '^' || *pos == '~' || *pos == '!' || *pos == '#') {
+	if (*pos == '^' || *pos == '~' || *pos == '!' || *pos == '@') {
 		i = *pos++;
 		return create_token(TOK_MOD, &i);
 	}
-	if (strchr(misc_keys, *pos))
-		return create_token(*pos++, NULL);
 	if (*pos == '"')
 		return read_str(f);
 
-	/* EOF or invalid token */
-	return NULL;
+	return create_token(*pos++, NULL);
 }
-
-static void err_unterm();
 
 /* read_str: read a string literal from f, return token containing it */
 static struct token *read_str(FILE *f)
@@ -274,12 +265,12 @@ static struct token *read_str(FILE *f)
 	buf[i] = '\0';
 
 	if (i == MAX_STR - 1) {
-		PUTWARN("string literal exceeding %d characters truncated\n",
-				MAX_STR - 1);
+		PUTWARN(CURR_IND, "string literal exceeding "
+				"%d characters truncated\n", MAX_STR - 1);
 		start = GET_OFFSET(-79);
-		print_segment(start, pos - line);
+		print_segment(start, CURR_IND);
 		printf(KMAG "%c" KNRM "\n", quote);
-		print_carat(pos - line - start, 1, KMAG);
+		print_carat(CURR_IND - start, 1, KMAG);
 
 		/* skip over the rest of the string */
 		while (1) {
@@ -313,22 +304,34 @@ static void reserve(struct token *word)
 static struct token *create_token(int tag, void *info)
 {
 	struct token *t;
+	int i;
 
 	t = malloc(sizeof(*t));
 	t->tag = tag;
 
 	switch (tag) {
 	case TOK_NUM:
+		t->val = *(int *)info;
+		i = t->val;
+		t->len = 1;
+		while ((i /= 10))
+			t->len++;
+		break;
 	case TOK_MOD:
 		t->val = *(int *)info;
+		t->len = 1;
 		break;
 	case TOK_ID:
 	case TOK_FUNC:
 	case TOK_STRLIT:
 		t->str = strdup((char *)info);
+		t->len = strlen(t->str);
 		break;
 	case TOK_ARROW:
+		t->len = 2;
+		break;
 	default:
+		t->len = 1;
 		break;
 	}
 
@@ -355,6 +358,139 @@ static char *next_line(FILE *f)
 	return s;
 }
 
+static struct hotkey *parse_binding(FILE *f)
+{
+	size_t start, end;
+	uint64_t key;
+
+	key = 0;
+	if (parse_key(f, &key) != 0)
+		return NULL;
+
+	if (curr->tag != TOK_ARROW) {
+		PUTERR(CURR_START, "expected '->' after key\n");
+		start = GET_OFFSET(-40);
+		end = start + 80;
+		print_segment(start, CURR_START);
+		print_token(curr, KRED);
+		print_segment(CURR_IND, end);
+		if (end < strlen(line))
+			putc('\n', stderr);
+		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		return NULL;
+	}
+	if (!(curr = scan(f))) {
+		/* error */
+		return NULL;
+	}
+	if (curr->tag != TOK_FUNC) {
+		PUTERR(CURR_START, "expected function after '->'\n");
+		start = GET_OFFSET(-40);
+		end = start + 80;
+		print_segment(start, CURR_START);
+		print_token(curr, KRED);
+		print_segment(CURR_IND, end);
+		if (end < strlen(line))
+			putc('\n', stderr);
+		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		return NULL;
+	}
+	if (!(curr = scan(f))) {
+		/* error */
+		return NULL;
+	}
+	return create_hotkey(key & 0xFFFFFFFF, (key >> 32) & 0xFFFFFFFF, 0, 0);
+}
+
+/* parse key: parse a key declaration and its modifiers */
+static int parse_key(FILE *f, uint64_t *retval)
+{
+	static const char *misc_keys = "`-=[]\\;',./";
+	size_t start, end;
+
+	if (curr->tag == TOK_MOD) {
+		if (parse_mod(f, retval) != 0)
+			return 1;
+
+		return parse_key(f, retval);
+	} else if (curr->tag == TOK_ID) {
+		if (parse_id(f, retval) == 1)
+			return 1;
+	} else if (strchr(misc_keys, curr->tag)) {
+	} else {
+		PUTERR(CURR_START, "invalid token - expected a key\n");
+		start = GET_OFFSET(-40);
+		end = start + 80;
+		print_segment(start, CURR_START);
+		print_token(curr, KRED);
+		print_segment(CURR_IND, end);
+		if (end < strlen(line))
+			putc('\n', stderr);
+		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		return 1;
+	}
+	return 0;
+}
+
+/* parse_mod: process a token of type MOD */
+static int parse_mod(FILE *f, uint64_t *retval)
+{
+	uint32_t *mods;
+
+	mods = (uint32_t *)retval + 1;
+	switch (curr->val) {
+	case '^':
+		if (CHECK_MOD(*mods, KBM_CTRL_MASK))
+			warn_duplicate();
+		*mods |= KBM_CTRL_MASK;
+		break;
+	case '!':
+		if (CHECK_MOD(*mods, KBM_SHIFT_MASK))
+			warn_duplicate();
+		*mods |= KBM_SHIFT_MASK;
+		break;
+	case '@':
+		if (CHECK_MOD(*mods, KBM_SUPER_MASK))
+			warn_duplicate();
+		*mods |= KBM_SUPER_MASK;
+		break;
+	case '~':
+		if (CHECK_MOD(*mods, KBM_META_MASK))
+			warn_duplicate();
+		*mods |= KBM_META_MASK;
+		break;
+	default:
+		return 1;
+	}
+
+	if (!(curr = scan(f))) {
+		/* some error message */
+		return 1;
+	}
+
+	if (curr->tag == TOK_MOD)
+		return parse_mod(f, retval);
+
+	return 0;
+}
+
+static int parse_id(FILE *f, uint64_t *retval)
+{
+	uint32_t *key;
+
+	key = (uint32_t *)retval;
+	if (strcmp(curr->str, "E") == 0) {
+		*key = KEY_E;
+	}
+
+	if (!(curr = scan(f))) {
+		/* some error message */
+		return 1;
+	}
+
+	return 0;
+}
+
 /* print_segment: print line from start to end */
 static void print_segment(size_t start, size_t end)
 {
@@ -379,13 +515,38 @@ static void print_carat(size_t nspace, size_t len, const char *colour)
 	fprintf(stderr, KNRM "\n");
 }
 
-static void err_unterm()
+static void print_token(const struct token *t, const char *colour)
 {
-	int start;
+	char *s;
 
-	PUTERR("unterminated string literal\n");
+	fprintf(stderr, "%s", colour);
+	for (s = pos - t->len; s < pos; ++s)
+		putc(*s, stderr);
+	fprintf(stderr, KNRM);
+}
+
+static void err_unterm(void)
+{
+	size_t start;
+
+	PUTERR(CURR_IND, "unterminated string literal\n");
 	start = GET_OFFSET(-79);
-	print_segment(start, pos - line);
+	print_segment(start, CURR_IND);
 	putc('\n', stderr);
-	print_carat(pos - line - start, 1, KRED);
+	print_carat(CURR_IND - start, 1, KRED);
+}
+
+static void warn_duplicate(void)
+{
+	size_t start, end;
+
+	PUTWARN(CURR_IND, "duplicate modifier declaration\n");
+	start = GET_OFFSET(-40);
+	end = start + 80;
+	print_segment(start, CURR_START);
+	print_token(curr, KMAG);
+	print_segment(CURR_IND, end);
+	if (end < strlen(line))
+		putc('\n', stderr);
+	print_carat(CURR_IND - start - curr->len, curr->len, KMAG);
 }
