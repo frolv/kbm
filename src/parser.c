@@ -99,10 +99,12 @@ static char *next_line(FILE *f);
 static int next_token(FILE *f, struct token **ret, int free, int err);
 
 static struct hotkey *parse_binding(FILE *f);
-static int parse_key(FILE *f, uint64_t *retval);
+static int parse_key(FILE *f, uint64_t *retval, int failnext);
 static int parse_mod(FILE *f, uint64_t *retval);
-static int parse_id(FILE *f, uint64_t *retval);
-static int parse_misc(FILE *f, uint64_t *retval);
+static int parse_id(FILE *f, uint64_t *retval, int failnext);
+static int parse_misc(FILE *f, uint64_t *retval, int failnext);
+static int parse_func(FILE *f, uint8_t *op, uint64_t *args);
+static int parse_num(FILE *f, uint32_t *num);
 static void set_mods(uint32_t *mods, uint32_t mask, const char *last);
 
 /* error/warning message functions */
@@ -151,7 +153,7 @@ struct hotkey *parse_file(const char *path)
 
 	/* grab the first token */
 	next_token(f, &curr, 0, 0);
-	while (1) {
+	while (curr) {
 		if (!(hk = parse_binding(f))) {
 			if (curr && (curr->tag == TOK_ID ||
 						curr->tag == TOK_STRLIT))
@@ -419,10 +421,11 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
  */
 static struct hotkey *parse_binding(FILE *f)
 {
-	uint64_t key;
+	uint64_t key, args;
+	uint8_t op;
 
-	key = 0;
-	if (parse_key(f, &key) != 0)
+	key = args = op = 0;
+	if (parse_key(f, &key, 1) != 0)
 		return NULL;
 
 	/* match the arrow following the key */
@@ -438,14 +441,16 @@ static struct hotkey *parse_binding(FILE *f)
 		err_expected("expected function after '->'");
 		return NULL;
 	}
-	if (next_token(f, &curr, 0, 1) != 0)
+	if (parse_func(f, &op, &args) != 0)
 		return NULL;
 
-	return create_hotkey(key & 0xFFFFFFFF, (key >> 32) & 0xFFFFFFFF, 0, 0);
+	return create_hotkey(key & 0xFFFFFFFF,
+			(key >> 32) & 0xFFFFFFFF,
+			op, args);
 }
 
 /* parse_key: parse a key declaration and its modifiers */
-static int parse_key(FILE *f, uint64_t *retval)
+static int parse_key(FILE *f, uint64_t *retval, int failnext)
 {
 	/* valid nonalphanumeric key lexemes */
 	static const char *misc_keys = "`-=[]\\;',./";
@@ -454,12 +459,12 @@ static int parse_key(FILE *f, uint64_t *retval)
 		if (parse_mod(f, retval) != 0)
 			return 1;
 
-		return parse_key(f, retval);
+		return parse_key(f, retval, failnext);
 	} else if (curr->tag == TOK_ID) {
-		if (parse_id(f, retval) == 1)
+		if (parse_id(f, retval, failnext) == 1)
 			return 1;
 	} else if (strchr(misc_keys, curr->tag)) {
-		if (parse_misc(f, retval) != 0)
+		if (parse_misc(f, retval, failnext) != 0)
 			return 1;
 	} else {
 		err_expected("invalid token - expected a key");
@@ -500,7 +505,7 @@ static int parse_mod(FILE *f, uint64_t *retval)
 	return 0;
 }
 
-static int parse_id(FILE *f, uint64_t *retval)
+static int parse_id(FILE *f, uint64_t *retval, int failnext)
 {
 	uint32_t *key, *mods;
 	size_t start, end;
@@ -528,8 +533,8 @@ static int parse_id(FILE *f, uint64_t *retval)
 		buf[start] = '\0';
 	}
 
-	if (next_token(f, &curr, 1, 1) != 0)
-		return 1;
+	if (next_token(f, &curr, 1, failnext) != 0)
+		return failnext;
 
 	if (K_ISMOD(*key) && curr->tag == '-') {
 		switch (*key) {
@@ -548,13 +553,14 @@ static int parse_id(FILE *f, uint64_t *retval)
 		}
 		if (next_token(f, &curr, 1, 1) != 0)
 			return 1;
-		return parse_key(f, retval);
+
+		return parse_key(f, retval, failnext);
 	}
 
 	return 0;
 }
 
-static int parse_misc(FILE *f, uint64_t *retval)
+static int parse_misc(FILE *f, uint64_t *retval, int failnext)
 {
 	uint32_t *key;
 
@@ -596,8 +602,79 @@ static int parse_misc(FILE *f, uint64_t *retval)
 	default:
 		return 1;
 	}
-	if (next_token(f, &curr, 1, 1) != 0)
+	if (next_token(f, &curr, 1, failnext) != 0)
+		return failnext;
+	return 0;
+}
+
+static int parse_func(FILE *f, uint8_t *op, uint64_t *args)
+{
+	uint32_t *x, *y;
+
+	if (strcmp(curr->str, "click") == 0) {
+		*op = OP_CLICK;
+		next_token(f, &curr, 0, 0);
+		return 0;
+	}
+	if (strcmp(curr->str, "rclick") == 0) {
+		*op = OP_RCLICK;
+		next_token(f, &curr, 0, 0);
+		return 0;
+	}
+	if (strcmp(curr->str, "jump") == 0) {
+		*op = OP_JUMP;
+		x = (uint32_t *)args;
+		y = (uint32_t *)args + 1;
+		if (next_token(f, &curr, 0, 1) != 0 || parse_num(f, x) != 0)
+			return 1;
+		if (next_token(f, &curr, 0, 1) != 0 || parse_num(f, y) != 0)
+			return 1;
+		next_token(f, &curr, 0, 1);
+		return 0;
+	}
+	if (strcmp(curr->str, "key") == 0) {
+		*op = OP_KEY;
+		next_token(f, &curr, 0, 1);
+		return parse_key(f, args, 0) != 0;
+	}
+	if (strcmp(curr->str, "toggle") == 0) {
+		*op = OP_TOGGLE;
+		next_token(f, &curr, 0, 0);
+		return 0;
+	}
+	if (strcmp(curr->str, "quit") == 0) {
+		*op = OP_QUIT;
+		next_token(f, &curr, 0, 0);
+		return 0;
+	}
+	if (strcmp(curr->str, "exec") == 0) {
+		*op = OP_EXEC;
 		return 1;
+	}
+	return 1;
+}
+
+static int parse_num(FILE *f, uint32_t *num)
+{
+	int mult;
+
+	if (curr->tag != '-' && curr->tag != TOK_NUM) {
+		err_expected("invalid token - expected a number");
+		return 1;
+	}
+
+	mult = 1;
+	if (curr->tag == '-') {
+		mult = -1;
+		if (next_token(f, &curr, 1, 1) != 0)
+			return 1;
+		if (curr->tag != TOK_NUM) {
+			err_expected("invalid token - expected a number");
+			return 1;
+		}
+	}
+
+	*num = mult * curr->val;
 	return 0;
 }
 

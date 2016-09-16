@@ -56,9 +56,6 @@ int main(int argc, char **argv)
 		head = parse_file(argv[optind]);
 	}
 
-	/* temp */
-	add_hotkey(&head, create_hotkey(KEY_E, KBM_CTRL_MASK, OP_QUIT, 0));
-
 	init_display();
 	load_keys(head);
 	start_loop();
