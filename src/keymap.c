@@ -127,7 +127,7 @@ char *keystr(uint8_t keycode, uint8_t mask)
 	key_str[0] = '\0';
 
 	if (CHECK_MASK(mask, KBM_CTRL_MASK))
-		strcat(key_str, "Ctrl-");
+		strcat(key_str, "Control-");
 	if (CHECK_MASK(mask, KBM_SUPER_MASK))
 		strcat(key_str, "Super-");
 	if (CHECK_MASK(mask, KBM_META_MASK))

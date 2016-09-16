@@ -165,6 +165,20 @@
 	((kc) == KEY_CTRL || (kc) == KEY_SHIFT || \
 	(kc) == KEY_SUPER || (kc) == KEY_META)
 
+/* convert kbm codes and modmasks to OS-specific ones */
+#ifdef __linux__
+#define OSCODE(x) kbm_to_keysym(x)
+#define OSMASK(x) kbm_to_xcb_masks(x)
+#endif
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#define OSCODE(x) kbm_to_win32(x)
+#define OSMASK(x) kbm_to_win_masks(x)
+#endif
+#ifdef __APPLE__
+#define OSCODE(x) kbm_to_carbon(x)
+#define OSMASK(x) kbm_to_osx_masks(x)
+#endif
+
 #include <stdint.h>
 
 void keymap_init(void);

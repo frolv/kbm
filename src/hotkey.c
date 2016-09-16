@@ -22,19 +22,6 @@
 #include "kbm.h"
 #include "keymap.h"
 
-#ifdef __linux__
-#define OSCODE(x) kbm_to_keysym(x)
-#define OSMASK(x) kbm_to_xcb_masks(x)
-#endif
-#if defined(__CYGWIN__) || defined (__MINGW32__)
-#define OSCODE(x) kbm_to_win32(x)
-#define OSMASK(x) kbm_to_win_masks(x)
-#endif
-#ifdef __APPLE__
-#define OSCODE(x) kbm_to_carbon(x)
-#define OSMASK(x) kbm_to_osx_masks(x)
-#endif
-
 static void get_os_codes(struct hotkey *hk);
 
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
@@ -84,7 +71,7 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 		return 0;
 	}
 
-	PRINT_DEBUG("KEYPRESS: %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
+	PRINT_DEBUG("KEYPRESS:  %s\n", keystr(hk->kbm_code, hk->kbm_modmask));
 	switch (hk->op) {
 	case OP_CLICK:
 		/* click operation: send a mouse click event */
