@@ -105,6 +105,7 @@ static int parse_id(FILE *f, uint64_t *retval, int failnext);
 static int parse_misc(FILE *f, uint64_t *retval, int failnext);
 static int parse_func(FILE *f, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, uint32_t *num);
+static int parse_exec(FILE *f, uint64_t *retval);
 static void set_mods(uint32_t *mods, uint32_t mask, const char *last);
 
 /* error/warning message functions */
@@ -627,9 +628,9 @@ static int parse_func(FILE *f, uint8_t *op, uint64_t *args)
 		y = (uint32_t *)args + 1;
 		if (next_token(f, &curr, 0, 1) != 0 || parse_num(f, x) != 0)
 			return 1;
-		if (next_token(f, &curr, 0, 1) != 0 || parse_num(f, y) != 0)
+		if (next_token(f, &curr, 1, 1) != 0 || parse_num(f, y) != 0)
 			return 1;
-		next_token(f, &curr, 0, 1);
+		next_token(f, &curr, 1, 1);
 		return 0;
 	}
 	if (strcmp(curr->str, "key") == 0) {
@@ -649,11 +650,19 @@ static int parse_func(FILE *f, uint8_t *op, uint64_t *args)
 	}
 	if (strcmp(curr->str, "exec") == 0) {
 		*op = OP_EXEC;
-		return 1;
+		/* at least one argument is required */
+		if (next_token(f, &curr, 0, 1) != 0)
+			return 1;
+		if (curr->tag != TOK_STRLIT) {
+			err_expected("invalid token - expected a string");
+			return 1;
+		}
+		return parse_exec(f, args);
 	}
 	return 1;
 }
 
+/* parse_num: read a number from f into num */
 static int parse_num(FILE *f, uint32_t *num)
 {
 	int mult;
@@ -675,6 +684,77 @@ static int parse_num(FILE *f, uint32_t *num)
 	}
 
 	*num = mult * curr->val;
+	return 0;
+}
+
+static int parse_exec(FILE *f, uint64_t *retval)
+{
+#if defined(__linux__) || defined(__APPLE__)
+	char **argv;
+	size_t argc, allocsz;
+#endif
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	char *args, *s, *t;
+	size_t len, allocsz;
+#endif
+
+#if defined(__linux__) || defined(__APPLE__)
+	/*
+	 * We initially allocate space for 9 arguments as
+	 * this is more than enough for 99% of use cases.
+	 */
+	allocsz = 10;
+	argv = malloc(allocsz * sizeof(*argv));
+	argc = 0;
+
+	while (curr && curr->tag == TOK_STRLIT) {
+		if (argc == allocsz - 1) {
+			allocsz *= 2;
+			argv = realloc(argv, allocsz);
+		}
+		argv[argc++] = curr->str;
+		free(curr);
+		next_token(f, &curr, 0, 0);
+	}
+	argv[argc] = NULL;
+	memcpy(retval, &argv, sizeof(*retval));
+#endif
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	allocsz = 4096;
+	args = malloc(allocsz * sizeof(*args));
+	s = args;
+	len = 0;
+
+	while (curr && curr->tag == TOK_STRLIT) {
+		if (len >= allocsz + curr->len + 3) {
+			/*
+			 * This is guaranteed to provide enough space as
+			 * the maximum length of a string literal is 1024.
+			 */
+			allocsz *= 2;
+			args = realloc(args, allocsz);
+		}
+		/*
+		 * Arguments including spaces are surrounded with quotes so
+		 * they get processed as a single argument instaed of multiple.
+		 */
+		if ((t = strchr(curr->str, ' ')))
+			*s++ = '"';
+		strcpy(s, curr->str);
+		s += curr->len;
+		len += curr->len;
+		if (t)
+			*s++ = '"';
+		*s++ = ' ';
+		free_token(curr);
+		next_token(f, &curr, 0, 0);
+	}
+	/* get rid of final space */
+	*--s = '\0';
+	memcpy(retval, &argc, sizeof(*retval));
+#endif
+
 	return 0;
 }
 

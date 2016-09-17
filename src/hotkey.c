@@ -47,17 +47,33 @@ void add_hotkey(struct hotkey **head, struct hotkey *hk)
 	*head = hk;
 }
 
+/* free_keys: free all hotkeys and their data in list starting at head */
 void free_keys(struct hotkey *head)
 {
+#if defined(__linux__) || defined(__APPLE__)
+	char **argv;
+#endif
+
 	if (head->next)
 		free_keys(head->next);
+	/*
+	 * For an exec operation, opargs stores the
+	 * address of some dynamically allocated data.
+	 */
+	if (head->op == OP_EXEC) {
+#if defined(__linux__) || defined(__APPLE__)
+		for (argv = (char **)head->opargs; *argv; ++argv)
+			free(*argv);
+#endif
+		free((void *)head->opargs);
+	}
 	free(head);
 }
 
 int process_hotkey(struct hotkey *hk, unsigned int type)
 {
 	int x, y;
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(KBM_DEBUG) && defined(__linux__) || defined(__APPLE__)
 	char **s;
 #endif
 
@@ -111,7 +127,7 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 	case OP_EXEC:
 		/* exec operation: execute command or program */
 		PRINT_DEBUG("OPERATION: exec");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(KBM_DEBUG) && defined(__linux__) || defined(__APPLE__)
 		/*
 		 * On Unix-based systems, opargs is the start of the
 		 * argv array of the command to be executed.
