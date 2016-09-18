@@ -28,7 +28,7 @@
 #include <unistd.h>
 #endif
 
-#define MAX_STRING	1024
+#define MAX_STRING 1024U
 
 #define CURR_IND (pos - line)
 #define CURR_START (CURR_IND - curr->len)
@@ -110,7 +110,7 @@ static void set_mods(uint32_t *mods, uint32_t mask, const char *last);
 
 /* error/warning message functions */
 static void print_segment(size_t start, size_t end);
-static void print_carat(size_t nspace, size_t len, const char *colour);
+static void print_caret(size_t nspace, size_t len, const char *colour);
 static void print_token(const struct token *t, const char *colour);
 
 static void err_unterm(void);
@@ -258,7 +258,8 @@ static struct token *scan(FILE *f)
 /* read_str: read a string literal from f, return token containing it */
 static struct token *read_str(FILE *f)
 {
-	int quote, i, start;
+	int quote;
+	size_t i, start;
 	char buf[MAX_STRING];
 
 	quote = *pos++;
@@ -284,7 +285,7 @@ static struct token *read_str(FILE *f)
 		start = GET_OFFSET(-79);
 		print_segment(start, CURR_IND);
 		printf(KMAG "%c" KNRM "\n", quote);
-		print_carat(CURR_IND - start, 1, KMAG);
+		print_caret(CURR_IND - start, 1, KMAG);
 
 		/* skip over the rest of the string */
 		while (1) {
@@ -406,7 +407,7 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 			start = GET_OFFSET(-79);
 			print_segment(start, CURR_IND);
 			putc('\n', stderr);
-			print_carat(CURR_IND - start, 1, KRED);
+			print_caret(CURR_IND - start, 1, KRED);
 			fprintf(stderr, "last statement here:\n%s", buf);
 		}
 		return 1;
@@ -518,12 +519,16 @@ static int parse_id(FILE *f, uint64_t *retval, int failnext)
 		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
 		start = GET_OFFSET(-40);
 		end = start + 80;
+		if (start > CURR_START)
+			start = CURR_START;
+		if (end < (size_t)CURR_IND)
+			end = CURR_IND;
 		print_segment(start, CURR_START);
 		print_token(curr, KRED);
 		print_segment(CURR_IND, end);
 		if (end < strlen(line))
 			putc('\n', stderr);
-		print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+		print_caret(CURR_IND - start - curr->len, curr->len, KRED);
 		return 1;
 	}
 
@@ -780,7 +785,7 @@ static void print_segment(size_t start, size_t end)
 		putc(line[i], stderr);
 }
 
-static void print_carat(size_t nspace, size_t len, const char *colour)
+static void print_caret(size_t nspace, size_t len, const char *colour)
 {
 	size_t i;
 
@@ -810,7 +815,7 @@ static void err_unterm(void)
 	start = GET_OFFSET(-79);
 	print_segment(start, CURR_IND);
 	putc('\n', stderr);
-	print_carat(CURR_IND - start, 1, KRED);
+	print_caret(CURR_IND - start, 1, KRED);
 }
 
 static void err_expected(const char *err)
@@ -820,12 +825,16 @@ static void err_expected(const char *err)
 	PUTERR(CURR_START, "%s\n", err);
 	start = GET_OFFSET(-40);
 	end = start + 80;
+	if (start > CURR_START)
+		start = CURR_START;
+	if (end < (size_t)CURR_IND)
+		end = CURR_IND;
 	print_segment(start, CURR_START);
 	print_token(curr, KRED);
 	print_segment(CURR_IND, end);
 	if (end < strlen(line))
 		putc('\n', stderr);
-	print_carat(CURR_IND - start - curr->len, curr->len, KRED);
+	print_caret(CURR_IND - start - curr->len, curr->len, KRED);
 }
 
 static void note_duplicate(const char *last)
@@ -857,5 +866,5 @@ static void note_duplicate(const char *last)
 
 	if ((i = CURR_IND - start - len) < 0)
 		i = 0;
-	print_carat(i, len, KBLU);
+	print_caret(i, len, KBLU);
 }
