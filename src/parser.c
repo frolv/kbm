@@ -115,7 +115,7 @@ static void print_caret(size_t nspace, size_t len, const char *colour);
 static void print_token(const struct token *t, const char *colour);
 
 static void err_unterm(void);
-static void err_expected(const char *err);
+static void err_generic(const char *err);
 static void err_invkey(void);
 static void note_duplicate(const char *last);
 
@@ -354,6 +354,9 @@ static struct token *create_token(int tag, void *info)
 	case TOK_STRLIT:
 		t->str = strdup((char *)info);
 		t->len = strlen(t->str);
+		/* surrounding quotes */
+		if (tag == TOK_STRLIT)
+			t->len += 2;
 		break;
 	case TOK_ARROW:
 		t->len = 2;
@@ -435,7 +438,7 @@ static struct hotkey *parse_binding(FILE *f)
 
 	/* match the arrow following the key */
 	if (curr->tag != TOK_ARROW) {
-		err_expected("expected '->' after key");
+		err_generic("expected '->' after key");
 		return NULL;
 	}
 	if (next_token(f, &curr, 1, 1) != 0)
@@ -443,7 +446,7 @@ static struct hotkey *parse_binding(FILE *f)
 
 	/* match the hotkey operation */
 	if (curr->tag != TOK_FUNC) {
-		err_expected("expected function after '->'");
+		err_generic("expected function after '->'");
 		return NULL;
 	}
 	if (parse_func(f, &op, &args) != 0)
@@ -672,7 +675,7 @@ static int parse_func(FILE *f, uint8_t *op, uint64_t *args)
 		if (next_token(f, &curr, 0, 1) != 0)
 			return 1;
 		if (curr->tag != TOK_STRLIT) {
-			err_expected("invalid token - expected a string");
+			err_generic("invalid token - expected a string");
 			return 1;
 		}
 		return parse_exec(f, args);
@@ -686,7 +689,7 @@ static int parse_num(FILE *f, uint32_t *num)
 	int mult;
 
 	if (curr->tag != '-' && curr->tag != TOK_NUM) {
-		err_expected("invalid token - expected a number");
+		err_generic("invalid token - expected a number");
 		return 1;
 	}
 
@@ -696,7 +699,7 @@ static int parse_num(FILE *f, uint32_t *num)
 		if (next_token(f, &curr, 1, 1) != 0)
 			return 1;
 		if (curr->tag != TOK_NUM) {
-			err_expected("invalid token - expected a number");
+			err_generic("invalid token - expected a number");
 			return 1;
 		}
 	}
@@ -713,7 +716,7 @@ static int parse_exec(FILE *f, uint64_t *retval)
 #endif
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 	char *args, *s, *t;
-	size_t len, allocsz;
+	size_t len, allocsz, litlen;
 #endif
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -745,7 +748,9 @@ static int parse_exec(FILE *f, uint64_t *retval)
 	len = 0;
 
 	while (curr && curr->tag == TOK_STRLIT) {
-		if (len >= allocsz + curr->len + 3) {
+		/* the length of the string literal itself, without quotes */
+		litlen = curr->len - 2;
+		if (len >= allocsz + litlen + 3) {
 			/*
 			 * This is guaranteed to provide enough space as
 			 * the maximum length of a string literal is 1024.
@@ -760,8 +765,8 @@ static int parse_exec(FILE *f, uint64_t *retval)
 		if ((t = strchr(curr->str, ' ')))
 			*s++ = '"';
 		strcpy(s, curr->str);
-		s += curr->len;
-		len += curr->len;
+		s += litlen;
+		len += litlen;
 		if (t)
 			*s++ = '"';
 		*s++ = ' ';
@@ -831,7 +836,7 @@ static void err_unterm(void)
 	print_caret(CURR_IND - start, 1, KRED);
 }
 
-static void err_expected(const char *err)
+static void err_generic(const char *err)
 {
 	size_t start, end;
 
@@ -856,8 +861,11 @@ static void err_invkey(void)
 
 	if (curr->tag == TOK_NUM)
 		PUTERR(CURR_START, "invalid key '%d'\n", curr->val);
-	else if (curr->tag == TOK_ID)
+	else if (curr->tag == TOK_ID || curr->tag == TOK_FUNC
+			|| curr->tag == TOK_STRLIT)
 		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
+	else if (curr->tag == TOK_ARROW)
+		PUTERR(CURR_START, "invalid key '->'\n");
 	else
 		PUTERR(CURR_START, "invalid key '%c'\n", curr->tag);
 	start = GET_OFFSET(-40);
