@@ -363,6 +363,7 @@ static struct token *create_token(int tag, void *info)
 	return t;
 }
 
+/* free_token: free a token and its dynamically allocated data */
 static void free_token(struct token *t)
 {
 	if (t->tag == TOK_ID || t->tag == TOK_FUNC || t->tag == TOK_STRLIT)
@@ -608,6 +609,11 @@ static int parse_misc(FILE *f, uint64_t *retval, int failnext)
 	return 0;
 }
 
+/*
+ * parse_func:
+ * Parse an operation and its arguments from f.
+ * Store opcode in op and arguments into args.
+ */
 static int parse_func(FILE *f, uint8_t *op, uint64_t *args)
 {
 	uint32_t *x, *y;
@@ -737,7 +743,7 @@ static int parse_exec(FILE *f, uint64_t *retval)
 		}
 		/*
 		 * Arguments including spaces are surrounded with quotes so
-		 * they get processed as a single argument instaed of multiple.
+		 * they get processed as a single argument instead of multiple.
 		 */
 		if ((t = strchr(curr->str, ' ')))
 			*s++ = '"';
