@@ -65,6 +65,7 @@ void keymap_init(void)
 	add_key(KEY_B, "b", "B");
 	add_key(KEY_N, "n", "N");
 	add_key(KEY_M, "m", "M");
+	add_key(KEY_0, "zero",	"0");
 	add_key(KEY_1, "one",	"1");
 	add_key(KEY_2, "two",	"2");
 	add_key(KEY_3, "three",	"3");
@@ -74,7 +75,6 @@ void keymap_init(void)
 	add_key(KEY_7, "seven",	"7");
 	add_key(KEY_8, "eight",	"8");
 	add_key(KEY_9, "nine",	"9");
-	add_key(KEY_0, "zero",	"0");
 	add_key(KEY_BTICK,	"backtick", "`");
 	add_key(KEY_BTICK,	"grave", "`");
 	add_key(KEY_MINUS,	"minus", "-");
@@ -107,6 +107,68 @@ void keymap_init(void)
 	add_key(KEY_SUPER,	"super", "Super");
 	add_key(KEY_META,	"meta", "Meta");
 	add_key(KEY_META,	"alt", "Meta");
+	add_key(KEY_META,	"option", "Meta");
+	add_key(KEY_F1,  "f1",  "F1");
+	add_key(KEY_F2,  "f2",  "F2");
+	add_key(KEY_F3,  "f3",  "F3");
+	add_key(KEY_F4,  "f4",  "F4");
+	add_key(KEY_F5,  "f5",  "F5");
+	add_key(KEY_F6,  "f6",  "F6");
+	add_key(KEY_F7,  "f7",  "F7");
+	add_key(KEY_F8,  "f8",  "F8");
+	add_key(KEY_F9,  "f9",  "F9");
+	add_key(KEY_F10, "f10", "F10");
+	add_key(KEY_F11, "f11", "F11");
+	add_key(KEY_F12, "f12", "F12");
+	add_key(KEY_PRTSCR,	"printscreen", "PrintScreen");
+	add_key(KEY_SCRLCK,	"scrolllock", "ScrollLock");
+	add_key(KEY_PAUSE,	"pause", "Pause");
+	add_key(KEY_INSERT,	"insert", "Insert");
+	add_key(KEY_DELETE,	"delete", "Delete");
+	add_key(KEY_HOME,	"home", "Home");
+	add_key(KEY_END,	"end", "End");
+	add_key(KEY_PGUP,	"pageup", "PageUp");
+	add_key(KEY_PGUP,	"pgup", "PageUp");
+	add_key(KEY_PGDOWN,	"pagedown", "PageDown");
+	add_key(KEY_PGDOWN,	"pgdn", "PageDown");
+	add_key(KEY_LARROW,	"left", "Left");
+	add_key(KEY_RARROW,	"right", "Right");
+	add_key(KEY_UARROW,	"up", "Up");
+	add_key(KEY_DARROW,	"down", "Down");
+	add_key(KEY_NUMLOCK,	"numlock", "NumLock");
+	add_key(KEY_NUMDIV,	"numdiv", "NumDiv");
+	add_key(KEY_NUMDIV,	"numdivide", "NumDiv");
+	add_key(KEY_NUMMULT,	"nummult", "NumMult");
+	add_key(KEY_NUMMULT,	"nummultiply", "NumMulT");
+	add_key(KEY_NUMMINUS,	"numminus", "NumMinus");
+	add_key(KEY_NUMPLUS,	"numplus", "NumPlus");
+	add_key(KEY_NUMENTER,	"numenter", "NumEnter");
+	add_key(KEY_NUMDEL,	"numdel", "NumDel");
+	add_key(KEY_NUMDEL,	"numdelete", "NumDel");
+	add_key(KEY_NUMINS,	"numins", "NumIns");
+	add_key(KEY_NUMINS,	"numinsert", "NumIns");
+	add_key(KEY_NUMEND,	"numend", "NumEnd");
+	add_key(KEY_NUMDOWN,	"numdown", "NumDown");
+	add_key(KEY_NUMPGDN,	"numpgdn", "NumPageDown");
+	add_key(KEY_NUMPGDN,	"numpagedown", "NumPageDown");
+	add_key(KEY_NUMLEFT,	"numleft", "NumLeft");
+	add_key(KEY_NUMCLEAR,	"numclear", "NumClear");
+	add_key(KEY_NUMRIGHT,	"numright", "NumRight");
+	add_key(KEY_NUMHOME,	"numhome", "NumHome");
+	add_key(KEY_NUMUP,	"numup", "NumUp");
+	add_key(KEY_NUMPGUP,	"numpgup", "NumPageUp");
+	add_key(KEY_NUMPGUP,	"numpageup", "NumPageUp");
+	add_key(KEY_NUMDEC,	"numdec", "NumDec");
+	add_key(KEY_NUM0,	"num0", "Num0");
+	add_key(KEY_NUM1,	"num1", "Num1");
+	add_key(KEY_NUM2,	"num2", "Num2");
+	add_key(KEY_NUM3,	"num3", "Num3");
+	add_key(KEY_NUM4,	"num4", "Num4");
+	add_key(KEY_NUM5,	"num5", "Num5");
+	add_key(KEY_NUM6,	"num6", "Num6");
+	add_key(KEY_NUM7,	"num7", "Num7");
+	add_key(KEY_NUM8,	"num8", "Num8");
+	add_key(KEY_NUM9,	"num9", "Num9");
 }
 
 void keymap_free(void)
@@ -179,8 +241,8 @@ static void add_key(uint32_t kc, const char *str, const char *name)
 static const uint32_t x11_keysyms[] = {
 	0x00, XK_q, XK_w, XK_e, XK_r, XK_t, XK_y, XK_u, XK_i, XK_o, XK_p, XK_a,
 	XK_s, XK_d, XK_f, XK_g, XK_h, XK_j, XK_k, XK_l, XK_z, XK_x, XK_c, XK_v,
-	XK_b, XK_n, XK_m, XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9,
-	XK_0, XK_grave, XK_minus, XK_equal, XK_bracketleft, XK_bracketright,
+	XK_b, XK_n, XK_m, XK_0, XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8,
+	XK_9, XK_grave, XK_minus, XK_equal, XK_bracketleft, XK_bracketright,
 	XK_backslash, XK_semicolon, XK_apostrophe, XK_comma, XK_period,
 	XK_slash, XK_space, XK_Escape, XK_BackSpace, XK_Tab, XK_Caps_Lock,
 	XK_Return, XK_Shift_L, XK_Control_L, XK_Super_L, XK_Alt_L, XK_F1, XK_F2,
@@ -226,8 +288,8 @@ unsigned int kbm_to_xcb_masks(uint8_t modmask)
 static const uint32_t win_keycodes[] = {
 	0x00, 0x51, 0x57, 0x45, 0x52, 0x54, 0x59, 0x55, 0x49, 0x4F, 0x50, 0x41,
 	0x53, 0x44, 0x46, 0x47, 0x48, 0x4A, 0x4B, 0x4C, 0x5A, 0x58, 0x43, 0x56,
-	0x42, 0x4E, 0x4D, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-	0x30, 0xC0, 0xBD, 0xBB, 0xDB, 0xDD, 0xDC, 0xBA, 0xDE, 0xBC, 0xBE, 0xBF,
+	0x42, 0x4E, 0x4D, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+	0x39, 0xC0, 0xBD, 0xBB, 0xDB, 0xDD, 0xDC, 0xBA, 0xDE, 0xBC, 0xBE, 0xBF,
 	0x20, 0x1B, 0x08, 0x09, 0x14, 0x0D, 0x10, 0x11, 0x5B, 0x12, 0x70, 0x71,
 	0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x2C, 0x91,
 	0x13, 0x2D, 0x2E, 0x24, 0x23, 0x21, 0x22, 0x25, 0x27, 0x26, 0x28, 0x90,
@@ -268,9 +330,9 @@ static const uint32_t osx_keycodes[] = {
 	kVK_ANSI_Y, kVK_ANSI_U, kVK_ANSI_I, kVK_ANSI_O, kVK_ANSI_P, kVK_ANSI_A,
 	kVK_ANSI_S, kVK_ANSI_D, kVK_ANSI_F, kVK_ANSI_G, kVK_ANSI_H, kVK_ANSI_J,
 	kVK_ANSI_K, kVK_ANSI_L, kVK_ANSI_Z, kVK_ANSI_X, kVK_ANSI_C, kVK_ANSI_V,
-	kVK_ANSI_B, kVK_ANSI_N, kVK_ANSI_M, kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3,
-	kVK_ANSI_4, kVK_ANSI_5, kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9,
-	kVK_ANSI_0, kVK_ANSI_Grave, kVK_ANSI_Minus, kVK_ANSI_Equal,
+	kVK_ANSI_B, kVK_ANSI_N, kVK_ANSI_M, kVK_ANSI_0, kVK_ANSI_1, kVK_ANSI_2,
+	kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5, kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8,
+	kVK_ANSI_9, kVK_ANSI_Grave, kVK_ANSI_Minus, kVK_ANSI_Equal,
 	kVK_ANSI_LeftBracket, kVK_ANSI_RightBracket, kVK_ANSI_Backslash,
 	kVK_ANSI_Semicolon, kVK_ANSI_Quote, kVK_ANSI_Comma, kVK_ANSI_Period,
 	kVK_ANSI_Slash, kVK_Space, kVK_Escape, kVK_Delete, kVK_Tab,

@@ -53,16 +53,16 @@
 #define KEY_M		0x1A
 
 /* numeric keys */
-#define KEY_1		0x1B
-#define KEY_2		0x1C
-#define KEY_3		0x1D
-#define KEY_4		0x1E
-#define KEY_5		0x1F
-#define KEY_6		0x20
-#define KEY_7		0x21
-#define KEY_8		0x22
-#define KEY_9		0x23
-#define KEY_0		0x24
+#define KEY_0		0x1B
+#define KEY_1		0x1C
+#define KEY_2		0x1D
+#define KEY_3		0x1E
+#define KEY_4		0x1F
+#define KEY_5		0x20
+#define KEY_6		0x21
+#define KEY_7		0x22
+#define KEY_8		0x23
+#define KEY_9		0x24
 
 /* other keys */
 #define KEY_BTICK	0x25
