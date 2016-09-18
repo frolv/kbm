@@ -100,8 +100,9 @@ static int next_token(FILE *f, struct token **ret, int free, int err);
 
 static struct hotkey *parse_binding(FILE *f);
 static int parse_key(FILE *f, uint64_t *retval, int failnext);
-static int parse_mod(FILE *f, uint64_t *retval);
+static int parse_mod(FILE *f, uint64_t *retval, int failnext);
 static int parse_id(FILE *f, uint64_t *retval, int failnext);
+static int parse_keynum(FILE *f, uint64_t *retval, int failnext);
 static int parse_misc(FILE *f, uint64_t *retval, int failnext);
 static int parse_func(FILE *f, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, uint32_t *num);
@@ -115,6 +116,7 @@ static void print_token(const struct token *t, const char *colour);
 
 static void err_unterm(void);
 static void err_expected(const char *err);
+static void err_invkey(void);
 static void note_duplicate(const char *last);
 
 /*
@@ -459,25 +461,26 @@ static int parse_key(FILE *f, uint64_t *retval, int failnext)
 	static const char *misc_keys = "`-=[]\\;',./";
 
 	if (curr->tag == TOK_MOD) {
-		if (parse_mod(f, retval) != 0)
+		if (parse_mod(f, retval, failnext) != 0)
 			return 1;
-
-		return parse_key(f, retval, failnext);
 	} else if (curr->tag == TOK_ID) {
-		if (parse_id(f, retval, failnext) == 1)
+		if (parse_id(f, retval, failnext) != 0)
+			return 1;
+	} else if (curr->tag == TOK_NUM) {
+		if (parse_keynum(f, retval, failnext) != 0)
 			return 1;
 	} else if (strchr(misc_keys, curr->tag)) {
 		if (parse_misc(f, retval, failnext) != 0)
 			return 1;
 	} else {
-		err_expected("invalid token - expected a key");
+		err_invkey();
 		return 1;
 	}
 	return 0;
 }
 
 /* parse_mod: process a token of type MOD */
-static int parse_mod(FILE *f, uint64_t *retval)
+static int parse_mod(FILE *f, uint64_t *retval, int failnext)
 {
 	uint32_t *mods;
 
@@ -503,41 +506,29 @@ static int parse_mod(FILE *f, uint64_t *retval)
 		return 1;
 
 	if (curr->tag == TOK_MOD)
-		return parse_mod(f, retval);
+		return parse_mod(f, retval, failnext);
 
-	return 0;
+	return parse_key(f, retval, failnext);
 }
 
 static int parse_id(FILE *f, uint64_t *retval, int failnext)
 {
 	uint32_t *key, *mods;
-	size_t start, end;
+	size_t i;
 	char buf[32], *s;
 
 	key = (uint32_t *)retval;
 	mods = (uint32_t *)retval + 1;
 	if (!(*key = lookup_keycode(curr->str))) {
-		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
-		start = GET_OFFSET(-40);
-		end = start + 80;
-		if (start > CURR_START)
-			start = CURR_START;
-		if (end < (size_t)CURR_IND)
-			end = CURR_IND;
-		print_segment(start, CURR_START);
-		print_token(curr, KRED);
-		print_segment(CURR_IND, end);
-		if (end < strlen(line))
-			putc('\n', stderr);
-		print_caret(CURR_IND - start - curr->len, curr->len, KRED);
+		err_invkey();
 		return 1;
 	}
 
 	if (K_ISMOD(*key)) {
 		/* copy the token's lexeme for potential error reporting */
-		for (start = 0, s = pos - curr->len; s < pos; ++s, ++start)
-			buf[start] = *s;
-		buf[start] = '\0';
+		for (i = 0, s = pos - curr->len; s < pos; ++s, ++i)
+			buf[i] = *s;
+		buf[i] = '\0';
 	}
 
 	if (next_token(f, &curr, 1, failnext) != 0)
@@ -564,6 +555,22 @@ static int parse_id(FILE *f, uint64_t *retval, int failnext)
 		return parse_key(f, retval, failnext);
 	}
 
+	return 0;
+}
+
+static int parse_keynum(FILE *f, uint64_t *retval, int failnext)
+{
+	uint32_t *key;
+
+	key = (uint32_t *)retval;
+	if (curr->val + KEY_0 > KEY_9) {
+		err_invkey();
+		return 1;
+	}
+
+	*key = curr->val + KEY_0;
+	if (next_token(f, &curr, 1, failnext) != 0)
+		return failnext;
 	return 0;
 }
 
@@ -829,6 +836,30 @@ static void err_expected(const char *err)
 	size_t start, end;
 
 	PUTERR(CURR_START, "%s\n", err);
+	start = GET_OFFSET(-40);
+	end = start + 80;
+	if (start > CURR_START)
+		start = CURR_START;
+	if (end < (size_t)CURR_IND)
+		end = CURR_IND;
+	print_segment(start, CURR_START);
+	print_token(curr, KRED);
+	print_segment(CURR_IND, end);
+	if (end < strlen(line))
+		putc('\n', stderr);
+	print_caret(CURR_IND - start - curr->len, curr->len, KRED);
+}
+
+static void err_invkey(void)
+{
+	size_t start, end;
+
+	if (curr->tag == TOK_NUM)
+		PUTERR(CURR_START, "invalid key '%d'\n", curr->val);
+	else if (curr->tag == TOK_ID)
+		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
+	else
+		PUTERR(CURR_START, "invalid key '%c'\n", curr->tag);
 	start = GET_OFFSET(-40);
 	end = start + 80;
 	if (start > CURR_START)
