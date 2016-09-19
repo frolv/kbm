@@ -203,6 +203,19 @@ static FILE *open_file(const char *path)
 }
 #endif
 
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+static FILE *open_file(const char *path)
+{
+	FILE *f;
+
+	if (!(f = fopen(path, "r"))) {
+		perror(path);
+		return NULL;
+	}
+	return f;
+}
+#endif
+
 /* scan: read the next token from f */
 static struct token *scan(FILE *f)
 {
@@ -775,7 +788,7 @@ static int parse_exec(FILE *f, uint64_t *retval)
 	}
 	/* get rid of final space */
 	*--s = '\0';
-	memcpy(retval, &argc, sizeof(*retval));
+	memcpy(retval, &args, sizeof(*retval));
 #endif
 
 	return 0;
