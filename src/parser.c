@@ -52,9 +52,7 @@
 		file_path, line_num, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define GET_OFFSET(offset) \
-	(((CURR_IND + (offset)) < 0) \
-	 ? 0 : (CURR_IND + (offset)))
+#define SUB_TO_ZERO(a,b) (((a) + (b) < 0) ? 0 : (a) + (b))
 
 enum {
 	TOK_NUM = 0x100,
@@ -76,11 +74,18 @@ struct token {
 };
 
 static const char *file_path;
-static unsigned int line_num;
-static char line[BUFFER_SIZE];
 
+/* number of current line in file */
+static unsigned int line_num;
+/* current line being read */
+static char line[BUFFER_SIZE];
 /* the current character processed */
 static char *pos;
+
+static unsigned int err_num;
+static unsigned int err_len;
+static char err_line[BUFFER_SIZE];
+static char *err_pos;
 
 /* token currently being processed */
 static struct token *curr;
@@ -107,17 +112,18 @@ static int parse_misc(FILE *f, uint64_t *retval, int failnext);
 static int parse_func(FILE *f, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, uint32_t *num);
 static int parse_exec(FILE *f, uint64_t *retval);
-static void set_mods(uint32_t *mods, uint32_t mask, const char *last);
+static void set_mods(uint32_t *mods, uint32_t mask);
 
 /* error/warning message functions */
-static void print_segment(size_t start, size_t end);
+static void print_segment(const char *buf, size_t start,
+			  size_t end, const char *colour);
 static void print_caret(size_t nspace, size_t len, const char *colour);
 static void print_token(const struct token *t, const char *colour);
 
 static void err_unterm(void);
 static void err_generic(const char *err);
 static void err_invkey(void);
-static void note_duplicate(const char *last);
+static void note_duplicate(void);
 
 /*
  * parse_file:
@@ -284,8 +290,8 @@ static struct token *read_str(FILE *f)
 	if (i == MAX_STRING - 1) {
 		PUTWARN(CURR_IND, "string literal exceeding "
 				"%d characters truncated\n", MAX_STRING - 1);
-		start = GET_OFFSET(-79);
-		print_segment(start, CURR_IND);
+		start = SUB_TO_ZERO(CURR_IND, -79);
+		print_segment(line, start, CURR_IND, NULL);
 		printf(KMAG "%c" KNRM "\n", quote);
 		print_caret(CURR_IND - start, 1, KMAG);
 
@@ -410,8 +416,8 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 		if (err) {
 			PUTERR(-1L, "unexpected end of file when parsing\n");
 			pos = strchr(line, '\n');
-			start = GET_OFFSET(-79);
-			print_segment(start, CURR_IND);
+			start = SUB_TO_ZERO(CURR_IND, -79);
+			print_segment(line, start, CURR_IND, NULL);
 			putc('\n', stderr);
 			print_caret(CURR_IND - start, 1, KRED);
 			fprintf(stderr, "last statement here:\n%s", buf);
@@ -488,18 +494,25 @@ static int parse_mod(FILE *f, uint64_t *retval, int failnext)
 	uint32_t *mods;
 
 	mods = (uint32_t *)retval + 1;
+
+	/* mark start of token for potential error reporting */
+	strcpy(err_line, line);
+	err_num = line_num;
+	err_pos = err_line + CURR_START;
+	err_len = curr->len;
+
 	switch (curr->val) {
 	case '^':
-		set_mods(mods, KBM_CTRL_MASK, NULL);
+		set_mods(mods, KBM_CTRL_MASK);
 		break;
 	case '!':
-		set_mods(mods, KBM_SHIFT_MASK, NULL);
+		set_mods(mods, KBM_SHIFT_MASK);
 		break;
 	case '@':
-		set_mods(mods, KBM_SUPER_MASK, NULL);
+		set_mods(mods, KBM_SUPER_MASK);
 		break;
 	case '~':
-		set_mods(mods, KBM_META_MASK, NULL);
+		set_mods(mods, KBM_META_MASK);
 		break;
 	default:
 		return 1;
@@ -517,8 +530,6 @@ static int parse_mod(FILE *f, uint64_t *retval, int failnext)
 static int parse_id(FILE *f, uint64_t *retval, int failnext)
 {
 	uint32_t *key, *mods;
-	size_t i;
-	char buf[32], *s;
 
 	key = (uint32_t *)retval;
 	mods = (uint32_t *)retval + 1;
@@ -528,10 +539,11 @@ static int parse_id(FILE *f, uint64_t *retval, int failnext)
 	}
 
 	if (K_ISMOD(*key)) {
-		/* copy the token's lexeme for potential error reporting */
-		for (i = 0, s = pos - curr->len; s < pos; ++s, ++i)
-			buf[i] = *s;
-		buf[i] = '\0';
+		/* mark start of token for potential error reporting */
+		strcpy(err_line, line);
+		err_num = line_num;
+		err_pos = err_line + CURR_START;
+		err_len = curr->len;
 	}
 
 	if (next_token(f, &curr, 1, failnext) != 0)
@@ -540,16 +552,16 @@ static int parse_id(FILE *f, uint64_t *retval, int failnext)
 	if (K_ISMOD(*key) && curr->tag == '-') {
 		switch (*key) {
 		case KEY_CTRL:
-			set_mods(mods, KBM_CTRL_MASK, buf);
+			set_mods(mods, KBM_CTRL_MASK);
 			break;
 		case KEY_SHIFT:
-			set_mods(mods, KBM_SHIFT_MASK, buf);
+			set_mods(mods, KBM_SHIFT_MASK);
 			break;
 		case KEY_SUPER:
-			set_mods(mods, KBM_SUPER_MASK, buf);
+			set_mods(mods, KBM_SUPER_MASK);
 			break;
 		case KEY_META:
-			set_mods(mods, KBM_META_MASK, buf);
+			set_mods(mods, KBM_META_MASK);
 			break;
 		}
 		if (next_token(f, &curr, 1, 1) != 0)
@@ -782,25 +794,30 @@ static int parse_exec(FILE *f, uint64_t *retval)
 }
 
 /* set_mods: set bitmask mask to mods with duplicate notice */
-static void set_mods(uint32_t *mods, uint32_t mask, const char *last)
+static void set_mods(uint32_t *mods, uint32_t mask)
 {
 	if (CHECK_MASK(*mods, mask))
-		note_duplicate(last);
+		note_duplicate();
 	*mods |= mask;
 }
 
-/* print_segment: print line from start to end */
-static void print_segment(size_t start, size_t end)
+/* print_segment: print buf from start to end */
+static void print_segment(const char *buf, size_t start,
+			  size_t end, const char *colour)
 {
 	size_t i;
 
-	if (end > (i = strlen(line)))
+	if (end > (i = strlen(buf)))
 		end = i;
 	if (start > end)
 		return;
 
+	if (colour)
+		fprintf(stderr, colour);
 	for (i = start; i < end; ++i)
-		putc(line[i], stderr);
+		putc(buf[i], stderr);
+	if (colour)
+		fprintf(stderr, KNRM);
 }
 
 static void print_caret(size_t nspace, size_t len, const char *colour)
@@ -830,8 +847,8 @@ static void err_unterm(void)
 	size_t start;
 
 	PUTERR(CURR_IND, "unterminated string literal\n");
-	start = GET_OFFSET(-79);
-	print_segment(start, CURR_IND);
+	start = SUB_TO_ZERO(CURR_IND, -79);
+	print_segment(line, start, CURR_IND, NULL);
 	putc('\n', stderr);
 	print_caret(CURR_IND - start, 1, KRED);
 }
@@ -841,15 +858,15 @@ static void err_generic(const char *err)
 	size_t start, end;
 
 	PUTERR(CURR_START, "%s\n", err);
-	start = GET_OFFSET(-40);
+	start = SUB_TO_ZERO(CURR_IND, -40);
 	end = start + 80;
 	if (start > CURR_START)
 		start = CURR_START;
 	if (end < (size_t)CURR_IND)
 		end = CURR_IND;
-	print_segment(start, CURR_START);
+	print_segment(line, start, CURR_START, NULL);
 	print_token(curr, KRED);
-	print_segment(CURR_IND, end);
+	print_segment(line, CURR_IND, end, NULL);
 	if (end < strlen(line))
 		putc('\n', stderr);
 	print_caret(CURR_IND - start - curr->len, curr->len, KRED);
@@ -868,48 +885,35 @@ static void err_invkey(void)
 		PUTERR(CURR_START, "invalid key '->'\n");
 	else
 		PUTERR(CURR_START, "invalid key '%c'\n", curr->tag);
-	start = GET_OFFSET(-40);
+	start = SUB_TO_ZERO(CURR_IND, -40);
 	end = start + 80;
 	if (start > CURR_START)
 		start = CURR_START;
 	if (end < (size_t)CURR_IND)
 		end = CURR_IND;
-	print_segment(start, CURR_START);
+	print_segment(line, start, CURR_START, NULL);
 	print_token(curr, KRED);
-	print_segment(CURR_IND, end);
+	print_segment(line, CURR_IND, end, NULL);
 	if (end < strlen(line))
 		putc('\n', stderr);
 	print_caret(CURR_IND - start - curr->len, curr->len, KRED);
 }
 
-static void note_duplicate(const char *last)
+static void note_duplicate(void)
 {
-	size_t start, end, len;
-	long i;
+	size_t start, end, err_end;
+	long col;
 
-	start = GET_OFFSET(-40);
-	len = curr->len;
-	end = CURR_START;
-	if (last) {
-		if (end > strlen(last))
-			end -= strlen(last);
-		else
-			end = 0;
-		len += strlen(last);
-	}
-	if ((i = CURR_IND - len) < 0)
-		i = 0;
-	PUTNOTE(i, "duplicate modifier declaration\n");
-	print_segment(start, end);
-	if (last)
-		fprintf(stderr, KBLU "%s" KNRM, last);
+	col = err_pos - err_line;
+	start = SUB_TO_ZERO(col, -40);
 	end = start + 80;
-	print_token(curr, KBLU);
-	print_segment(CURR_IND, end);
-	if (end < strlen(line))
-		putc('\n', stderr);
+	err_end = col + err_len;
 
-	if ((i = CURR_IND - start - len) < 0)
-		i = 0;
-	print_caret(i, len, KBLU);
+	PUTNOTE(col, "duplicate modifier declaration\n");
+	print_segment(err_line, start, col, NULL);
+	print_segment(err_line, col, err_end, KBLU);
+	print_segment(err_line, err_end, end, NULL);
+	if (end < strlen(err_line))
+		putc('\n', stderr);
+	print_caret(col, err_len, KBLU);
 }
