@@ -34,22 +34,22 @@
 #define CURR_START (CURR_IND - curr->len)
 
 /* print a nice looking error message */
-#define PUTERR(ind, fmt, ...) \
+#define PUTERR(lnum, ind, fmt, ...) \
 	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
 		KRED "error: " KNRM fmt, \
-		file_path, line_num, (ind) + 1, \
+		file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define PUTWARN(ind, fmt, ...) \
+#define PUTWARN(lnum, ind, fmt, ...) \
 	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
 		KMAG "warning: " KNRM fmt, \
-		file_path, line_num, (ind) + 1, \
+		file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define PUTNOTE(ind, fmt, ...) \
+#define PUTNOTE(lnum, ind, fmt, ...) \
 	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
 		KBLU "note: " KNRM fmt, \
-		file_path, line_num, (ind) + 1, \
+		file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
 #define SUB_TO_ZERO(a,b) (((a) + (b) < 0) ? 0 : (a) + (b))
@@ -288,7 +288,7 @@ static struct token *read_str(FILE *f)
 	buf[i] = '\0';
 
 	if (i == MAX_STRING - 1) {
-		PUTWARN(CURR_IND, "string literal exceeding "
+		PUTWARN(line_num, CURR_IND, "string literal exceeding "
 				"%d characters truncated\n", MAX_STRING - 1);
 		start = SUB_TO_ZERO(CURR_IND, -79);
 		print_segment(line, start, CURR_IND, NULL);
@@ -404,23 +404,34 @@ static char *next_line(FILE *f)
  */
 static int next_token(FILE *f, struct token **ret, int free, int err)
 {
-	char buf[BUFFER_SIZE];
-	size_t start;
+	size_t start, end, col, err_end;
 
 	if (free && *ret)
 		free_token(*ret);
-	if (err)
-		strcpy(buf, line);
+	if (err) {
+		strcpy(err_line, line);
+		err_num = line_num;
+		err_pos = err_line + CURR_START;
+		err_len = curr->len;
+		col = err_pos - err_line;
+		err_end = col + err_len;
+	}
 
 	if (!(*ret = scan(f))) {
 		if (err) {
-			PUTERR(-1L, "unexpected end of file when parsing\n");
+			PUTERR(line_num, -1L, "unexpected EOF when parsing\n");
 			pos = strchr(line, '\n');
 			start = SUB_TO_ZERO(CURR_IND, -79);
 			print_segment(line, start, CURR_IND, NULL);
 			putc('\n', stderr);
 			print_caret(CURR_IND - start, 1, KRED);
-			fprintf(stderr, "last statement here:\n%s", buf);
+			PUTNOTE(err_num, col, "last statement here\n");
+			end = strlen(err_line);
+			start = SUB_TO_ZERO((int)end, -79);
+			print_segment(err_line, start, col, NULL);
+			print_segment(err_line, col, err_end, KBLU);
+			print_segment(err_line, err_end, end, NULL);
+			print_caret(col, err_len, KBLU);
 		}
 		return 1;
 	}
@@ -846,7 +857,7 @@ static void err_unterm(void)
 {
 	size_t start;
 
-	PUTERR(CURR_IND, "unterminated string literal\n");
+	PUTERR(line_num, CURR_IND, "unterminated string literal\n");
 	start = SUB_TO_ZERO(CURR_IND, -79);
 	print_segment(line, start, CURR_IND, NULL);
 	putc('\n', stderr);
@@ -857,7 +868,7 @@ static void err_generic(const char *err)
 {
 	size_t start, end;
 
-	PUTERR(CURR_START, "%s\n", err);
+	PUTERR(line_num, CURR_START, "%s\n", err);
 	start = SUB_TO_ZERO(CURR_IND, -40);
 	end = start + 80;
 	if (start > CURR_START)
@@ -877,14 +888,14 @@ static void err_invkey(void)
 	size_t start, end;
 
 	if (curr->tag == TOK_NUM)
-		PUTERR(CURR_START, "invalid key '%d'\n", curr->val);
+		PUTERR(line_num, CURR_START, "invalid key '%d'\n", curr->val);
 	else if (curr->tag == TOK_ID || curr->tag == TOK_FUNC
 			|| curr->tag == TOK_STRLIT)
-		PUTERR(CURR_START, "invalid key '%s'\n", curr->str);
+		PUTERR(line_num, CURR_START, "invalid key '%s'\n", curr->str);
 	else if (curr->tag == TOK_ARROW)
-		PUTERR(CURR_START, "invalid key '->'\n");
+		PUTERR(line_num, CURR_START, "invalid key '->'\n");
 	else
-		PUTERR(CURR_START, "invalid key '%c'\n", curr->tag);
+		PUTERR(line_num, CURR_START, "invalid key '%c'\n", curr->tag);
 	start = SUB_TO_ZERO(CURR_IND, -40);
 	end = start + 80;
 	if (start > CURR_START)
@@ -909,7 +920,7 @@ static void note_duplicate(void)
 	end = start + 80;
 	err_end = col + err_len;
 
-	PUTNOTE(col, "duplicate modifier declaration\n");
+	PUTNOTE(line_num, col, "duplicate modifier declaration\n");
 	print_segment(err_line, start, col, NULL);
 	print_segment(err_line, col, err_end, KBLU);
 	print_segment(err_line, err_end, end, NULL);
