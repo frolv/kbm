@@ -226,7 +226,7 @@ static FILE *open_file(const char *path)
 /* scan: read the next token from f */
 static struct token *scan(FILE *f)
 {
-	int i;
+	unsigned int i;
 	char buf[SCAN_SIZE];
 	struct token *t;
 
