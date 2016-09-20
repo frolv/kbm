@@ -28,6 +28,7 @@
 #include <unistd.h>
 #endif
 
+#define SCAN_SIZE  64U
 #define MAX_STRING 1024U
 
 #define CURR_IND (pos - line)
@@ -207,7 +208,7 @@ static FILE *open_file(const char *path)
 static struct token *scan(FILE *f)
 {
 	int i;
-	char buf[BUFFER_SIZE];
+	char buf[SCAN_SIZE];
 	struct token *t;
 
 	/* skip over whitespace */
@@ -235,7 +236,7 @@ static struct token *scan(FILE *f)
 	if (isalpha(*pos) || *pos == '_') {
 		do {
 			buf[i++] = *pos++;
-		} while ((isalnum(*pos) || *pos == '_') && i < BUFFER_SIZE - 1);
+		} while ((isalnum(*pos) || *pos == '_') && i < SCAN_SIZE - 1);
 		buf[i] = '\0';
 		HASH_FIND_STR(reserved, buf, t);
 		return t ? t : create_token(TOK_ID, &buf);
