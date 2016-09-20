@@ -80,8 +80,10 @@ void keymap_init(void)
 	add_key(KEY_MINUS,	"minus", "-");
 	add_key(KEY_MINUS,	"dash", "-");
 	add_key(KEY_EQUAL,	"equals", "=");
+	add_key(KEY_LSQBR,	"leftbracket", "[");
 	add_key(KEY_LSQBR,	"leftsq", "[");
 	add_key(KEY_LSQBR,	"leftsquare", "[");
+	add_key(KEY_RSQBR,	"rightbracket", "]");
 	add_key(KEY_RSQBR,	"rightsq", "]");
 	add_key(KEY_LSQBR,	"rightsquare", "]");
 	add_key(KEY_BSLASH,	"backslash", "\\");
@@ -127,7 +129,9 @@ void keymap_init(void)
 	add_key(KEY_SCRLCK,	"scrolllock", "ScrollLock");
 	add_key(KEY_PAUSE,	"pause", "Pause");
 	add_key(KEY_INSERT,	"insert", "Insert");
+	add_key(KEY_INSERT,	"ins", "Insert");
 	add_key(KEY_DELETE,	"delete", "Delete");
+	add_key(KEY_DELETE,	"del", "Delete");
 	add_key(KEY_HOME,	"home", "Home");
 	add_key(KEY_END,	"end", "End");
 	add_key(KEY_PGUP,	"pageup", "PageUp");
@@ -161,7 +165,8 @@ void keymap_init(void)
 	add_key(KEY_NUMUP,	"numup", "NumUp");
 	add_key(KEY_NUMPGUP,	"numpgup", "NumPageUp");
 	add_key(KEY_NUMPGUP,	"numpageup", "NumPageUp");
-	add_key(KEY_NUMDEC,	"numdec", "NumDec");
+	add_key(KEY_NUMDEC,	"numdecimal", "NumDecimal");
+	add_key(KEY_NUMDEC,	"numdec", "NumDecimal");
 	add_key(KEY_NUM0,	"num0", "Num0");
 	add_key(KEY_NUM1,	"num1", "Num1");
 	add_key(KEY_NUM2,	"num2", "Num2");
