@@ -270,6 +270,12 @@ static struct token *read_str(FILE *f)
 	size_t i, start;
 	char buf[MAX_STRING];
 
+	/* record where the string literal started */
+	strcpy(err_line, line);
+	err_num = line_num;
+	err_pos = err_line + CURR_IND;
+	err_len = 1;
+
 	quote = *pos++;
 	for (i = 0; i < MAX_STRING - 1; ++i) {
 		if (*pos == '\n') {
@@ -855,13 +861,27 @@ static void print_token(const struct token *t, const char *colour)
 
 static void err_unterm(void)
 {
-	size_t start;
+	size_t start, end, col;
 
 	PUTERR(line_num, CURR_IND, "unterminated string literal\n");
 	start = SUB_TO_ZERO(CURR_IND, -79);
 	print_segment(line, start, CURR_IND, NULL);
 	putc('\n', stderr);
 	print_caret(CURR_IND - start, 1, KRED);
+
+	if (err_num != line_num) {
+		col = err_pos - err_line;
+		start = SUB_TO_ZERO((int)col, -79);
+		end = start + 80;
+		PUTNOTE(err_num, col, "started here\n");
+		print_segment(err_line, start, col, NULL);
+		print_segment(err_line, col, end, KBLU);
+		if (end < strlen(err_line))
+			putc('\n', stderr);
+		else
+			end = strlen(err_line);
+		print_caret(col, end - col, KBLU);
+	}
 }
 
 static void err_generic(const char *err)
