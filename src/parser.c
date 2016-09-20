@@ -770,6 +770,16 @@ static int parse_exec(FILE *f, uint64_t *retval)
 	argv = malloc(allocsz * sizeof(*argv));
 	argc = 0;
 
+#ifdef __APPLE__
+	/*
+	 * On OS X, we attempt to launch the program as an app
+	 * first, and then fall back to a normal exec call.
+	 */
+	argv[0] = "open";
+	argv[1] = "-a";
+	argc = 2;
+#endif
+
 	while (curr && curr->tag == TOK_STRLIT) {
 		if (argc == allocsz - 1) {
 			allocsz *= 2;
@@ -843,7 +853,7 @@ static void print_segment(const char *buf, size_t start,
 		return;
 
 	if (colour)
-		fprintf(stderr, colour);
+		fprintf(stderr, "%s", colour);
 	for (i = start; i < end; ++i)
 		putc(buf[i], stderr);
 	if (colour)
