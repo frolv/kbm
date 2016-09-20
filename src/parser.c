@@ -166,7 +166,7 @@ struct hotkey *parse_file(const char *path)
 	while (curr) {
 		if (!(hk = parse_binding(f))) {
 			if (curr && (curr->tag == TOK_ID ||
-						curr->tag == TOK_STRLIT))
+				     curr->tag == TOK_STRLIT))
 				free_token(curr);
 			free_reserved();
 			keymap_free();
@@ -322,7 +322,8 @@ static struct token *read_str(FILE *f)
 				err_unterm();
 				exit(1);
 			}
-			if (*pos == quote && (pos == line || *(pos - 1) != '\\'))
+			if (*pos == quote && (pos == line ||
+					      *(pos - 1) != '\\'))
 				break;
 			++pos;
 		}
@@ -490,8 +491,8 @@ static struct hotkey *parse_binding(FILE *f)
 		return NULL;
 
 	return create_hotkey(key & 0xFFFFFFFF,
-			(key >> 32) & 0xFFFFFFFF,
-			op, args);
+			     (key >> 32) & 0xFFFFFFFF,
+			     op, args);
 }
 
 /* parse_key: parse a key declaration and its modifiers */

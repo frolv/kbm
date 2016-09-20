@@ -68,7 +68,7 @@ static void kill_fake_mods(void);
 #include <ApplicationServices/ApplicationServices.h>
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-		CGEventRef event, void *refcon);
+			   CGEventRef event, void *refcon);
 static int open_app(char **argv);
 #endif
 
@@ -94,7 +94,7 @@ static void map_keys(struct hotkey *head);
 static void unmap_keys(struct hotkey *head);
 
 static struct hotkey *find_by_os_code(struct hotkey *head,
-		uint32_t code, uint32_t mask);
+				      uint32_t code, uint32_t mask);
 
 
 #ifdef __linux__
@@ -286,7 +286,7 @@ static void map_keys(struct hotkey *head)
 			fprintf(stderr, "error: the key '%s' is already "
 					"mapped by another program\n",
 					keystr(head->kbm_code,
-						head->kbm_modmask));
+					       head->kbm_modmask));
 			free(err);
 		}
 
@@ -793,7 +793,7 @@ static void unmap_keys(struct hotkey *head)
 
 /* callback: function called when event is registered */
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-		CGEventRef event, void *refcon)
+			   CGEventRef event, void *refcon)
 {
 	CGKeyCode keycode;
 	CGEventFlags flags;
