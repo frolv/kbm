@@ -31,13 +31,22 @@ int main(int argc, char **argv)
 
 	static struct option long_opts[] = {
 		{ "help", no_argument, 0, 'h' },
+		{ "version", no_argument, 0, 'v' },
 		{ 0, 0, 0, 0 }
 	};
 
-	while ((c = getopt_long(argc, argv, "h", long_opts, NULL)) != EOF) {
+	while ((c = getopt_long(argc, argv, "hv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'h':
 			printf("usage: %s [FILE]\n", PROGRAM_NAME);
+			return 0;
+		case 'v':
+			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
+					"Copyright (C) 2016 Alexei Frolov\n\n"
+					"This program is distributed as "
+					"free software under the terms\n"
+					"of the GNU General Public License, "
+					"version 3 or later.\n");
 			return 0;
 		default:
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);

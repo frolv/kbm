@@ -21,8 +21,14 @@
 
 #include <stdio.h>
 
-/* working title of program for now */
 #define PROGRAM_NAME "kbm"
+
+#define _VERSION_MAJOR "0"
+#define _VERSION_MINOR "1"
+#define _VERSION_PATCH "0"
+
+#define PROGRAM_VERSION \
+	"v" _VERSION_MAJOR "." _VERSION_MINOR "." _VERSION_PATCH
 
 #ifdef KBM_DEBUG
 #define PRINT_DEBUG(...) printf(__VA_ARGS__)
