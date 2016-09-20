@@ -60,6 +60,7 @@ static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
+static void kill_fake_mods(void);
 #endif
 
 
@@ -523,8 +524,14 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
-			if (process_hotkey(hk, KBM_PRESS) == -1)
+			if (process_hotkey(hk, KBM_PRESS) == -1) {
+				/*
+				 * Any fake modifiers in the keydown position
+				 * when the program exits should be lifted.
+				 */
+				kill_fake_mods();
 				PostQuitMessage(0);
+			}
 			/* prevent the event from propagating further */
 			return 1;
 		}
@@ -636,15 +643,27 @@ static void send_fake_mod(unsigned int keycode, int type)
 	fake_mods[i] = type == KBM_PRESS;
 }
 
+static void kill_fake_mods(void)
+{
+	if (fake_mods[0])
+		send_fake_mod(VK_SHIFT, KBM_RELEASE);
+	if (fake_mods[1])
+		send_fake_mod(VK_CONTROL, KBM_RELEASE);
+	if (fake_mods[2])
+		send_fake_mod(VK_MENU, KBM_RELEASE);
+	if (fake_mods[3])
+		send_fake_mod(VK_LWIN, KBM_RELEASE);
+}
+
 static void map_keys(struct hotkey *head)
 {
-	if (head->op != OP_TOGGLE)
+	if (head && head->op != OP_TOGGLE)
 		keys_active = 1;
 }
 
 static void unmap_keys(struct hotkey *head)
 {
-	if (head->op != OP_TOGGLE)
+	if (head && head->op != OP_TOGGLE)
 		keys_active = 0;
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
@@ -762,13 +781,13 @@ void move_cursor(int x, int y)
 
 static void map_keys(struct hotkey *head)
 {
-	if (head->op != OP_TOGGLE)
+	if (head && head->op != OP_TOGGLE)
 		keys_active = 1;
 }
 
 static void unmap_keys(struct hotkey *head)
 {
-	if (head->op != OP_TOGGLE)
+	if (head && head->op != OP_TOGGLE)
 		keys_active = 0;
 }
 
