@@ -274,6 +274,9 @@ static void map_keys(struct hotkey *head)
 	xcb_void_cookie_t cookie;
 	xcb_generic_error_t *err;
 
+	if (head && head->op != OP_TOGGLE)
+		keys_active = 1;
+
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
 		cookie = xcb_grab_key_checked(conn, 1, root,
@@ -314,13 +317,15 @@ static void map_keys(struct hotkey *head)
 		free(kc);
 	}
 	xcb_flush(conn);
-	keys_active = 1;
 }
 
 /* unmap_keys: ungrab all assigned hotkeys */
 static void unmap_keys(struct hotkey *head)
 {
 	xcb_keycode_t *kc;
+
+	if (head && head->op != OP_TOGGLE)
+		keys_active = 0;
 
 	for (; head; head = head->next) {
 
@@ -336,7 +341,6 @@ static void unmap_keys(struct hotkey *head)
 				| XCB_MOD_MASK_2 | XCB_MOD_MASK_LOCK);
 	}
 	xcb_flush(conn);
-	keys_active = 0;
 }
 
 /* isnummod: check if a key is modifiable through num lock */
@@ -887,7 +891,7 @@ void kbm_exec(void *args)
 }
 #endif /* __linux__ || __APPLE__ */
 
-void load_keys(struct hotkey *head)
+void load_keys(struct hotkey *head, int enabled)
 {
 	struct hotkey *tmp;
 
@@ -901,7 +905,8 @@ void load_keys(struct hotkey *head)
 			add_hotkey(&actions, tmp);
 	}
 
-	map_keys(actions);
+	if (enabled)
+		map_keys(actions);
 	map_keys(toggles);
 }
 

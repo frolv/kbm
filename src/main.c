@@ -1,5 +1,5 @@
 /*
- * $NAME - $DESC
+ * kbm - a simple hotkey mapper
  * main.c
  * Copyright (C) 2016 Alexei Frolov
  *
@@ -26,17 +26,22 @@
 
 int main(int argc, char **argv)
 {
-	int c;
+	int c, enable;
 	struct hotkey *head;
 
 	static struct option long_opts[] = {
+		{ "disable", no_argument, 0, 'd' },
 		{ "help", no_argument, 0, 'h' },
 		{ "version", no_argument, 0, 'v' },
 		{ 0, 0, 0, 0 }
 	};
 
-	while ((c = getopt_long(argc, argv, "hv", long_opts, NULL)) != EOF) {
+	enable = 1;
+	while ((c = getopt_long(argc, argv, "dhv", long_opts, NULL)) != EOF) {
 		switch (c) {
+		case 'd':
+			enable = 0;
+			break;
 		case 'h':
 			printf("usage: %s [FILE]\n", PROGRAM_NAME);
 			return 0;
@@ -66,7 +71,7 @@ int main(int argc, char **argv)
 	}
 
 	init_display();
-	load_keys(head);
+	load_keys(head, enable);
 	start_loop();
 	unload_keys();
 	close_display();

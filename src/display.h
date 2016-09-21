@@ -41,7 +41,7 @@ void close_display(void);
 void start_loop(void);
 
 /* load_keys: store list of keys starting at head */
-void load_keys(struct hotkey *head);
+void load_keys(struct hotkey *head, int enabled);
 
 /* unload_keys: remove and free stored hotkey lists */
 void unload_keys(void);
