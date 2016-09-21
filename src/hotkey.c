@@ -24,8 +24,9 @@
 
 static void get_os_codes(struct hotkey *hk);
 
+/* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
-		uint8_t op, uint64_t opargs)
+			     uint8_t op, uint64_t opargs)
 {
 	struct hotkey *hk;
 
@@ -40,6 +41,7 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 	return hk;
 }
 
+/* add_hotkey: append a key to the end of list head */
 void add_hotkey(struct hotkey **head, struct hotkey *hk)
 {
 	while (*head)
@@ -63,19 +65,21 @@ void free_keys(struct hotkey *head)
 	if (head->op == OP_EXEC) {
 #if defined(__linux__) || defined(__APPLE__)
 		argv = (char **)head->opargs;
+
 #ifdef __APPLE__
 		/* skip over "open" "-a", which are not dynamically allocated */
 		argv += 2;
 #endif
-		for (; *argv; ++argv) {
+
+		for (; *argv; ++argv)
 			free(*argv);
-		}
 #endif
 		free((void *)head->opargs);
 	}
 	free(head);
 }
 
+/* process_hotkey: perform the operation of hotkey hk */
 int process_hotkey(struct hotkey *hk, unsigned int type)
 {
 	int x, y;

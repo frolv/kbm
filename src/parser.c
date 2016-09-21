@@ -148,6 +148,10 @@ struct hotkey *parse_file(const char *path)
 		exit(1);
 	}
 
+	line_num = 0;
+	if (!(pos = next_line(f)))
+		return head;
+
 	reserved = NULL;
 	reserve(create_token(TOK_FUNC, "click"));
 	reserve(create_token(TOK_FUNC, "rclick"));
@@ -156,10 +160,6 @@ struct hotkey *parse_file(const char *path)
 	reserve(create_token(TOK_FUNC, "toggle"));
 	reserve(create_token(TOK_FUNC, "quit"));
 	reserve(create_token(TOK_FUNC, "exec"));
-
-	line_num = 0;
-	if (!(pos = next_line(f)))
-		return head;
 
 	/* grab the first token */
 	next_token(f, &curr, 0, 0);

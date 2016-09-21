@@ -47,7 +47,7 @@ struct hotkey {
 
 /* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
-		uint8_t op, uint64_t opargs);
+			     uint8_t op, uint64_t opargs);
 
 /* add_hotkey: append hotkey hk to the end of list head */
 void add_hotkey(struct hotkey **head, struct hotkey *hk);
