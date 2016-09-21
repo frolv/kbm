@@ -24,9 +24,9 @@
 #include "uthash.h"
 
 struct skey {
-	uint32_t	keycode;
-	const char	*keystr;
-	const char	*keyname;
+	uint32_t	keycode;	/* the key's kbm keycode */
+	const char	*keystr;	/* lexeme representing the key */
+	const char	*keyname;	/* the proper name of the key */
 	UT_hash_handle	hh;
 };
 
@@ -85,7 +85,7 @@ void keymap_init(void)
 	add_key(KEY_LSQBR,	"leftsquare", "[");
 	add_key(KEY_RSQBR,	"rightbracket", "]");
 	add_key(KEY_RSQBR,	"rightsq", "]");
-	add_key(KEY_LSQBR,	"rightsquare", "]");
+	add_key(KEY_RSQBR,	"rightsquare", "]");
 	add_key(KEY_BSLASH,	"backslash", "\\");
 	add_key(KEY_SEMIC,	"semicolon", ";");
 	add_key(KEY_QUOTE,	"quote", "'");
@@ -113,18 +113,18 @@ void keymap_init(void)
 	add_key(KEY_META,	"meta", "Meta");
 	add_key(KEY_META,	"alt", "Meta");
 	add_key(KEY_META,	"option", "Meta");
-	add_key(KEY_F1,  "f1",  "F1");
-	add_key(KEY_F2,  "f2",  "F2");
-	add_key(KEY_F3,  "f3",  "F3");
-	add_key(KEY_F4,  "f4",  "F4");
-	add_key(KEY_F5,  "f5",  "F5");
-	add_key(KEY_F6,  "f6",  "F6");
-	add_key(KEY_F7,  "f7",  "F7");
-	add_key(KEY_F8,  "f8",  "F8");
-	add_key(KEY_F9,  "f9",  "F9");
-	add_key(KEY_F10, "f10", "F10");
-	add_key(KEY_F11, "f11", "F11");
-	add_key(KEY_F12, "f12", "F12");
+	add_key(KEY_F1,		"f1",  "F1");
+	add_key(KEY_F2,		"f2",  "F2");
+	add_key(KEY_F3,		"f3",  "F3");
+	add_key(KEY_F4,		"f4",  "F4");
+	add_key(KEY_F5,		"f5",  "F5");
+	add_key(KEY_F6,		"f6",  "F6");
+	add_key(KEY_F7,		"f7",  "F7");
+	add_key(KEY_F8,		"f8",  "F8");
+	add_key(KEY_F9,		"f9",  "F9");
+	add_key(KEY_F10,	"f10", "F10");
+	add_key(KEY_F11,	"f11", "F11");
+	add_key(KEY_F12,	"f12", "F12");
 	add_key(KEY_PRTSCR,	"printscreen", "PrintScreen");
 	add_key(KEY_SCRLCK,	"scrolllock", "ScrollLock");
 	add_key(KEY_PAUSE,	"pause", "Pause");
@@ -146,7 +146,7 @@ void keymap_init(void)
 	add_key(KEY_NUMDIV,	"numdiv", "NumDiv");
 	add_key(KEY_NUMDIV,	"numdivide", "NumDiv");
 	add_key(KEY_NUMMULT,	"nummult", "NumMult");
-	add_key(KEY_NUMMULT,	"nummultiply", "NumMulT");
+	add_key(KEY_NUMMULT,	"nummultiply", "NumMult");
 	add_key(KEY_NUMMINUS,	"numminus", "NumMinus");
 	add_key(KEY_NUMPLUS,	"numplus", "NumPlus");
 	add_key(KEY_NUMENTER,	"numenter", "NumEnter");
@@ -179,6 +179,7 @@ void keymap_init(void)
 	add_key(KEY_NUM9,	"num9", "Num9");
 }
 
+/* keymap_free: free the key hash table */
 void keymap_free(void)
 {
 	struct skey *k, *tmp;
@@ -215,6 +216,7 @@ char *keystr(uint8_t keycode, uint8_t mask)
 	return key_str;
 }
 
+/* lookup_keycode: find a keycode from a string representation */
 uint32_t lookup_keycode(const char *key)
 {
 	struct skey *k;
@@ -228,6 +230,7 @@ uint32_t lookup_keycode(const char *key)
 	return k ? k->keycode : 0;
 }
 
+/* add_key: create a skey struct and add it to the hash table */
 static void add_key(uint32_t kc, const char *str, const char *name)
 {
 	struct skey *k;
@@ -289,7 +292,7 @@ unsigned int kbm_to_xcb_masks(uint8_t modmask)
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 /*
- * Give numpad Insert and Delete unassigned keycodes 0x88 and 0x89 and numpad
+ * Give Numpad Insert and Delete unassigned keycodes 0x88 and 0x89 and Numpad
  * End through PageUp keycodes 0x97 through 0x9E (excluding NumClear which is
  * already mapped to 0x0C).
  */
