@@ -416,7 +416,6 @@ void send_button(unsigned int button)
 		return;
 	}
 
-	/* send the button press and release events */
 	ip.mi.dwFlags = dnflags;
 	SendInput(1, &ip, sizeof(ip));
 	ip.mi.dwFlags = upflags;
@@ -921,10 +920,13 @@ void unload_keys(void)
 
 void toggle_keys(void)
 {
-	if (keys_active)
+	if (keys_active) {
 		unmap_keys(actions);
-	else
+		PRINT_DEBUG("hotkeys disabled\n");
+	} else {
 		map_keys(actions);
+		PRINT_DEBUG("hotkeys enabled\n");
+	}
 }
 
 /* find_by_os_code: return the hotkey in head with os_code code */
