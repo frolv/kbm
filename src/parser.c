@@ -114,6 +114,7 @@ static int parse_func(FILE *f, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, uint32_t *num);
 static int parse_exec(FILE *f, uint64_t *retval);
 static void set_mods(uint32_t *mods, uint32_t mask);
+static int validkey(uint64_t *key);
 
 /* error/warning message functions */
 static void print_segment(const char *buf, size_t start,
@@ -124,6 +125,7 @@ static void print_token(const struct token *t, const char *colour);
 static void err_unterm(void);
 static void err_generic(const char *err);
 static void err_invkey(void);
+static void err_selfmod(void);
 static void note_duplicate(void);
 
 /*
@@ -471,7 +473,7 @@ static struct hotkey *parse_binding(FILE *f)
 	uint8_t op;
 
 	key = args = op = 0;
-	if (parse_key(f, &key, 1) != 0)
+	if (parse_key(f, &key, 1) != 0 || !validkey(&key))
 		return NULL;
 
 	/* match the arrow following the key */
@@ -843,6 +845,38 @@ static void set_mods(uint32_t *mods, uint32_t mask)
 	*mods |= mask;
 }
 
+/* validkey: check if a key-modifier combination is valid */
+static int validkey(uint64_t *key)
+{
+	uint32_t kc, mods, mask;
+
+	kc = *(uint32_t *)key;
+	mods = *((uint32_t *)key + 1);
+
+	if (K_ISMOD(kc)) {
+		switch (kc) {
+		case KEY_CTRL:
+			mask = KBM_CTRL_MASK;
+			break;
+		case KEY_SHIFT:
+			mask = KBM_SHIFT_MASK;
+			break;
+		case KEY_SUPER:
+			mask = KBM_SUPER_MASK;
+			break;
+		case KEY_META:
+			mask = KBM_META_MASK;
+			break;
+		}
+		if (CHECK_MASK(mods, mask)) {
+			err_selfmod();
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 /* print_segment: print buf from start to end */
 static void print_segment(const char *buf, size_t start,
 			  size_t end, const char *colour)
@@ -953,6 +987,24 @@ static void err_invkey(void)
 	if (end < strlen(line))
 		putc('\n', stderr);
 	print_caret(CURR_IND - start - curr->len, curr->len, KRED);
+}
+
+static void err_selfmod(void)
+{
+	size_t start, end;
+	long col;
+
+	col = err_pos - err_line;
+	start = SUB_TO_ZERO(col, -40);
+	end = start + 80;
+
+	PUTERR(err_num, col, "key modified with itself\n");
+	print_segment(err_line, start, col, NULL);
+	print_segment(err_line, col, col + err_len, KRED);
+	print_segment(err_line, col + err_len, end, NULL);
+	if (end < strlen(err_line))
+		putc('\n', stderr);
+	print_caret(col, err_len, KRED);
 }
 
 static void note_duplicate(void)
