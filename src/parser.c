@@ -131,28 +131,27 @@ static void note_duplicate(void);
 /*
  * parse_file:
  * Read the file at path, if it is accessible.
- * Process the keybindings in the file and return
- * a list of struct hotkeys representing them.
+ * Process the keybindings in the file and store a
+ * list of struct hotkeys representing them in head.
  */
-struct hotkey *parse_file(const char *path)
+int parse_file(const char *path, struct hotkey **head)
 {
-	struct hotkey *head, *hk;
+	struct hotkey *hk;
 	FILE *f;
+	int ret;
 
-	head = NULL;
 	file_path = path;
 
 	if (strcmp(path, "-") == 0) {
 		f = stdin;
 		file_path = "<stdin>";
 	} else if (!(f = open_file(path))) {
-		keymap_free();
-		exit(1);
+		return 1;
 	}
 
 	line_num = 0;
 	if (!(pos = next_line(f)))
-		return head;
+		return 0;
 
 	reserved = NULL;
 	reserve(create_token(TOK_FUNC, "click"));
@@ -167,24 +166,23 @@ struct hotkey *parse_file(const char *path)
 	next_token(f, &curr, 0, 0);
 	while (curr) {
 		if (!(hk = parse_binding(f))) {
-			if (curr && (curr->tag == TOK_ID ||
-				     curr->tag == TOK_STRLIT))
+			if (curr && curr->tag != TOK_FUNC)
 				free_token(curr);
-			free_reserved();
-			keymap_free();
-			if (head)
-				free_keys(head);
-			fclose(f);
-			exit(1);
+			if (*head)
+				free_keys(*head);
+			ret = 1;
+			goto cleanup;
 		}
 		PRINT_DEBUG("hotkey parsed: %s\n",
 				keystr(hk->kbm_code, hk->kbm_modmask));
-		add_hotkey(&head, hk);
+		add_hotkey(head, hk);
 	}
+	ret = 0;
 
+cleanup:
 	free_reserved();
 	fclose(f);
-	return head;
+	return ret;
 }
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -429,8 +427,6 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 {
 	size_t start, end, col, err_end;
 
-	if (free && *ret)
-		free_token(*ret);
 	if (err) {
 		strcpy(err_line, line);
 		err_num = line_num;
@@ -439,6 +435,9 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 		col = err_pos - err_line;
 		err_end = col + err_len;
 	}
+
+	if (free && *ret)
+		free_token(*ret);
 
 	if (!(*ret = scan(f))) {
 		if (err) {

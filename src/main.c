@@ -67,9 +67,13 @@ int main(int argc, char **argv)
 	if (optind != argc) {
 		if (optind != argc - 1) {
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
+			keymap_free();
 			return 1;
 		}
-		head = parse_file(argv[optind]);
+		if (parse_file(argv[optind], &head) != 0) {
+			keymap_free();
+			return 1;
+		}
 	}
 
 	init_display();
