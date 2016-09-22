@@ -24,6 +24,8 @@
 #include "hotkey.h"
 #include "parser.h"
 
+void print_help(void);
+
 int main(int argc, char **argv)
 {
 	int c, enable;
@@ -43,7 +45,7 @@ int main(int argc, char **argv)
 			enable = 0;
 			break;
 		case 'h':
-			printf("usage: %s [FILE]\n", PROGRAM_NAME);
+			print_help();
 			return 0;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
@@ -77,4 +79,16 @@ int main(int argc, char **argv)
 	close_display();
 	keymap_free();
 	return 0;
+}
+
+void print_help(void)
+{
+	printf("usage: " PROGRAM_NAME " [OPTION]... [FILE]\n");
+	printf(PROGRAM_NAME " - a simple hotkey mapper\n\n");
+	printf("    -d, --disable\n");
+	printf("        disable hotkeys on load\n");
+	printf("    -h, --help\n");
+	printf("        display this help text and exit\n");
+	printf("    -v, --version\n");
+	printf("        print version information and exit\n");
 }
