@@ -444,7 +444,6 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	if (type == KBM_RELEASE)
 		key.ki.dwFlags = KEYEVENTF_KEYUP;
 
-	/* release key before mods */
 	if (type == KBM_RELEASE)
 		SendInput(1, &key, sizeof(key));
 
@@ -457,7 +456,6 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	if (CHECK_MASK(modmask, MOD_WIN))
 		send_fake_mod(VK_LWIN, type);
 
-	/* press key after mods (of course) */
 	if (type == KBM_PRESS)
 		SendInput(1, &key, sizeof(key));
 }
@@ -529,7 +527,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				/*
-				 * Any fake modifiers in the keydown position
+				 * Any fake modifiers in the down position
 				 * when the program exits should be lifted.
 				 */
 				kill_fake_mods();
@@ -550,7 +548,6 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		unset_fake_mods(&mods);
 		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
 			process_hotkey(hk, KBM_RELEASE);
-			/* prevent the event from propagating further */
 			return 1;
 		}
 	}
@@ -600,6 +597,7 @@ static void check_modifiers(unsigned int *mods)
 		*mods |= MOD_WIN;
 }
 
+/* unset_fake_mods: remove modifier masks of active fake modifiers from mods */
 static void unset_fake_mods(unsigned int *mods)
 {
 	if (fake_mods[0])
@@ -646,6 +644,7 @@ static void send_fake_mod(unsigned int keycode, int type)
 	fake_mods[i] = type == KBM_PRESS;
 }
 
+/* kill_fake_mods: release all fake modifers that are active */
 static void kill_fake_mods(void)
 {
 	if (fake_mods[0])
@@ -890,6 +889,7 @@ void kbm_exec(void *args)
 }
 #endif /* __linux__ || __APPLE__ */
 
+/* load_keys: split the keys in list head into actions and toggles */
 void load_keys(struct hotkey *head, int enabled)
 {
 	struct hotkey *tmp;
