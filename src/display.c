@@ -24,6 +24,7 @@
 
 
 #ifdef __linux__
+#include <libnotify/notify.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
@@ -96,6 +97,8 @@ static void unmap_keys(struct hotkey *head);
 static struct hotkey *find_by_os_code(struct hotkey *head,
 				      uint32_t code, uint32_t mask);
 
+static void send_notification(const char *msg);
+
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
@@ -113,6 +116,8 @@ void init_display(void)
 	keysyms = xcb_key_symbols_alloc(conn);
 
 	actions = toggles = NULL;
+
+	notify_init(PROGRAM_NAME);
 }
 
 /* close_display: disconnect from X server and clean up */
@@ -122,6 +127,8 @@ void close_display(void)
 	unmap_keys(toggles);
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
+
+	notify_uninit();
 }
 
 /* start_loop: map all hotkeys and start listening for keypresses */
@@ -362,6 +369,23 @@ static int isnummod(unsigned int keysym)
 	default:
 		return 0;
 	}
+}
+
+static void send_notification(const char *msg)
+{
+	NotifyNotification *n;
+	GError *err;
+
+	err = NULL;
+	n = notify_notification_new(msg, NULL, NULL);
+	if (!notify_notification_show(n, &err)) {
+		fprintf(stderr, "failed to send notification: %s\n",
+				err->message);
+		g_error_free(err);
+	}
+	g_object_unref(G_OBJECT(n));
+
+	PRINT_DEBUG("%s\n", msg);
 }
 #endif /* __linux__ */
 
@@ -922,10 +946,10 @@ void toggle_keys(void)
 {
 	if (keys_active) {
 		unmap_keys(actions);
-		PRINT_DEBUG("hotkeys disabled\n");
+		send_notification("Hotkeys disabled");
 	} else {
 		map_keys(actions);
-		PRINT_DEBUG("hotkeys enabled\n");
+		send_notification("Hotkeys enabled");
 	}
 }
 
