@@ -98,6 +98,8 @@ void print_help(void)
 	printf("        disable hotkeys on load\n");
 	printf("    -h, --help\n");
 	printf("        display this help text and exit\n");
+	printf("    -n, --notifications\n");
+	printf("        send desktop notification when keys are toggled\n");
 	printf("    -v, --version\n");
 	printf("        print version information and exit\n");
 }
