@@ -91,6 +91,8 @@ static struct hotkey *toggles;
 /* whether hotkeys are currently enabled */
 static int keys_active;
 
+static int notifications;
+
 static void map_keys(struct hotkey *head);
 static void unmap_keys(struct hotkey *head);
 
@@ -102,7 +104,7 @@ static void send_notification(const char *msg);
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display(void)
+void init_display(int notify)
 {
 	int screen;
 
@@ -117,7 +119,8 @@ void init_display(void)
 
 	actions = toggles = NULL;
 
-	notify_init(PROGRAM_NAME);
+	if ((notifications = notify))
+		notify_init(PROGRAM_NAME);
 }
 
 /* close_display: disconnect from X server and clean up */
@@ -128,7 +131,8 @@ void close_display(void)
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
 
-	notify_uninit();
+	if (notifications)
+		notify_uninit();
 }
 
 /* start_loop: map all hotkeys and start listening for keypresses */
@@ -384,19 +388,18 @@ static void send_notification(const char *msg)
 		g_error_free(err);
 	}
 	g_object_unref(G_OBJECT(n));
-
-	PRINT_DEBUG("%s\n", msg);
 }
 #endif /* __linux__ */
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display(void)
+void init_display(int notify)
 {
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
 		exit(1);
 	}
+	notifications = notify;
 }
 
 void close_display(void)
@@ -697,7 +700,7 @@ static void unmap_keys(struct hotkey *head)
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display(void)
+void init_display(int notify)
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -715,6 +718,8 @@ void init_display(void)
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
+
+	notifications = notify;
 }
 
 void close_display(void)
@@ -946,10 +951,12 @@ void toggle_keys(void)
 {
 	if (keys_active) {
 		unmap_keys(actions);
-		send_notification("Hotkeys disabled");
+		if (notifications)
+			send_notification("Hotkeys disabled");
 	} else {
 		map_keys(actions);
-		send_notification("Hotkeys enabled");
+		if (notifications)
+			send_notification("Hotkeys enabled");
 	}
 }
 

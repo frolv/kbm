@@ -28,18 +28,20 @@ void print_help(void);
 
 int main(int argc, char **argv)
 {
-	int c, enable;
+	int c, enable, notify;
 	struct hotkey *head;
 
 	static struct option long_opts[] = {
 		{ "disable", no_argument, 0, 'd' },
 		{ "help", no_argument, 0, 'h' },
+		{ "notifications", no_argument, 0, 'n' },
 		{ "version", no_argument, 0, 'v' },
 		{ 0, 0, 0, 0 }
 	};
 
 	enable = 1;
-	while ((c = getopt_long(argc, argv, "dhv", long_opts, NULL)) != EOF) {
+	notify = 0;
+	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
 			enable = 0;
@@ -47,6 +49,9 @@ int main(int argc, char **argv)
 		case 'h':
 			print_help();
 			return 0;
+		case 'n':
+			notify = 1;
+			break;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
 					"Copyright (C) 2016 Alexei Frolov\n\n"
@@ -76,7 +81,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	init_display();
+	init_display(notify);
 	load_keys(head, enable);
 	start_loop();
 	unload_keys();
