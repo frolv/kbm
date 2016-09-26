@@ -109,13 +109,13 @@ static void send_notification(const char *msg);
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display(int notify)
+int init_display(int notify)
 {
 	int screen;
 
 	if (!(conn = xcb_connect(NULL, &screen))) {
 		fprintf(stderr, "error: failed to connect to X server\n");
-		exit(1);
+		return 1;
 	}
 	/* get the root screen and root window of the X display */
 	root_screen = xcb_aux_get_screen(conn, screen);
@@ -126,6 +126,8 @@ void init_display(int notify)
 
 	if ((notifications = notify))
 		notify_init(PROGRAM_NAME);
+
+	return 0;
 }
 
 /* close_display: disconnect from X server and clean up */
@@ -398,15 +400,15 @@ static void send_notification(const char *msg)
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display(int notify)
+int init_display(int notify)
 {
 	NOTIFYICONDATA n;
 
 	kbm_window = CreateWindowEx(0, NULL, NULL, 0, 0, 0, 0, 0,
-			HWND_MESSAGE, NULL, NULL, NULL);
+				    HWND_MESSAGE, NULL, NULL, NULL);
 	if (!kbm_window) {
-		fprintf(stderr, "failed to create window\n");
-		return;
+		fprintf(stderr, "error: failed to create window\n");
+		return 1;
 	}
 
 	memset(&n, 0, sizeof(n));
@@ -421,9 +423,11 @@ void init_display(int notify)
 
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
-		exit(1);
+		return 1;
 	}
 	notifications = notify;
+
+	return 0;
 }
 
 void close_display(void)
@@ -728,7 +732,7 @@ static void send_notification(const char *msg)
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display(int notify)
+int init_display(int notify)
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -740,7 +744,7 @@ void init_display(int notify)
 	if (!tap) {
 		/* enable access for assistive devices */
 		fprintf(stderr, "error: failed to create event tap\n");
-		exit(1);
+		return 1;
 	}
 
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
@@ -748,6 +752,8 @@ void init_display(int notify)
 	CGEventTapEnable(tap, true);
 
 	notifications = notify;
+
+	return 0;
 }
 
 void close_display(void)

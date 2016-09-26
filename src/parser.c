@@ -803,7 +803,7 @@ static int parse_exec(FILE *f, uint64_t *retval)
 	len = 0;
 
 	while (curr && curr->tag == TOK_STRLIT) {
-		/* the length of the string literal itself, without quotes */
+		/* the length of the string itself, without quotes */
 		litlen = curr->len - 2;
 		if (len >= allocsz + litlen + 3) {
 			/*
