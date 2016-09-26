@@ -50,6 +50,11 @@ static int isnummod(unsigned int keysym);
 /* hook for keyboard input */
 HHOOK hook;
 
+HWND kbm_window;
+
+static const GUID guid = { 0xf2da29f5, 0x45a0, 0x4e68,
+	{ 0xbc, 0x4d, 0xe8, 0x7c, 0x84, 0xc1, 0xb6, 0xf2 } };
+
 /*
  * Track fake modifier keypresses and releases sent by the program.
  * These are ignored when looking up active modifiers during a key release.
@@ -395,6 +400,25 @@ static void send_notification(const char *msg)
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 void init_display(int notify)
 {
+	NOTIFYICONDATA n;
+
+	kbm_window = CreateWindowEx(0, NULL, NULL, 0, 0, 0, 0, 0,
+			HWND_MESSAGE, NULL, NULL, NULL);
+	if (!kbm_window) {
+		fprintf(stderr, "failed to create window\n");
+		return;
+	}
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_ICON | NIF_GUID;
+	n.guidItem = guid;
+	n.hIcon = LoadImage(NULL, "kbm.ico", IMAGE_ICON, 0, 0,
+			LR_DEFAULTSIZE | LR_LOADFROMFILE | LR_SHARED);
+
+	Shell_NotifyIcon(NIM_ADD, &n);
+
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
 		exit(1);
@@ -694,6 +718,10 @@ static void unmap_keys(struct hotkey *head)
 {
 	if (head && head->op != OP_TOGGLE)
 		keys_active = 0;
+}
+
+static void send_notification(const char *msg)
+{
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
