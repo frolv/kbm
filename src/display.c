@@ -47,11 +47,14 @@ static int isnummod(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
+#define KBM_MENU_QUIT 0x800
+
 /* hook for keyboard input */
 HHOOK hook;
 
 HWND kbm_window;
 
+static const char *CLASS_NAME = "KBM_WINDOW";
 static const GUID guid = { 0xf2da29f5, 0x45a0, 0x4e68,
 	{ 0xbc, 0x4d, 0xe8, 0x7c, 0x84, 0xc1, 0xb6, 0xf2 } };
 
@@ -62,11 +65,14 @@ static const GUID guid = { 0xf2da29f5, 0x45a0, 0x4e68,
 static int fake_mods[4] = { 0, 0, 0, 0 };
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam);
 static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
 static void kill_fake_mods(void);
+static void show_context_menu(HWND window);
 #endif
 
 
@@ -403,21 +409,35 @@ static void send_notification(const char *msg)
 int init_display(int notify)
 {
 	NOTIFYICONDATA n;
+	WNDCLASSEX wx;
 
-	kbm_window = CreateWindowEx(0, NULL, NULL, 0, 0, 0, 0, 0,
-				    HWND_MESSAGE, NULL, NULL, NULL);
+	memset(&wx, 0, sizeof(wx));
+	wx.cbSize = sizeof(wx);
+	wx.lpfnWndProc = wndproc;
+	wx.lpszClassName = CLASS_NAME;
+
+	if (!RegisterClassEx(&wx)) {
+		fprintf(stderr, "error: failed to register window class\n");
+		return 1;
+	}
+
+	kbm_window = CreateWindowEx(0, CLASS_NAME, "kbm", 0, 0, 0, 0,
+				    0, HWND_MESSAGE, NULL, NULL, NULL);
 	if (!kbm_window) {
-		fprintf(stderr, "error: failed to create window\n");
+		fprintf(stderr, "error: failed to create main window\n");
 		return 1;
 	}
 
 	memset(&n, 0, sizeof(n));
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
-	n.uFlags = NIF_ICON | NIF_GUID;
+	n.uFlags = NIF_ICON | NIF_TIP | NIF_GUID | NIF_MESSAGE;
+	n.dwState = NIS_SHAREDICON;
 	n.guidItem = guid;
+	n.uCallbackMessage = WM_APP;
 	n.hIcon = LoadImage(NULL, "kbm.ico", IMAGE_ICON, 0, 0,
 			LR_DEFAULTSIZE | LR_LOADFROMFILE | LR_SHARED);
+	strcpy(n.szTip, "kbm");
 
 	Shell_NotifyIcon(NIM_ADD, &n);
 
@@ -432,6 +452,16 @@ int init_display(int notify)
 
 void close_display(void)
 {
+	NOTIFYICONDATA n;
+
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_GUID;
+	n.guidItem = guid;
+
+	Shell_NotifyIcon(NIM_DELETE, &n);
+	DestroyWindow(kbm_window);
+	UnregisterClass(CLASS_NAME, NULL);
 	UnhookWindowsHookEx(hook);
 }
 
@@ -610,6 +640,22 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hook, nCode, wParam, lParam);
 }
 
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_APP:
+		if (lParam == WM_RBUTTONUP) {
+			printf("rclick\n");
+			show_context_menu(kbm_window);
+		}
+		return 0;
+	default:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
+}
+
 static unsigned int numpad_keycode(unsigned int kc)
 {
 	switch (kc) {
@@ -726,6 +772,30 @@ static void unmap_keys(struct hotkey *head)
 
 static void send_notification(const char *msg)
 {
+}
+
+/*
+ * show_context_menu:
+ * Create a context menu at the current cursor position.
+ * Send a message to window with the user's choice.
+ */
+static void show_context_menu(HWND window)
+{
+	HMENU menu;
+	POINT pt;
+	WORD cmd;
+
+	menu = CreatePopupMenu();
+	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING, KBM_MENU_QUIT, "Quit");
+
+	GetCursorPos(&pt);
+
+	cmd = TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
+			TPM_NONOTIFY | TPM_RETURNCMD | TPM_RIGHTBUTTON,
+			pt.x, pt.y, window, NULL);
+
+	SendMessage(window, WM_COMMAND, cmd, 0);
+	DestroyMenu(menu);
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
