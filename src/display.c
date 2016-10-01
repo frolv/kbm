@@ -408,8 +408,8 @@ static void send_notification(const char *msg)
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 int init_display(int notify)
 {
-	NOTIFYICONDATA n;
 	WNDCLASSEX wx;
+	NOTIFYICONDATA n;
 
 	memset(&wx, 0, sizeof(wx));
 	wx.cbSize = sizeof(wx);
@@ -465,7 +465,7 @@ void close_display(void)
 	UnhookWindowsHookEx(hook);
 }
 
-/* start_loop: map hotkeys and start listening for keypresses */
+/* start_loop: start listening for keypresses */
 void start_loop(void)
 {
 	MSG msg;
@@ -645,9 +645,14 @@ static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 {
 	switch (uMsg) {
 	case WM_APP:
-		if (lParam == WM_RBUTTONUP) {
-			printf("rclick\n");
+		if (lParam == WM_RBUTTONUP)
 			show_context_menu(kbm_window);
+		return 0;
+	case WM_COMMAND:
+		switch (wParam & 0xFFFF) {
+		case KBM_MENU_QUIT:
+			PostQuitMessage(0);
+			break;
 		}
 		return 0;
 	default:
@@ -783,18 +788,16 @@ static void show_context_menu(HWND window)
 {
 	HMENU menu;
 	POINT pt;
-	WORD cmd;
 
 	menu = CreatePopupMenu();
 	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING, KBM_MENU_QUIT, "Quit");
 
 	GetCursorPos(&pt);
+	SetForegroundWindow(window);
 
-	cmd = TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
-			TPM_NONOTIFY | TPM_RETURNCMD | TPM_RIGHTBUTTON,
-			pt.x, pt.y, window, NULL);
+	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
+			TPM_RIGHTBUTTON, pt.x, pt.y, window, NULL);
 
-	SendMessage(window, WM_COMMAND, cmd, 0);
 	DestroyMenu(menu);
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
