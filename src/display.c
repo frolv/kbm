@@ -47,7 +47,11 @@ static int isnummod(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
-#define KBM_MENU_QUIT 0x800
+/* context menu options */
+enum {
+	KBM_MENU_QUIT = 0x800,
+	KBM_MENU_NOTIFY
+};
 
 /* hook for keyboard input */
 HHOOK hook;
@@ -72,7 +76,7 @@ static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
 static void kill_fake_mods(void);
-static void show_context_menu(HWND window);
+static void show_context_menu(void);
 #endif
 
 
@@ -646,12 +650,15 @@ static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 	switch (uMsg) {
 	case WM_APP:
 		if (lParam == WM_RBUTTONUP)
-			show_context_menu(kbm_window);
+			show_context_menu();
 		return 0;
 	case WM_COMMAND:
 		switch (wParam & 0xFFFF) {
 		case KBM_MENU_QUIT:
 			PostQuitMessage(0);
+			break;
+		case KBM_MENU_NOTIFY:
+			notifications = !notifications;
 			break;
 		}
 		return 0;
@@ -777,6 +784,17 @@ static void unmap_keys(struct hotkey *head)
 
 static void send_notification(const char *msg)
 {
+	NOTIFYICONDATA n;
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_TIP | NIF_GUID | NIF_INFO;
+	n.guidItem = guid;
+	strcpy(n.szTip, "kbm");
+	strcpy(n.szInfo, msg);
+
+	Shell_NotifyIcon(NIM_MODIFY, &n);
 }
 
 /*
@@ -784,19 +802,25 @@ static void send_notification(const char *msg)
  * Create a context menu at the current cursor position.
  * Send a message to window with the user's choice.
  */
-static void show_context_menu(HWND window)
+static void show_context_menu(void)
 {
 	HMENU menu;
 	POINT pt;
+	int check;
+
+	check = notifications ? MF_CHECKED : MF_UNCHECKED;
 
 	menu = CreatePopupMenu();
-	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING, KBM_MENU_QUIT, "Quit");
+	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING | check,
+			KBM_MENU_NOTIFY, "Notifications");
+	InsertMenu(menu, 1, MF_BYPOSITION | MF_STRING,
+			KBM_MENU_QUIT, "Quit");
 
 	GetCursorPos(&pt);
-	SetForegroundWindow(window);
+	SetForegroundWindow(kbm_window);
 
 	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
-			TPM_RIGHTBUTTON, pt.x, pt.y, window, NULL);
+			TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
 
 	DestroyMenu(menu);
 }
