@@ -53,7 +53,7 @@
 		file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
-#define SUB_TO_ZERO(a,b) (((a) + (b) < 0) ? 0 : (a) + (b))
+#define SUB_TO_ZERO(a,b) (((a) < (b)) ? 0 : (a) - (b))
 
 enum {
 	TOK_NUM = 0x100,
@@ -310,7 +310,7 @@ static struct token *read_str(FILE *f)
 	if (i == MAX_STRING - 1) {
 		PUTWARN(line_num, CURR_IND, "string literal exceeding "
 				"%d characters truncated\n", MAX_STRING - 1);
-		start = SUB_TO_ZERO(CURR_IND, -79);
+		start = SUB_TO_ZERO(CURR_IND, 79);
 		print_segment(line, start, CURR_IND, NULL);
 		printf(KMAG "%c" KNRM "\n", quote);
 		print_caret(CURR_IND - start, 1, KMAG);
@@ -443,13 +443,13 @@ static int next_token(FILE *f, struct token **ret, int free, int err)
 		if (err) {
 			PUTERR(line_num, -1L, "unexpected EOF when parsing\n");
 			pos = strchr(line, '\n');
-			start = SUB_TO_ZERO(CURR_IND, -79);
+			start = SUB_TO_ZERO(CURR_IND, 79);
 			print_segment(line, start, CURR_IND, NULL);
 			putc('\n', stderr);
 			print_caret(CURR_IND - start, 1, KRED);
 			PUTNOTE(err_num, col, "last statement here\n");
 			end = strlen(err_line);
-			start = SUB_TO_ZERO((int)end, -79);
+			start = SUB_TO_ZERO((int)end, 79);
 			print_segment(err_line, start, col, NULL);
 			print_segment(err_line, col, err_end, KBLU);
 			print_segment(err_line, err_end, end, NULL);
@@ -922,14 +922,14 @@ static void err_unterm(void)
 	size_t start, end, col;
 
 	PUTERR(line_num, CURR_IND, "unterminated string literal\n");
-	start = SUB_TO_ZERO(CURR_IND, -79);
+	start = SUB_TO_ZERO(CURR_IND, 79);
 	print_segment(line, start, CURR_IND, NULL);
 	putc('\n', stderr);
 	print_caret(CURR_IND - start, 1, KRED);
 
 	if (err_num != line_num) {
 		col = err_pos - err_line;
-		start = SUB_TO_ZERO((int)col, -79);
+		start = SUB_TO_ZERO((int)col, 79);
 		end = start + 80;
 		PUTNOTE(err_num, col, "started here\n");
 		print_segment(err_line, start, col, NULL);
@@ -947,7 +947,7 @@ static void err_generic(const char *err)
 	size_t start, end;
 
 	PUTERR(line_num, CURR_START, "%s\n", err);
-	start = SUB_TO_ZERO(CURR_IND, -40);
+	start = SUB_TO_ZERO(CURR_IND, 40);
 	end = start + 80;
 	if (start > CURR_START)
 		start = CURR_START;
@@ -974,7 +974,7 @@ static void err_invkey(void)
 		PUTERR(line_num, CURR_START, "invalid key '->'\n");
 	else
 		PUTERR(line_num, CURR_START, "invalid key '%c'\n", curr->tag);
-	start = SUB_TO_ZERO(CURR_IND, -40);
+	start = SUB_TO_ZERO(CURR_IND, 40);
 	end = start + 80;
 	if (start > CURR_START)
 		start = CURR_START;
@@ -994,7 +994,7 @@ static void err_selfmod(void)
 	long col;
 
 	col = err_pos - err_line;
-	start = SUB_TO_ZERO(col, -40);
+	start = SUB_TO_ZERO(col, 40);
 	end = start + 80;
 
 	PUTERR(err_num, col, "key modified with itself\n");
@@ -1012,7 +1012,7 @@ static void note_duplicate(void)
 	long col;
 
 	col = err_pos - err_line;
-	start = SUB_TO_ZERO(col, -40);
+	start = SUB_TO_ZERO(col, 40);
 	end = start + 80;
 	err_end = col + err_len;
 
