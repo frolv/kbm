@@ -1,5 +1,7 @@
 kbm
+kbm.exe
 *.o
 *.swp
 doc
 *.kbm
+*.res
