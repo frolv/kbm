@@ -32,7 +32,7 @@ enum {
  * init_display: perform OS-specific initialization
  * actions for a graphical display
  */
-void init_display(int notify);
+int init_display(int notify);
 
 /* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display(void);

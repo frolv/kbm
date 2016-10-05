@@ -81,7 +81,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	init_display(notify);
+	if (init_display(notify) != 0)
+		return 1;
+
 	load_keys(head, enable);
 	start_loop();
 	unload_keys();

@@ -47,8 +47,20 @@ static int isnummod(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
+/* context menu options */
+enum {
+	KBM_MENU_QUIT = 0x800,
+	KBM_MENU_NOTIFY
+};
+
 /* hook for keyboard input */
 HHOOK hook;
+
+HWND kbm_window;
+
+static const char *CLASS_NAME = "KBM_WINDOW";
+static const GUID guid = { 0xf2da29f5, 0x45a0, 0x4e68,
+	{ 0xbc, 0x4d, 0xe8, 0x7c, 0x84, 0xc1, 0xb6, 0xf2 } };
 
 /*
  * Track fake modifier keypresses and releases sent by the program.
@@ -57,11 +69,14 @@ HHOOK hook;
 static int fake_mods[4] = { 0, 0, 0, 0 };
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam);
 static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
 static void kill_fake_mods(void);
+static void show_context_menu(void);
 #endif
 
 
@@ -104,13 +119,13 @@ static void send_notification(const char *msg);
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display(int notify)
+int init_display(int notify)
 {
 	int screen;
 
 	if (!(conn = xcb_connect(NULL, &screen))) {
 		fprintf(stderr, "error: failed to connect to X server\n");
-		exit(1);
+		return 1;
 	}
 	/* get the root screen and root window of the X display */
 	root_screen = xcb_aux_get_screen(conn, screen);
@@ -121,6 +136,8 @@ void init_display(int notify)
 
 	if ((notifications = notify))
 		notify_init(PROGRAM_NAME);
+
+	return 0;
 }
 
 /* close_display: disconnect from X server and clean up */
@@ -393,21 +410,66 @@ static void send_notification(const char *msg)
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display(int notify)
+int init_display(int notify)
 {
+	WNDCLASSEX wx;
+	NOTIFYICONDATA n;
+
+	memset(&wx, 0, sizeof(wx));
+	wx.cbSize = sizeof(wx);
+	wx.lpfnWndProc = wndproc;
+	wx.lpszClassName = CLASS_NAME;
+
+	if (!RegisterClassEx(&wx)) {
+		fprintf(stderr, "error: failed to register window class\n");
+		return 1;
+	}
+
+	kbm_window = CreateWindowEx(0, CLASS_NAME, "kbm", 0, 0, 0, 0,
+				    0, HWND_MESSAGE, NULL, NULL, NULL);
+	if (!kbm_window) {
+		fprintf(stderr, "error: failed to create main window\n");
+		return 1;
+	}
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_ICON | NIF_TIP | NIF_GUID | NIF_MESSAGE;
+	n.dwState = NIS_SHAREDICON;
+	n.guidItem = guid;
+	n.uCallbackMessage = WM_APP;
+	n.hIcon = LoadImage(NULL, "kbm.ico", IMAGE_ICON, 0, 0,
+			LR_DEFAULTSIZE | LR_LOADFROMFILE | LR_SHARED);
+	strcpy(n.szTip, "kbm");
+
+	Shell_NotifyIcon(NIM_ADD, &n);
+
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
-		exit(1);
+		return 1;
 	}
 	notifications = notify;
+
+	return 0;
 }
 
 void close_display(void)
 {
+	NOTIFYICONDATA n;
+
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_GUID;
+	n.guidItem = guid;
+
+	Shell_NotifyIcon(NIM_DELETE, &n);
+	DestroyWindow(kbm_window);
+	UnregisterClass(CLASS_NAME, NULL);
 	UnhookWindowsHookEx(hook);
 }
 
-/* start_loop: map hotkeys and start listening for keypresses */
+/* start_loop: start listening for keypresses */
 void start_loop(void)
 {
 	MSG msg;
@@ -582,6 +644,30 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hook, nCode, wParam, lParam);
 }
 
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_APP:
+		if (lParam == WM_RBUTTONUP)
+			show_context_menu();
+		return 0;
+	case WM_COMMAND:
+		switch (wParam & 0xFFFF) {
+		case KBM_MENU_QUIT:
+			PostQuitMessage(0);
+			break;
+		case KBM_MENU_NOTIFY:
+			notifications = !notifications;
+			break;
+		}
+		return 0;
+	default:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
+}
+
 static unsigned int numpad_keycode(unsigned int kc)
 {
 	switch (kc) {
@@ -695,12 +781,55 @@ static void unmap_keys(struct hotkey *head)
 	if (head && head->op != OP_TOGGLE)
 		keys_active = 0;
 }
+
+static void send_notification(const char *msg)
+{
+	NOTIFYICONDATA n;
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_TIP | NIF_GUID | NIF_INFO;
+	n.guidItem = guid;
+	strcpy(n.szTip, "kbm");
+	strcpy(n.szInfo, msg);
+
+	Shell_NotifyIcon(NIM_MODIFY, &n);
+}
+
+/*
+ * show_context_menu:
+ * Create a context menu at the current cursor position.
+ * Send a message to window with the user's choice.
+ */
+static void show_context_menu(void)
+{
+	HMENU menu;
+	POINT pt;
+	int check;
+
+	check = notifications ? MF_CHECKED : MF_UNCHECKED;
+
+	menu = CreatePopupMenu();
+	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING | check,
+			KBM_MENU_NOTIFY, "Notifications");
+	InsertMenu(menu, 1, MF_BYPOSITION | MF_STRING,
+			KBM_MENU_QUIT, "Quit");
+
+	GetCursorPos(&pt);
+	SetForegroundWindow(kbm_window);
+
+	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
+			TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
+
+	DestroyMenu(menu);
+}
 #endif /* __CYGWIN__ || __MINGW32__ */
 
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display(int notify)
+int init_display(int notify)
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -712,7 +841,7 @@ void init_display(int notify)
 	if (!tap) {
 		/* enable access for assistive devices */
 		fprintf(stderr, "error: failed to create event tap\n");
-		exit(1);
+		return 1;
 	}
 
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
@@ -720,6 +849,8 @@ void init_display(int notify)
 	CGEventTapEnable(tap, true);
 
 	notifications = notify;
+
+	return 0;
 }
 
 void close_display(void)
