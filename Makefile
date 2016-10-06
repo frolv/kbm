@@ -7,6 +7,7 @@ RM=rm -f
 WINDRES=
 
 CFLAGS=-Wall -Wextra -g -DKBM_DEBUG
+LDFLAGS=
 RESFLAGS=
 
 SRCDIR=src
@@ -32,6 +33,7 @@ ifneq (,$(findstring _NT-,$(UNAME)))
 	RESDIR=misc
 	WINDRES=windres
 	RESFLAGS=-O coff
+	LDFLAGS+=-mwindows -mconsole
 	OBJ += $(RESDIR)/$(PROGRAM).res
 endif
 
