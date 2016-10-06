@@ -435,7 +435,7 @@ int init_display(void)
 	n.guidItem = guid;
 	n.uCallbackMessage = WM_APP;
 	n.hIcon = LoadImage(kbm_info.instance, MAKEINTRESOURCE(0),
-			IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+			    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 	strcpy(n.szTip, "kbm");
 
 	Shell_NotifyIcon(NIM_ADD, &n);

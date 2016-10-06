@@ -107,7 +107,6 @@ static struct token *read_str(FILE *f, struct lexer *lex);
 static struct token *create_token(int tag, void *info);
 static void free_token(struct token *t);
 static void reserve(struct token *word);
-static void free_reserved(void);
 static char *next_line(FILE *f, struct lexer *lex);
 static int next_token(FILE *f, struct lexer *lex, int free, int err);
 
@@ -140,6 +139,30 @@ static void err_invkey(struct lexer *lex);
 static void err_selfmod(struct lexer *lex);
 static void note_duplicate(struct lexer *lex);
 
+/* reserve_symbols: populate the reserved hashtable with keyword tokens */
+void reserve_symbols(void)
+{
+	reserved = NULL;
+	reserve(create_token(TOK_FUNC, "click"));
+	reserve(create_token(TOK_FUNC, "rclick"));
+	reserve(create_token(TOK_FUNC, "jump"));
+	reserve(create_token(TOK_FUNC, "key"));
+	reserve(create_token(TOK_FUNC, "toggle"));
+	reserve(create_token(TOK_FUNC, "quit"));
+	reserve(create_token(TOK_FUNC, "exec"));
+}
+
+/* free_symbols: free all tokens in the reserved hashtable */
+void free_symbols(void)
+{
+	struct token *t, *tmp;
+
+	HASH_ITER(hh, reserved, t, tmp) {
+		HASH_DEL(reserved, t);
+		free_token(t);
+	}
+}
+
 /*
  * parse_file:
  * Read the file at path, if it is accessible.
@@ -166,15 +189,6 @@ int parse_file(const char *path, struct hotkey **head)
 	if (!next_line(f, &lex))
 		return 0;
 
-	reserved = NULL;
-	reserve(create_token(TOK_FUNC, "click"));
-	reserve(create_token(TOK_FUNC, "rclick"));
-	reserve(create_token(TOK_FUNC, "jump"));
-	reserve(create_token(TOK_FUNC, "key"));
-	reserve(create_token(TOK_FUNC, "toggle"));
-	reserve(create_token(TOK_FUNC, "quit"));
-	reserve(create_token(TOK_FUNC, "exec"));
-
 	/* grab the first token */
 	next_token(f, &lex, 0, 0);
 	while (lex.curr) {
@@ -193,7 +207,6 @@ int parse_file(const char *path, struct hotkey **head)
 	ret = 0;
 
 cleanup:
-	free_reserved();
 	fclose(f);
 	return ret;
 }
@@ -361,17 +374,6 @@ static struct token *read_str(FILE *f, struct lexer *lex)
 static void reserve(struct token *word)
 {
 	HASH_ADD_KEYPTR(hh, reserved, word->str, strlen(word->str), word);
-}
-
-/* free_reserved: free reserved key hash table contents */
-static void free_reserved(void)
-{
-	struct token *t, *tmp;
-
-	HASH_ITER(hh, reserved, t, tmp) {
-		HASH_DEL(reserved, t);
-		free_token(t);
-	}
 }
 
 static struct token *create_token(int tag, void *info)

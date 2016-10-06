@@ -19,4 +19,7 @@
 #include "hotkey.h"
 #include "kbm.h"
 
+void reserve_symbols(void);
+void free_symbols(void);
+
 int parse_file(const char *path, struct hotkey **head);

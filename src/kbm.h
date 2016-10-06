@@ -64,10 +64,10 @@
 #endif
 
 struct _program_info {
-	int keys_active;
-	int notifications;
+	int keys_active;	/* whether hotkeys are active */
+	int notifications;	/* whether notifications are enabled */
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-	HINSTANCE instance;
+	HINSTANCE instance;	/* program instance */
 #endif
 };
 

@@ -55,9 +55,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 int run(int argc, char **argv)
 {
-	int c;
+	int c, ret;
 	struct hotkey *head;
 
+	ret = 0;
 	kbm_info.keys_active = 1;
 	kbm_info.notifications = 0;
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
@@ -86,17 +87,18 @@ int run(int argc, char **argv)
 	}
 
 	keymap_init();
+	reserve_symbols();
 
 	head = NULL;
 	if (optind != argc) {
 		if (optind != argc - 1) {
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
-			keymap_free();
-			return 1;
+			ret = 1;
+			goto cleanup;
 		}
 		if (parse_file(argv[optind], &head) != 0) {
-			keymap_free();
-			return 1;
+			ret = 1;
+			goto cleanup;
 		}
 	}
 
@@ -107,9 +109,12 @@ int run(int argc, char **argv)
 	start_loop();
 	unload_keys();
 	close_display();
-	keymap_free();
 
-	return 0;
+cleanup:
+	keymap_free();
+	free_symbols();
+
+	return ret;
 }
 
 void print_help(void)
