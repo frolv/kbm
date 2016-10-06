@@ -24,33 +24,52 @@
 #include "hotkey.h"
 #include "parser.h"
 
+static const struct option long_opts[] = {
+	{ "disable", no_argument, 0, 'd' },
+	{ "help", no_argument, 0, 'h' },
+	{ "notifications", no_argument, 0, 'n' },
+	{ "version", no_argument, 0, 'v' },
+	{ 0, 0, 0, 0 }
+};
+
+struct _program_info kbm_info;
+
+int run(int argc, char **argv);
 void print_help(void);
 
+#if defined(__linux__) || defined(__APPLE__)
 int main(int argc, char **argv)
 {
-	int c, enable, notify;
+	return run(argc, argv);
+}
+#endif /* __linux__ || __APPLE__ */
+
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+		   LPSTR lpCmdLine, int nCmdShow)
+{
+	kbm_info.instance = hInstance;
+	return run(__argc, __argv);
+}
+#endif /* __CYGWIN__ || __MINGW32__ */
+
+int run(int argc, char **argv)
+{
+	int c;
 	struct hotkey *head;
 
-	static struct option long_opts[] = {
-		{ "disable", no_argument, 0, 'd' },
-		{ "help", no_argument, 0, 'h' },
-		{ "notifications", no_argument, 0, 'n' },
-		{ "version", no_argument, 0, 'v' },
-		{ 0, 0, 0, 0 }
-	};
-
-	enable = 1;
-	notify = 0;
+	kbm_info.keys_active = 1;
+	kbm_info.notifications = 0;
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
-			enable = 0;
+			kbm_info.keys_active = 0;
 			break;
 		case 'h':
 			print_help();
 			return 0;
 		case 'n':
-			notify = 1;
+			kbm_info.notifications = 1;
 			break;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
@@ -81,14 +100,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (init_display(notify) != 0)
+	if (init_display() != 0)
 		return 1;
 
-	load_keys(head, enable);
+	load_keys(head);
 	start_loop();
 	unload_keys();
 	close_display();
 	keymap_free();
+
 	return 0;
 }
 

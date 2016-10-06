@@ -32,7 +32,7 @@ enum {
  * init_display: perform OS-specific initialization
  * actions for a graphical display
  */
-int init_display(int notify);
+int init_display(void);
 
 /* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display(void);
@@ -41,7 +41,7 @@ void close_display(void);
 void start_loop(void);
 
 /* load_keys: store list of keys starting at head */
-void load_keys(struct hotkey *head, int enabled);
+void load_keys(struct hotkey *head);
 
 /* unload_keys: remove and free stored hotkey lists */
 void unload_keys(void);
