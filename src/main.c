@@ -24,6 +24,10 @@
 #include "hotkey.h"
 #include "parser.h"
 
+#ifdef __APPLE__
+extern int NSApplicationMain(int argc, char **argv);
+#endif
+
 static const struct option long_opts[] = {
 	{ "disable", no_argument, 0, 'd' },
 	{ "help", no_argument, 0, 'h' },
@@ -37,12 +41,12 @@ struct _program_info kbm_info;
 int run(int argc, char **argv);
 void print_help(void);
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef __linux__
 int main(int argc, char **argv)
 {
 	return run(argc, argv);
 }
-#endif /* __linux__ || __APPLE__ */
+#endif /* __linux__ */
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -52,6 +56,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	return run(__argc, __argv);
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
+
+#ifdef __APPLE__
+int main(int argc, char **argv)
+{
+	return NSApplicationMain(argc, argv);
+}
+#endif /* __APPLE__ */
 
 int run(int argc, char **argv)
 {

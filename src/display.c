@@ -1010,6 +1010,10 @@ static int open_app(char **argv)
 	}
 	return status >> 8;
 }
+
+static void send_notification(const char *msg)
+{
+}
 #endif /* __APPLE__ */
 
 #if defined(__linux__) || defined(__APPLE__)

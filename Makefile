@@ -11,10 +11,12 @@ LDFLAGS=
 RESFLAGS=
 
 SRCDIR=src
-RESDIR=
+RESDIR=misc
 
 _SRC=main.c display.c keymap.c hotkey.c parser.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
+_OBJC=delegate.m
+OBJC=$(patsubst %,$(SRCDIR)/%,$(_OBJC))
 _HEAD=kbm.h display.h keymap.h hotkey.h parser.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
@@ -27,14 +29,17 @@ ifeq ($(UNAME),Linux)
 		 $(shell pkg-config --libs libnotify)
 endif
 ifeq ($(UNAME),Darwin)
-	LDFLAGS+=-framework ApplicationServices
+	LDFLAGS+=-framework AppKit -framework ApplicationServices \
+		 -framework Foundation
+	LDFLAGS+= -sectcreate __TEXT __info_plist $(RESDIR)/Info.plist
+	OBJ+=$(SRCDIR)/delegate.o
+	HEAD+=$(SRCDIR)/delegate.h
 endif
 ifneq (,$(findstring _NT-,$(UNAME)))
-	RESDIR=misc
 	WINDRES=windres
 	RESFLAGS=-O coff
 	LDFLAGS+=-mwindows -mconsole
-	OBJ += $(RESDIR)/$(PROGRAM).res
+	OBJ+=$(RESDIR)/$(PROGRAM).res
 endif
 
 .PHONY: all
@@ -42,6 +47,9 @@ all: $(PROGRAM)
 
 $(PROGRAM): $(OBJ) $(HEAD)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ)
+
+$(SRCDIR)/%.o: $(SRCDIR)/%.m
+	$(CC) $(CFLAGS) -c -o $@ $^
 
 $(RESDIR)/$(PROGRAM).res: $(RESDIR)/$(PROGRAM).rc
 	$(WINDRES) $^ -o $@ $(RESFLAGS)
