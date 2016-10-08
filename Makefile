@@ -4,6 +4,8 @@ PROGRAM=kbm
 
 CC=gcc
 RM=rm -f
+CP=cp
+MKDIR=mkdir -p
 WINDRES=
 
 CFLAGS=-Wall -Wextra -g -DKBM_DEBUG
@@ -21,6 +23,9 @@ _HEAD=kbm.h display.h keymap.h hotkey.h parser.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 
+APP=
+APPCLEAN=
+
 UNAME=$(shell uname -s)
 
 ifeq ($(UNAME),Linux)
@@ -31,9 +36,10 @@ endif
 ifeq ($(UNAME),Darwin)
 	LDFLAGS+=-framework AppKit -framework ApplicationServices \
 		 -framework Foundation
-	LDFLAGS+= -sectcreate __TEXT __info_plist $(RESDIR)/Info.plist
 	OBJ+=$(SRCDIR)/delegate.o
 	HEAD+=$(SRCDIR)/delegate.h
+	APP=createapp
+	APPCLEAN=cleanapp
 endif
 ifneq (,$(findstring _NT-,$(UNAME)))
 	WINDRES=windres
@@ -43,7 +49,7 @@ ifneq (,$(findstring _NT-,$(UNAME)))
 endif
 
 .PHONY: all
-all: $(PROGRAM)
+all: $(PROGRAM) $(APP)
 
 $(PROGRAM): $(OBJ) $(HEAD)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ)
@@ -54,6 +60,14 @@ $(SRCDIR)/%.o: $(SRCDIR)/%.m
 $(RESDIR)/$(PROGRAM).res: $(RESDIR)/$(PROGRAM).rc
 	$(WINDRES) $^ -o $@ $(RESFLAGS)
 
-.PHONY: clean
-clean:
+$(APP): $(PROGRAM)
+	$(MKDIR) $(PROGRAM).app/Contents/{MacOS,Resources}
+	$(CP) $(RESDIR)/Info.plist $(PROGRAM).app/Contents
+	$(CP) $(PROGRAM) $(PROGRAM).app/Contents/MacOS
+
+.PHONY: clean $(APPCLEAN)
+clean: $(APPCLEAN)
 	$(RM) $(SRCDIR)/*.o $(PROGRAM)
+
+$(APPCLEAN):
+	$(RM) -r $(PROGRAM).app
