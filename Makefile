@@ -7,10 +7,12 @@ RM=rm -f
 CP=cp
 MKDIR=mkdir -p
 WINDRES=
+IBTOOL=
 
 CFLAGS=-Wall -Wextra -g -DKBM_DEBUG
 LDFLAGS=
 RESFLAGS=
+IBFLAGS=
 
 SRCDIR=src
 RESDIR=misc
@@ -22,6 +24,7 @@ OBJC=$(patsubst %,$(SRCDIR)/%,$(_OBJC))
 _HEAD=kbm.h display.h keymap.h hotkey.h parser.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
+NIB=
 
 APP=
 APPCLEAN=
@@ -38,8 +41,11 @@ ifeq ($(UNAME),Darwin)
 		 -framework Foundation
 	OBJ+=$(SRCDIR)/delegate.o
 	HEAD+=$(SRCDIR)/delegate.h
+	NIB=$(RESDIR)/MainMenu.nib
 	APP=createapp
 	APPCLEAN=cleanapp
+	IBTOOL=ibtool
+	IBFLAGS=--compile
 endif
 ifneq (,$(findstring _NT-,$(UNAME)))
 	WINDRES=windres
@@ -51,7 +57,7 @@ endif
 .PHONY: all
 all: $(PROGRAM) $(APP)
 
-$(PROGRAM): $(OBJ) $(HEAD)
+$(PROGRAM): $(OBJ) $(HEAD) $(NIB)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ)
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.m
@@ -60,10 +66,14 @@ $(SRCDIR)/%.o: $(SRCDIR)/%.m
 $(RESDIR)/$(PROGRAM).res: $(RESDIR)/$(PROGRAM).rc
 	$(WINDRES) $^ -o $@ $(RESFLAGS)
 
+$(RESDIR)/MainMenu.nib: $(RESDIR)/MainMenu.xib
+	$(IBTOOL) $^ $(IBFLAGS) $@
+
 $(APP): $(PROGRAM)
 	$(MKDIR) $(PROGRAM).app/Contents/{MacOS,Resources}
 	$(CP) $(RESDIR)/Info.plist $(PROGRAM).app/Contents
 	$(CP) $(PROGRAM) $(PROGRAM).app/Contents/MacOS
+	$(CP) $(RESDIR)/MainMenu.nib $(PROGRAM).app/Contents/Resources
 
 .PHONY: clean $(APPCLEAN)
 clean: $(APPCLEAN)

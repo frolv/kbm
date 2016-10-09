@@ -1,12 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
-  <string>English</string>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>kbm</string>
   <key>CFBundleIdentifier</key>
   <string>com.frolv.kbm</string>
   <key>CFBundleName</key>
   <string>kbm</string>
+  <key>CFBundleDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>NSMainNibFile</key>
+  <string>MainMenu</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
+  <key>LSUIElement</key>
+  <string>1</string>
 </dict>
 </plist>
