@@ -6,3 +6,4 @@ kbm.app
 doc
 *.kbm
 *.res
+.DS_Store
