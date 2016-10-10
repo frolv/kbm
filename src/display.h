@@ -37,8 +37,8 @@ int init_display(void);
 /* close_display: perform OS-specific cleanup actions for a graphical display */
 void close_display(void);
 
-/* start_loop: map the provided hotkeys and begin an event loop */
-void start_loop(void);
+/* start_listening: map the provided hotkeys and begin an event loop */
+void start_listening(void);
 
 /* load_keys: store list of keys starting at head */
 void load_keys(struct hotkey *head);

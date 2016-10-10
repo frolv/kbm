@@ -82,6 +82,7 @@ static void show_context_menu(void);
 
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
+#include "application.h"
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			   CGEventRef event, void *refcon);
@@ -145,8 +146,8 @@ void close_display(void)
 		notify_uninit();
 }
 
-/* start_loop: map all hotkeys and start listening for keypresses */
-void start_loop(void)
+/* start_listening: map all hotkeys and start listening for keypresses */
+void start_listening(void)
 {
 	xcb_generic_event_t *e;
 	xcb_key_press_event_t *evt;
@@ -463,8 +464,8 @@ void close_display(void)
 	UnhookWindowsHookEx(hook);
 }
 
-/* start_loop: start listening for keypresses */
-void start_loop(void)
+/* start_listening: start listening for keypresses */
+void start_listening(void)
 {
 	MSG msg;
 
@@ -854,7 +855,7 @@ void close_display(void)
 {
 }
 
-void start_loop(void)
+void start_listening(void)
 {
 	CFRunLoopRun();
 }
@@ -972,8 +973,10 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	if (type == kCGEventKeyDown) {
 		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
 							keycode, flags))) {
-			if (process_hotkey(hk, KBM_PRESS) == -1)
+			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				CFRunLoopStop(CFRunLoopGetCurrent());
+				terminate_app();
+			}
 			/* prevent the event from propagating further */
 			return NULL;
 		}
@@ -1009,6 +1012,11 @@ static int open_app(char **argv)
 		break;
 	}
 	return status >> 8;
+}
+
+static void send_notification(const char *msg)
+{
+	osx_notify(msg);
 }
 #endif /* __APPLE__ */
 

@@ -18,11 +18,16 @@
  */
 
 #include <getopt.h>
+#include <stdlib.h>
 #include <string.h>
 #include "kbm.h"
 #include "display.h"
 #include "hotkey.h"
 #include "parser.h"
+
+#ifdef __APPLE__
+extern int NSApplicationMain(int argc, char **argv);
+#endif
 
 static const struct option long_opts[] = {
 	{ "disable", no_argument, 0, 'd' },
@@ -34,31 +39,44 @@ static const struct option long_opts[] = {
 
 struct _program_info kbm_info;
 
-int run(int argc, char **argv);
-void print_help(void);
+static void parseopts(int argc, char **argv);
+static void print_help(void);
+#if defined(__linux__) || defined(__CYGWIN__) || defined (__MINGW32__)
+static int run(void);
+#endif
 
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef __linux__
 int main(int argc, char **argv)
 {
-	return run(argc, argv);
+	parseopts(argc, argv);
+	return run();
 }
-#endif /* __linux__ || __APPLE__ */
+#endif /* __linux__ */
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		   LPSTR lpCmdLine, int nCmdShow)
 {
+	parseopts(__argc, __argv);
 	kbm_info.instance = hInstance;
-	return run(__argc, __argv);
+	return run();
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
-int run(int argc, char **argv)
+#ifdef __APPLE__
+int main(int argc, char **argv)
 {
-	int c, ret;
-	struct hotkey *head;
+	parseopts(argc, argv);
+	return NSApplicationMain(argc, argv);
+}
+#endif /* __APPLE__ */
 
-	ret = 0;
+/* parseopts: parse program options and load hotkeys */
+static void parseopts(int argc, char **argv)
+{
+	struct hotkey *head;
+	int c;
+
 	kbm_info.keys_active = 1;
 	kbm_info.notifications = 0;
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
@@ -68,7 +86,7 @@ int run(int argc, char **argv)
 			break;
 		case 'h':
 			print_help();
-			return 0;
+			exit(0);
 		case 'n':
 			kbm_info.notifications = 1;
 			break;
@@ -79,45 +97,52 @@ int run(int argc, char **argv)
 					"free software under the terms\n"
 					"of the GNU General Public License, "
 					"version 3 or later.\n");
-			return 0;
+			exit(0);
 		default:
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
-			return 1;
+			exit(1);
 		}
 	}
 
+	head = NULL;
 	keymap_init();
 	reserve_symbols();
 
-	head = NULL;
 	if (optind != argc) {
 		if (optind != argc - 1) {
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
-			ret = 1;
-			goto cleanup;
+			goto err_cleanup;
 		}
-		if (parse_file(argv[optind], &head) != 0) {
-			ret = 1;
-			goto cleanup;
-		}
+		if (parse_file(argv[optind], &head) != 0)
+			goto err_cleanup;
 	}
 
 	if (init_display() != 0)
-		return 1;
+		goto err_cleanup;
 
 	load_keys(head);
-	start_loop();
+	return;
+
+err_cleanup:
+	keymap_free();
+	free_symbols();
+	exit(1);
+}
+
+#if defined(__linux__) || defined(__CYGWIN__) || defined (__MINGW32__)
+static int run(void)
+{
+	start_listening();
 	unload_keys();
 	close_display();
-
-cleanup:
 	keymap_free();
 	free_symbols();
 
-	return ret;
+	return 0;
 }
+#endif /* __linux__ || __CYGWIN__ || __MINGW32__ */
 
-void print_help(void)
+static void print_help(void)
 {
 	printf("usage: " PROGRAM_NAME " [OPTION]... [FILE]\n");
 	printf(PROGRAM_NAME " - a simple hotkey mapper\n\n");

@@ -1,5 +1,5 @@
 /*
- * parser.h
+ * delegate.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KBM_PARSER_H
-#define KBM_PARSER_H
+#ifndef KBM_DELEGATE_H
+#define KBM_DELEGATE_H
 
-#include "hotkey.h"
-#include "kbm.h"
+#import <Cocoa/Cocoa.h>
 
-void reserve_symbols(void);
-void free_symbols(void);
+@interface AppDelegate : NSObject <NSApplicationDelegate>
+@property (assign) IBOutlet NSWindow *window;
+@property (strong, nonatomic) NSStatusItem *status;
+@end
 
-int parse_file(const char *path, struct hotkey **head);
-
-#endif /* KBM_PARSER_H */
+#endif /* KBM_DELEGATE_H */

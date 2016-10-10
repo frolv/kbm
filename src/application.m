@@ -1,5 +1,5 @@
 /*
- * parser.h
+ * application.m
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KBM_PARSER_H
-#define KBM_PARSER_H
+#import <Cocoa/Cocoa.h>
+#import "kbm.h"
 
-#include "hotkey.h"
-#include "kbm.h"
+/* osx_notify: send user notification with message msg */
+void osx_notify(const char *msg)
+{
+	NSUserNotification *n;
 
-void reserve_symbols(void);
-void free_symbols(void);
+	n = [[NSUserNotification alloc] init];
+	n.title = @PROGRAM_NAME;
+	n.informativeText = [NSString stringWithUTF8String: msg];
 
-int parse_file(const char *path, struct hotkey **head);
+	[[NSUserNotificationCenter defaultUserNotificationCenter]
+			deliverNotification: n];
+}
 
-#endif /* KBM_PARSER_H */
+void terminate_app(void)
+{
+	[NSApp terminate:nil];
+}

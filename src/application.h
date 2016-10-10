@@ -1,5 +1,5 @@
 /*
- * parser.h
+ * application.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KBM_PARSER_H
-#define KBM_PARSER_H
+#ifndef KBM_APPLICATION_H
+#define KBM_APPLICATION_H
 
-#include "hotkey.h"
-#include "kbm.h"
+void osx_notify(const char *msg);
+void terminate_app(void);
 
-void reserve_symbols(void);
-void free_symbols(void);
-
-int parse_file(const char *path, struct hotkey **head);
-
-#endif /* KBM_PARSER_H */
+#endif /* KBM_APPLICATION_H */
