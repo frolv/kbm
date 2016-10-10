@@ -16,7 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef KBM_PARSER_H
+#define KBM_PARSER_H
+
 #include "hotkey.h"
 #include "kbm.h"
 
 int parse_file(const char *path, struct hotkey **head);
+
+#endif /* KBM_PARSER_H */
