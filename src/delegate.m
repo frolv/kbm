@@ -1,5 +1,5 @@
 /*
- * delegate.h
+ * delegate.m
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,9 @@
  */
 
 #import "delegate.h"
+#import "display.h"
+#import "kbm.h"
+#import "keymap.h"
 
 @implementation AppDelegate
 
@@ -30,12 +33,22 @@
 	_status.toolTip = @"kbm";
 
 	menu = [[NSMenu alloc] init];
+	[menu addItemWithTitle:@"Notifications" action:NULL keyEquivalent:@""];
 	[menu addItemWithTitle:@"Quit" action:NULL keyEquivalent:@""];
 	_status.menu = menu;
+
+	if (kbm_info.notifications)
+		[[_status.menu itemWithTitle:@"Notifications"]
+				setState: NSOnState];
+
+	start_listening();
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification
 {
+	unload_keys();
+	close_display();
+	keymap_free();
 }
 
 @end

@@ -16,9 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef KBM_DELEGATE_H
+#define KBM_DELEGATE_H
+
 #import <Cocoa/Cocoa.h>
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 @property (assign) IBOutlet NSWindow *window;
 @property (strong, nonatomic) NSStatusItem *status;
 @end
+
+#endif /* KBM_DELEGATE_H */
