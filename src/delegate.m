@@ -16,10 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#import "application.h"
 #import "delegate.h"
 #import "display.h"
 #import "kbm.h"
 #import "keymap.h"
+#import "menu.h"
 
 @implementation AppDelegate
 
@@ -33,15 +35,36 @@
 	_status.toolTip = @"kbm";
 
 	menu = [[NSMenu alloc] init];
-	[menu addItemWithTitle:@"Notifications" action:NULL keyEquivalent:@""];
-	[menu addItemWithTitle:@"Quit" action:NULL keyEquivalent:@""];
-	_status.menu = menu;
+	[menu addItemWithTitle:@"Notifications"
+		action:@selector(toggleNotifications:)
+		keyEquivalent:@""];
+	[menu addItemWithTitle:@"Quit"
+		action:@selector(menuQuit)
+		keyEquivalent:@""];
 
 	if (kbm_info.notifications)
-		[[_status.menu itemWithTitle:@"Notifications"]
-				setState: NSOnState];
+		[[menu itemWithTitle:@"Notifications"] setState: NSOnState];
+
+	_status.menu = menu;
 
 	start_listening();
+}
+
+- (void)menuQuit
+{
+	[NSApp terminate:nil];
+}
+
+/* toggleNotifications: enable/disable notifications */
+- (void)toggleNotifications:(id)sender
+{
+	int state;
+	NSMenuItem *m = (NSMenuItem *)sender;
+
+	kbm_info.notifications = !kbm_info.notifications;
+	state = kbm_info.notifications ? NSOnState : NSOffState;
+
+	[m setState: state];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification

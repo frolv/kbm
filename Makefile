@@ -19,7 +19,7 @@ RESDIR=misc
 
 _SRC=main.c display.c keymap.c hotkey.c parser.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
-_OBJC=delegate.m
+_OBJC=application.m delegate.m
 OBJC=$(patsubst %,$(SRCDIR)/%,$(_OBJC))
 _HEAD=kbm.h display.h keymap.h hotkey.h parser.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
@@ -39,7 +39,7 @@ endif
 ifeq ($(UNAME),Darwin)
 	LDFLAGS+=-framework AppKit -framework ApplicationServices \
 		 -framework Foundation
-	OBJ+=$(SRCDIR)/delegate.o $(SRCDIR)/application.o
+	OBJ+=$(subst .m,.o,$(OBJC))
 	HEAD+=$(SRCDIR)/delegate.h $(SRCDIR)/application.h
 	NIB=$(RESDIR)/MainMenu.nib
 	APP=createapp
