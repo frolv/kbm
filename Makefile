@@ -39,8 +39,8 @@ endif
 ifeq ($(UNAME),Darwin)
 	LDFLAGS+=-framework AppKit -framework ApplicationServices \
 		 -framework Foundation
-	OBJ+=$(SRCDIR)/delegate.o
-	HEAD+=$(SRCDIR)/delegate.h
+	OBJ+=$(SRCDIR)/delegate.o $(SRCDIR)/application.o
+	HEAD+=$(SRCDIR)/delegate.h $(SRCDIR)/application.h
 	NIB=$(RESDIR)/MainMenu.nib
 	APP=createapp
 	APPCLEAN=cleanapp
