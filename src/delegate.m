@@ -24,10 +24,9 @@
 {
 	NSMenu *menu;
 
-	self.status = [[NSStatusBar systemStatusBar] statusItemWithLength:
-						 NSVariableStatusItemLength];
-	// _status.image = [NSImage imageNamed:@"kbm"];
-	_status.title = @"kbm";
+	self.status = [[NSStatusBar systemStatusBar]
+			statusItemWithLength: NSVariableStatusItemLength];
+	_status.image = [NSImage imageNamed:@"kbm"];
 	_status.toolTip = @"kbm";
 
 	menu = [[NSMenu alloc] init];

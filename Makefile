@@ -74,6 +74,7 @@ $(APP): $(PROGRAM)
 	$(CP) $(RESDIR)/Info.plist $(PROGRAM).app/Contents
 	$(CP) $(PROGRAM) $(PROGRAM).app/Contents/MacOS
 	$(CP) $(RESDIR)/MainMenu.nib $(PROGRAM).app/Contents/Resources
+	$(CP) $(RESDIR)/$(PROGRAM).png $(PROGRAM).app/Contents/Resources
 
 .PHONY: clean $(APPCLEAN)
 clean: $(APPCLEAN)
