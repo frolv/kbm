@@ -18,6 +18,7 @@
  */
 
 #include <getopt.h>
+#include <stdlib.h>
 #include <string.h>
 #include "kbm.h"
 #include "display.h"
@@ -48,7 +49,7 @@ static int run(void);
 int main(int argc, char **argv)
 {
 	parseopts(argc, argv);
-	return run(argc, argv);
+	return run();
 }
 #endif /* __linux__ */
 
@@ -56,9 +57,9 @@ int main(int argc, char **argv)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		   LPSTR lpCmdLine, int nCmdShow)
 {
-	parseopts(argc, argv);
+	parseopts(__argc, __argv);
 	kbm_info.instance = hInstance;
-	return run(__argc, __argv);
+	return run();
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
