@@ -47,6 +47,9 @@ static int isnummod(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
+#define KBM_UID 38471
+#define CLASS_NAME "KBM_WINDOW"
+
 /* context menu options */
 enum {
 	KBM_MENU_QUIT = 0x800,
@@ -57,10 +60,6 @@ enum {
 HHOOK hook;
 
 HWND kbm_window;
-
-static const char *CLASS_NAME = "KBM_WINDOW";
-static const GUID guid = { 0xf2da29f5, 0x45a0, 0x4e68,
-	{ 0xbc, 0x4d, 0xe8, 0x7c, 0x84, 0xc1, 0xb6, 0xf2 } };
 
 /*
  * Track fake modifier keypresses and releases sent by the program.
@@ -431,9 +430,9 @@ int init_display(void)
 	memset(&n, 0, sizeof(n));
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
-	n.uFlags = NIF_ICON | NIF_TIP | NIF_GUID | NIF_MESSAGE;
+	n.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
 	n.dwState = NIS_SHAREDICON;
-	n.guidItem = guid;
+	n.uID = KBM_UID;
 	n.uCallbackMessage = WM_APP;
 	n.hIcon = LoadImage(kbm_info.instance, MAKEINTRESOURCE(0),
 			    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
@@ -462,8 +461,7 @@ void close_display(void)
 
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
-	n.uFlags = NIF_GUID;
-	n.guidItem = guid;
+	n.uID = KBM_UID;
 
 	Shell_NotifyIcon(NIM_DELETE, &n);
 	DestroyWindow(kbm_window);
@@ -796,8 +794,8 @@ static void send_notification(const char *msg)
 	memset(&n, 0, sizeof(n));
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
-	n.uFlags = NIF_TIP | NIF_GUID | NIF_INFO;
-	n.guidItem = guid;
+	n.uFlags = NIF_TIP | NIF_INFO;
+	n.uID = KBM_UID;
 	strcpy(n.szTip, "kbm");
 	strcpy(n.szInfo, msg);
 
