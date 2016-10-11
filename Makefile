@@ -1,6 +1,7 @@
 SHELL=/bin/sh
 
 PROGRAM=kbm
+BINARY=kbm
 
 CC=gcc
 RM=rm -f
@@ -25,6 +26,7 @@ _HEAD=kbm.h display.h keymap.h hotkey.h parser.h error.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 NIB=
+RESFILE=
 
 APP=
 APPCLEAN=
@@ -51,7 +53,9 @@ ifneq (,$(findstring _NT-,$(UNAME)))
 	WINDRES=windres
 	RESFLAGS=-O coff
 	LDFLAGS+=-mwindows -mconsole
-	OBJ+=$(RESDIR)/$(PROGRAM).res
+	BINARY=kbm.exe
+	RESFILE=$(RESDIR)/$(PROGRAM).res
+	OBJ+=$(RESFILE)
 endif
 
 .PHONY: all
@@ -63,7 +67,7 @@ $(PROGRAM): $(OBJ) $(HEAD) $(NIB)
 $(SRCDIR)/%.o: $(SRCDIR)/%.m
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(RESDIR)/$(PROGRAM).res: $(RESDIR)/$(PROGRAM).rc
+$(RESFILE): $(RESDIR)/$(PROGRAM).rc
 	$(WINDRES) $^ -o $@ $(RESFLAGS)
 
 $(RESDIR)/MainMenu.nib: $(RESDIR)/MainMenu.xib
@@ -78,7 +82,7 @@ $(APP): $(PROGRAM)
 
 .PHONY: clean $(APPCLEAN)
 clean: $(APPCLEAN)
-	$(RM) $(SRCDIR)/*.o $(PROGRAM)
+	$(RM) $(SRCDIR)/*.o $(BINARY) $(RESFILE)
 
 $(APPCLEAN):
 	$(RM) -r $(PROGRAM).app
