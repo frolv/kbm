@@ -19,8 +19,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include "error.h"
 #include "parser.h"
-#include "uthash.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/types.h>
@@ -30,30 +30,6 @@
 
 #define SCAN_SIZE  64U
 #define MAX_STRING 1024U
-
-#define CURR_IND(lex) (lex->pos - lex->line)
-#define CURR_START(lex) (CURR_IND(lex) - lex->curr->len)
-
-/* print a nice looking error message */
-#define PUTERR(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
-		KRED "error: " KNRM fmt, \
-		lex->file_path, lnum, (ind) + 1, \
-		##__VA_ARGS__)
-
-#define PUTWARN(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
-		KMAG "warning: " KNRM fmt, \
-		lex->file_path, lnum, (ind) + 1, \
-		##__VA_ARGS__)
-
-#define PUTNOTE(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
-		KBLU "note: " KNRM fmt, \
-		lex->file_path, lnum, (ind) + 1, \
-		##__VA_ARGS__)
-
-#define SUB_TO_ZERO(a, b) (((a) < (b)) ? 0 : (a) - (b))
 
 #define ISMOD(lexeme) \
 	((lexeme) == '^' || (lexeme) == '!' \
@@ -66,37 +42,6 @@
 			note_duplicate(lex); \
 		mods |= mask; \
 	} while (0)
-
-enum {
-	TOK_NUM = 0x100,
-	TOK_ID,
-	TOK_ARROW,
-	TOK_FUNC,
-	TOK_STRLIT,
-	TOK_MOD
-};
-
-struct token {
-	int		tag;	/* type of the token */
-	size_t		len;	/* length of token's lexeme */
-	union {
-		int	val;	/* each token has either a numeric */
-		char	*str;	/* or string value associated with it */
-	};
-	UT_hash_handle	hh;	/* handle for hashtable */
-};
-
-struct lexer {
-	const char	*file_path;		/* path to the file */
-	unsigned int	line_num;		/* number of line in file */
-	char		line[BUFFER_SIZE];	/* line being read */
-	char		*pos;			/* current position in line */
-	unsigned int	err_num;		/* line number of err_line */
-	unsigned int	err_len;		/* length of error lexeme */
-	char		err_line[BUFFER_SIZE];	/* full line of error */
-	char		*err_pos;		/* error start position */
-	struct token	*curr;			/* the current parsed token */
-};
 
 /* hash table of reserved words */
 static struct token *reserved;
@@ -125,19 +70,6 @@ static int parse_func(FILE *f, struct lexer *lex, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, struct lexer *lex, uint32_t *num);
 static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval);
 static int validkey(uint64_t *key, struct lexer *lex);
-
-/* error/warning message functions */
-static void print_segment(const char *buf, size_t start,
-			  size_t end, const char *colour);
-static void print_caret(size_t nspace, size_t len, const char *colour);
-static void print_token(const struct lexer *lex, const struct token *t,
-			const char *colour);
-
-static void err_unterm(struct lexer *lex);
-static void err_generic(struct lexer *lex, const char *err);
-static void err_invkey(struct lexer *lex);
-static void err_selfmod(struct lexer *lex);
-static void note_duplicate(struct lexer *lex);
 
 /* reserve_symbols: populate the reserved hashtable with keyword tokens */
 void reserve_symbols(void)
@@ -311,7 +243,7 @@ static struct token *scan(FILE *f, struct lexer *lex)
 static struct token *read_str(FILE *f, struct lexer *lex)
 {
 	int quote;
-	size_t i, start;
+	size_t i;
 	char buf[MAX_STRING];
 
 	/* record where the string literal started */
@@ -339,12 +271,7 @@ static struct token *read_str(FILE *f, struct lexer *lex)
 	buf[i] = '\0';
 
 	if (i == MAX_STRING - 1) {
-		PUTWARN(lex, lex->line_num, CURR_IND(lex), "string literal exceeding "
-				"%d characters truncated\n", MAX_STRING - 1);
-		start = SUB_TO_ZERO(CURR_IND(lex), 79);
-		print_segment(lex->line, start, CURR_IND(lex), NULL);
-		printf(KMAG "%c" KNRM "\n", quote);
-		print_caret(CURR_IND(lex) - start, 1, KMAG);
+		warn_literal(lex, MAX_STRING - 1, quote);
 
 		/* skip over the rest of the string */
 		while (1) {
@@ -446,36 +373,19 @@ static char *next_line(FILE *f, struct lexer *lex)
  */
 static int next_token(FILE *f, struct lexer *lex, int free, int err)
 {
-	size_t start, end, col, err_end;
-
 	if (err) {
 		strcpy(lex->err_line, lex->line);
 		lex->err_num = lex->line_num;
 		lex->err_pos = lex->err_line + CURR_START(lex);
 		lex->err_len = lex->curr->len;
-		col = lex->err_pos - lex->err_line;
-		err_end = col + lex->err_len;
 	}
 
 	if (free && lex->curr)
 		free_token(lex->curr);
 
 	if (!(lex->curr = scan(f, lex))) {
-		if (err) {
-			PUTERR(lex, lex->line_num, -1L, "unexpected EOF when parsing\n");
-			lex->pos = strchr(lex->line, '\n');
-			start = SUB_TO_ZERO(CURR_IND(lex), 79);
-			print_segment(lex->line, start, CURR_IND(lex), NULL);
-			putc('\n', stderr);
-			print_caret(CURR_IND(lex) - start, 1, KRED);
-			PUTNOTE(lex, lex->err_num, col, "last statement here\n");
-			end = strlen(lex->err_line);
-			start = SUB_TO_ZERO((int)end, 79);
-			print_segment(lex->err_line, start, col, NULL);
-			print_segment(lex->err_line, col, err_end, KBLU);
-			print_segment(lex->err_line, err_end, end, NULL);
-			print_caret(col, lex->err_len, KBLU);
-		}
+		if (err)
+			err_eof(lex);
 		return 1;
 	}
 	return 0;
@@ -887,154 +797,4 @@ static int validkey(uint64_t *key, struct lexer *lex)
 	}
 
 	return 1;
-}
-
-/* print_segment: print buf from start to end */
-static void print_segment(const char *buf, size_t start,
-			  size_t end, const char *colour)
-{
-	size_t i;
-
-	if (end > (i = strlen(buf)))
-		end = i;
-	if (start > end)
-		return;
-
-	if (colour)
-		fprintf(stderr, "%s", colour);
-	for (i = start; i < end; ++i)
-		putc(buf[i], stderr);
-	if (colour)
-		fprintf(stderr, KNRM);
-}
-
-static void print_caret(size_t nspace, size_t len, const char *colour)
-{
-	size_t i;
-
-	for (i = 0; i < nspace; ++i)
-		putc(' ', stderr);
-	fprintf(stderr, "%s^", colour);
-	for (i = 0; i < len - 1; ++i)
-		putc('~', stderr);
-	fprintf(stderr, KNRM "\n");
-}
-
-static void print_token(const struct lexer *lex, const struct token *t,
-			const char *colour)
-{
-	char *s;
-
-	fprintf(stderr, "%s", colour);
-	for (s = lex->pos - t->len; s < lex->pos; ++s)
-		putc(*s, stderr);
-	fprintf(stderr, KNRM);
-}
-
-static void err_unterm(struct lexer *lex)
-{
-	size_t start, end, col;
-
-	PUTERR(lex, lex->line_num, CURR_IND(lex), "unterminated string literal\n");
-	start = SUB_TO_ZERO(CURR_IND(lex), 79);
-	print_segment(lex->line, start, CURR_IND(lex), NULL);
-	putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start, 1, KRED);
-
-	if (lex->err_num != lex->line_num) {
-		col = lex->err_pos - lex->err_line;
-		start = SUB_TO_ZERO((int)col, 79);
-		end = start + 80;
-		PUTNOTE(lex, lex->err_num, col, "started here\n");
-		print_segment(lex->err_line, start, col, NULL);
-		print_segment(lex->err_line, col, end, KBLU);
-		if (end < strlen(lex->err_line))
-			putc('\n', stderr);
-		else
-			end = strlen(lex->err_line);
-		print_caret(col, end - col, KBLU);
-	}
-}
-
-static void err_generic(struct lexer *lex, const char *err)
-{
-	size_t start, end;
-
-	PUTERR(lex, lex->line_num, CURR_START(lex), "%s\n", err);
-	start = SUB_TO_ZERO(CURR_IND(lex), 40);
-	end = start + 80;
-	if (start > CURR_START(lex))
-		start = CURR_START(lex);
-	if (end < (size_t)CURR_IND(lex))
-		end = CURR_IND(lex);
-	print_segment(lex->line, start, CURR_START(lex), NULL);
-	print_token(lex, lex->curr, KRED);
-	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	if (end < strlen(lex->line))
-		putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start - lex->curr->len, lex->curr->len, KRED);
-}
-
-static void err_invkey(struct lexer *lex)
-{
-	size_t start, end;
-
-	if (lex->curr->tag == TOK_NUM)
-		PUTERR(lex, lex->line_num, CURR_START(lex), "invalid key '%d'\n", lex->curr->val);
-	else if (lex->curr->tag == TOK_ID || lex->curr->tag == TOK_FUNC
-					  || lex->curr->tag == TOK_STRLIT)
-		PUTERR(lex, lex->line_num, CURR_START(lex), "invalid key '%s'\n", lex->curr->str);
-	else if (lex->curr->tag == TOK_ARROW)
-		PUTERR(lex, lex->line_num, CURR_START(lex), "invalid key '->'\n");
-	else
-		PUTERR(lex, lex->line_num, CURR_START(lex), "invalid key '%c'\n", lex->curr->tag);
-	start = SUB_TO_ZERO(CURR_IND(lex), 40);
-	end = start + 80;
-	if (start > CURR_START(lex))
-		start = CURR_START(lex);
-	if (end < (size_t)CURR_IND(lex))
-		end = CURR_IND(lex);
-	print_segment(lex->line, start, CURR_START(lex), NULL);
-	print_token(lex, lex->curr, KRED);
-	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	if (end < strlen(lex->line))
-		putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start - lex->curr->len, lex->curr->len, KRED);
-}
-
-static void err_selfmod(struct lexer *lex)
-{
-	size_t start, end;
-	long col;
-
-	col = lex->err_pos - lex->err_line;
-	start = SUB_TO_ZERO(col, 40);
-	end = start + 80;
-
-	PUTERR(lex, lex->err_num, col, "key modified with itself\n");
-	print_segment(lex->err_line, start, col, NULL);
-	print_segment(lex->err_line, col, col + lex->err_len, KRED);
-	print_segment(lex->err_line, col + lex->err_len, end, NULL);
-	if (end < strlen(lex->err_line))
-		putc('\n', stderr);
-	print_caret(col, lex->err_len, KRED);
-}
-
-static void note_duplicate(struct lexer *lex)
-{
-	size_t start, end, err_end;
-	long col;
-
-	col = lex->err_pos - lex->err_line;
-	start = SUB_TO_ZERO(col, 40);
-	end = start + 80;
-	err_end = col + lex->err_len;
-
-	PUTNOTE(lex, lex->line_num, col, "duplicate modifier declaration\n");
-	print_segment(lex->err_line, start, col, NULL);
-	print_segment(lex->err_line, col, err_end, KBLU);
-	print_segment(lex->err_line, err_end, end, NULL);
-	if (end < strlen(lex->err_line))
-		putc('\n', stderr);
-	print_caret(col, lex->err_len, KBLU);
 }

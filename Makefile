@@ -17,11 +17,11 @@ IBFLAGS=
 SRCDIR=src
 RESDIR=misc
 
-_SRC=main.c display.c keymap.c hotkey.c parser.c
+_SRC=main.c display.c keymap.c hotkey.c parser.c error.c
 SRC=$(patsubst %,$(SRCDIR)/%,$(_SRC))
 _OBJC=application.m delegate.m
 OBJC=$(patsubst %,$(SRCDIR)/%,$(_OBJC))
-_HEAD=kbm.h display.h keymap.h hotkey.h parser.h
+_HEAD=kbm.h display.h keymap.h hotkey.h parser.h error.h
 HEAD=$(patsubst %,$(SRCDIR)/%,$(_HEAD))
 OBJ=$(SRC:.c=.o)
 NIB=
