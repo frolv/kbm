@@ -425,7 +425,7 @@ int init_display(void)
 				    kbm_info.instance, NULL);
 	if (!kbm_window) {
 		fprintf(stderr, "error: failed to create main window\n");
-		return 1;
+		goto err_window;
 	}
 
 	memset(&n, 0, sizeof(n));
@@ -443,10 +443,17 @@ int init_display(void)
 
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
-		return 1;
+		goto err_hook;
 	}
 
 	return 0;
+
+err_hook:
+	Shell_NotifyIcon(NIM_DELETE, &n);
+	DestroyWindow(kbm_window);
+err_window:
+	UnregisterClass(CLASS_NAME, NULL);
+	return 1;
 }
 
 void close_display(void)
