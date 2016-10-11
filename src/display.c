@@ -24,6 +24,7 @@
 
 
 #ifdef __linux__
+#include <libnotify/notify.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
@@ -46,8 +47,19 @@ static int isnummod(unsigned int keysym);
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 
+#define KBM_UID 38471
+#define CLASS_NAME "KBM_WINDOW"
+
+/* context menu options */
+enum {
+	KBM_MENU_QUIT = 0x800,
+	KBM_MENU_NOTIFY
+};
+
 /* hook for keyboard input */
 HHOOK hook;
+
+HWND kbm_window;
 
 /*
  * Track fake modifier keypresses and releases sent by the program.
@@ -56,16 +68,20 @@ HHOOK hook;
 static int fake_mods[4] = { 0, 0, 0, 0 };
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam);
 static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
 static void kill_fake_mods(void);
+static void show_context_menu(void);
 #endif
 
 
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
+#include "application.h"
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			   CGEventRef event, void *refcon);
@@ -87,25 +103,22 @@ static struct hotkey *actions;
 /* toggle hotkey mappings */
 static struct hotkey *toggles;
 
-/* whether hotkeys are currently enabled */
-static int keys_active;
-
 static void map_keys(struct hotkey *head);
 static void unmap_keys(struct hotkey *head);
-
 static struct hotkey *find_by_os_code(struct hotkey *head,
 				      uint32_t code, uint32_t mask);
+static void send_notification(const char *msg);
 
 
 #ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
-void init_display(void)
+int init_display(void)
 {
 	int screen;
 
 	if (!(conn = xcb_connect(NULL, &screen))) {
 		fprintf(stderr, "error: failed to connect to X server\n");
-		exit(1);
+		return 1;
 	}
 	/* get the root screen and root window of the X display */
 	root_screen = xcb_aux_get_screen(conn, screen);
@@ -113,6 +126,11 @@ void init_display(void)
 	keysyms = xcb_key_symbols_alloc(conn);
 
 	actions = toggles = NULL;
+
+	if (kbm_info.notifications)
+		notify_init(PROGRAM_NAME);
+
+	return 0;
 }
 
 /* close_display: disconnect from X server and clean up */
@@ -122,10 +140,13 @@ void close_display(void)
 	unmap_keys(toggles);
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
+
+	if (kbm_info.notifications)
+		notify_uninit();
 }
 
-/* start_loop: map all hotkeys and start listening for keypresses */
-void start_loop(void)
+/* start_listening: map all hotkeys and start listening for keypresses */
+void start_listening(void)
 {
 	xcb_generic_event_t *e;
 	xcb_key_press_event_t *evt;
@@ -275,7 +296,7 @@ static void map_keys(struct hotkey *head)
 	xcb_generic_error_t *err;
 
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 1;
+		kbm_info.keys_active = 1;
 
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
@@ -325,7 +346,7 @@ static void unmap_keys(struct hotkey *head)
 	xcb_keycode_t *kc;
 
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 0;
+		kbm_info.keys_active = 0;
 
 	for (; head; head = head->next) {
 
@@ -363,25 +384,93 @@ static int isnummod(unsigned int keysym)
 		return 0;
 	}
 }
+
+static void send_notification(const char *msg)
+{
+	NotifyNotification *n;
+	GError *err;
+
+	err = NULL;
+	n = notify_notification_new(msg, NULL, NULL);
+	if (!notify_notification_show(n, &err)) {
+		fprintf(stderr, "failed to send notification: %s\n",
+				err->message);
+		g_error_free(err);
+	}
+	g_object_unref(G_OBJECT(n));
+}
 #endif /* __linux__ */
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-void init_display(void)
+int init_display(void)
 {
+	WNDCLASSEX wx;
+	NOTIFYICONDATA n;
+
+	memset(&wx, 0, sizeof(wx));
+	wx.cbSize = sizeof(wx);
+	wx.lpfnWndProc = wndproc;
+	wx.lpszClassName = CLASS_NAME;
+	wx.hInstance = kbm_info.instance;
+
+	if (!RegisterClassEx(&wx)) {
+		fprintf(stderr, "error: failed to register window class\n");
+		return 1;
+	}
+
+	kbm_window = CreateWindowEx(0, CLASS_NAME, "kbm", 0, 0,
+				    0, 0, 0, HWND_MESSAGE, NULL,
+				    kbm_info.instance, NULL);
+	if (!kbm_window) {
+		fprintf(stderr, "error: failed to create main window\n");
+		goto err_window;
+	}
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
+	n.dwState = NIS_SHAREDICON;
+	n.uID = KBM_UID;
+	n.uCallbackMessage = WM_APP;
+	n.hIcon = LoadImage(kbm_info.instance, MAKEINTRESOURCE(0),
+			    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+	strcpy(n.szTip, "kbm");
+
+	Shell_NotifyIcon(NIM_ADD, &n);
+
 	if (!(hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbproc, NULL, 0))) {
 		fprintf(stderr, "error: failed to set keyboard hook\n");
-		exit(1);
+		goto err_hook;
 	}
+
+	return 0;
+
+err_hook:
+	Shell_NotifyIcon(NIM_DELETE, &n);
+	DestroyWindow(kbm_window);
+err_window:
+	UnregisterClass(CLASS_NAME, NULL);
+	return 1;
 }
 
 void close_display(void)
 {
+	NOTIFYICONDATA n;
+
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uID = KBM_UID;
+
+	Shell_NotifyIcon(NIM_DELETE, &n);
+	DestroyWindow(kbm_window);
+	UnregisterClass(CLASS_NAME, NULL);
 	UnhookWindowsHookEx(hook);
 }
 
-/* start_loop: map hotkeys and start listening for keypresses */
-void start_loop(void)
+/* start_listening: start listening for keypresses */
+void start_listening(void)
 {
 	MSG msg;
 
@@ -524,7 +613,8 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	check_modifiers(&mods);
 
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
-		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
+		if (kbm_info.keys_active && (hk = find_by_os_code(
+						actions, kc, mods))) {
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				/*
 				 * Any fake modifiers in the down position
@@ -546,13 +636,41 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		 * be ignored when keys are released.
 		 */
 		unset_fake_mods(&mods);
-		if (keys_active && (hk = find_by_os_code(actions, kc, mods))) {
+		if (kbm_info.keys_active && (hk = find_by_os_code(
+						actions, kc, mods))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return 1;
 		}
 	}
 
 	return CallNextHookEx(hook, nCode, wParam, lParam);
+}
+
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_APP:
+		if (lParam == WM_RBUTTONUP)
+			show_context_menu();
+		return 0;
+	case WM_COMMAND:
+		switch (wParam & 0xFFFF) {
+		case KBM_MENU_QUIT:
+			PostQuitMessage(0);
+			break;
+		case KBM_MENU_NOTIFY:
+			kbm_info.notifications = !kbm_info.notifications;
+			break;
+		}
+		return 0;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	default:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
 }
 
 static unsigned int numpad_keycode(unsigned int kc)
@@ -660,20 +778,63 @@ static void kill_fake_mods(void)
 static void map_keys(struct hotkey *head)
 {
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 1;
+		kbm_info.keys_active = 1;
 }
 
 static void unmap_keys(struct hotkey *head)
 {
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 0;
+		kbm_info.keys_active = 0;
+}
+
+static void send_notification(const char *msg)
+{
+	NOTIFYICONDATA n;
+
+	memset(&n, 0, sizeof(n));
+	n.cbSize = sizeof(n);
+	n.hWnd = kbm_window;
+	n.uFlags = NIF_TIP | NIF_INFO;
+	n.uID = KBM_UID;
+	strcpy(n.szTip, "kbm");
+	strcpy(n.szInfo, msg);
+
+	Shell_NotifyIcon(NIM_MODIFY, &n);
+}
+
+/*
+ * show_context_menu:
+ * Create a context menu at the current cursor position.
+ * Send a message to window with the user's choice.
+ */
+static void show_context_menu(void)
+{
+	HMENU menu;
+	POINT pt;
+	int check;
+
+	check = kbm_info.notifications ? MF_CHECKED : MF_UNCHECKED;
+
+	menu = CreatePopupMenu();
+	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING | check,
+			KBM_MENU_NOTIFY, "Notifications");
+	InsertMenu(menu, 1, MF_BYPOSITION | MF_STRING,
+			KBM_MENU_QUIT, "Quit");
+
+	GetCursorPos(&pt);
+	SetForegroundWindow(kbm_window);
+
+	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
+			TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
+
+	DestroyMenu(menu);
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
 
 #ifdef __APPLE__
 /* init_display: enable the keypress event tap */
-void init_display(void)
+int init_display(void)
 {
 	CFMachPortRef tap;
 	CGEventMask mask;
@@ -685,19 +846,21 @@ void init_display(void)
 	if (!tap) {
 		/* enable access for assistive devices */
 		fprintf(stderr, "error: failed to create event tap\n");
-		exit(1);
+		return 1;
 	}
 
 	src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
 	CFRunLoopAddSource(CFRunLoopGetCurrent(), src, kCFRunLoopCommonModes);
 	CGEventTapEnable(tap, true);
+
+	return 0;
 }
 
 void close_display(void)
 {
 }
 
-void start_loop(void)
+void start_listening(void)
 {
 	CFRunLoopRun();
 }
@@ -784,13 +947,13 @@ void move_cursor(int x, int y)
 static void map_keys(struct hotkey *head)
 {
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 1;
+		kbm_info.keys_active = 1;
 }
 
 static void unmap_keys(struct hotkey *head)
 {
 	if (head && head->op != OP_TOGGLE)
-		keys_active = 0;
+		kbm_info.keys_active = 0;
 }
 
 /* callback: function called when event is registered */
@@ -813,10 +976,12 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
 	if (type == kCGEventKeyDown) {
-		if (keys_active && (hk = find_by_os_code(actions,
-						keycode, flags))) {
-			if (process_hotkey(hk, KBM_PRESS) == -1)
+		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
+							keycode, flags))) {
+			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				CFRunLoopStop(CFRunLoopGetCurrent());
+				terminate_app();
+			}
 			/* prevent the event from propagating further */
 			return NULL;
 		}
@@ -825,8 +990,8 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			return NULL;
 		}
 	} else {
-		if (keys_active && (hk = find_by_os_code(actions,
-						keycode, flags))) {
+		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
+							keycode, flags))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return NULL;
 		}
@@ -852,6 +1017,11 @@ static int open_app(char **argv)
 		break;
 	}
 	return status >> 8;
+}
+
+static void send_notification(const char *msg)
+{
+	osx_notify(msg);
 }
 #endif /* __APPLE__ */
 
@@ -890,7 +1060,7 @@ void kbm_exec(void *args)
 #endif /* __linux__ || __APPLE__ */
 
 /* load_keys: split the keys in list head into actions and toggles */
-void load_keys(struct hotkey *head, int enabled)
+void load_keys(struct hotkey *head)
 {
 	struct hotkey *tmp;
 
@@ -904,7 +1074,7 @@ void load_keys(struct hotkey *head, int enabled)
 			add_hotkey(&actions, tmp);
 	}
 
-	if (enabled)
+	if (kbm_info.keys_active)
 		map_keys(actions);
 	map_keys(toggles);
 }
@@ -920,12 +1090,14 @@ void unload_keys(void)
 
 void toggle_keys(void)
 {
-	if (keys_active) {
+	if (kbm_info.keys_active) {
 		unmap_keys(actions);
-		PRINT_DEBUG("hotkeys disabled\n");
+		if (kbm_info.notifications)
+			send_notification("Hotkeys disabled");
 	} else {
 		map_keys(actions);
-		PRINT_DEBUG("hotkeys enabled\n");
+		if (kbm_info.notifications)
+			send_notification("Hotkeys enabled");
 	}
 }
 

@@ -1,5 +1,10 @@
 kbm
+kbm.exe
+kbm.app
 *.o
 *.swp
 doc
 *.kbm
+*.res
+*.nib
+.DS_Store

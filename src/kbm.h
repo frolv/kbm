@@ -59,4 +59,18 @@
 
 #define BUFFER_SIZE 4096
 
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#include <Windows.h>
+#endif
+
+struct _program_info {
+	int keys_active;	/* whether hotkeys are active */
+	int notifications;	/* whether notifications are enabled */
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+	HINSTANCE instance;	/* program instance */
+#endif
+};
+
+extern struct _program_info kbm_info;
+
 #endif /* KBM_H */
