@@ -57,8 +57,8 @@ int main(int argc, char **argv)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		   LPSTR lpCmdLine, int nCmdShow)
 {
-	parseopts(__argc, __argv);
 	kbm_info.instance = hInstance;
+	parseopts(__argc, __argv);
 	return run();
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
