@@ -32,7 +32,7 @@ extern int NSApplicationMain(int argc, char **argv);
 static const struct option long_opts[] = {
 	{ "disable", no_argument, 0, 'd' },
 	{ "help", no_argument, 0, 'h' },
-	{ "notifications", no_argument, 0, 'n' },
+	{ "no-notifications", no_argument, 0, 'n' },
 	{ "version", no_argument, 0, 'v' },
 	{ 0, 0, 0, 0 }
 };
@@ -78,7 +78,7 @@ static void parseopts(int argc, char **argv)
 	int c;
 
 	kbm_info.keys_active = 1;
-	kbm_info.notifications = 0;
+	kbm_info.notifications = 1;
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
@@ -88,7 +88,7 @@ static void parseopts(int argc, char **argv)
 			print_help();
 			exit(0);
 		case 'n':
-			kbm_info.notifications = 1;
+			kbm_info.notifications = 0;
 			break;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
@@ -150,8 +150,8 @@ static void print_help(void)
 	printf("        disable hotkeys on load\n");
 	printf("    -h, --help\n");
 	printf("        display this help text and exit\n");
-	printf("    -n, --notifications\n");
-	printf("        send desktop notification when keys are toggled\n");
+	printf("    -n, --no-notifications\n");
+	printf("        don't send desktop notification when keys are toggled\n");
 	printf("    -v, --version\n");
 	printf("        print version information and exit\n");
 }
