@@ -36,6 +36,8 @@
 #define PRINT_DEBUG(...) ((void)0)
 #endif
 
+#define KBM_UNUSED(x) ((void)x)
+
 /* print beautiful coloured output */
 #if defined(__linux__) || defined(__APPLE__)
 #define KNRM	"\x1B[0m"

@@ -964,6 +964,9 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	CGEventFlags flags;
 	struct hotkey *hk;
 
+	KBM_UNUSED(proxy);
+	KBM_UNUSED(refcon);
+
 	/* just in case */
 	if (type != kCGEventKeyDown && type != kCGEventKeyUp)
 		return event;
