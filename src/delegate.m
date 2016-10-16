@@ -29,6 +29,8 @@
 {
 	NSMenu *menu;
 
+	KBM_UNUSED(notification);
+
 	self.status = [[NSStatusBar systemStatusBar]
 			statusItemWithLength: NSVariableStatusItemLength];
 	_status.image = [NSImage imageNamed:@"kbm"];
@@ -69,6 +71,8 @@
 
 - (void)applicationWillTerminate:(NSNotification *)notification
 {
+	KBM_UNUSED(notification);
+
 	unload_keys();
 	close_display();
 	keymap_free();
