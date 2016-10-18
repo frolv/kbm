@@ -71,6 +71,7 @@ static int parse_misc(FILE *f, struct lexer *lex,
 static int parse_func(FILE *f, struct lexer *lex, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, struct lexer *lex, uint32_t *num);
 static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval);
+static int parse_qual(FILE *f, struct lexer *lex, uint32_t *flags);
 static int validkey(uint64_t *key, struct lexer *lex);
 
 /* reserve_symbols: populate the reserved hashtable with keyword tokens */
@@ -404,9 +405,10 @@ static int next_token(FILE *f, struct lexer *lex, int free, int err)
 static struct hotkey *parse_binding(FILE *f, struct lexer *lex)
 {
 	uint64_t key, args;
+	uint32_t flags;
 	uint8_t op;
 
-	key = args = op = 0;
+	key = args = flags = op = 0;
 	if (parse_key(f, lex, &key, 1) != 0 || !validkey(&key, lex))
 		return NULL;
 
@@ -427,12 +429,13 @@ static struct hotkey *parse_binding(FILE *f, struct lexer *lex)
 		return NULL;
 
 	if (lex->curr && lex->curr->tag == TOK_QUAL) {
-		next_token(f, lex, 0, 0);
+		if (parse_qual(f, lex, &flags) != 0)
+			return NULL;
 	}
 
 	return create_hotkey(key & 0xFFFFFFFF,
 			     (key >> 32) & 0xFFFFFFFF,
-			     op, args, 0);
+			     op, args, flags);
 }
 
 /* parse_key: parse a key declaration and its modifiers */
@@ -772,6 +775,16 @@ static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval)
 	memcpy(retval, &args, sizeof(*retval));
 #endif
 
+	return 0;
+}
+
+/* parse_qual: parse a hotkey qualifier */
+static int parse_qual(FILE *f, struct lexer *lex, uint32_t *flags)
+{
+	if (strcmp(lex->curr->str, "norepeat") == 0)
+		*flags |= KBM_NOREPEAT;
+
+	next_token(f, lex, 0, 0);
 	return 0;
 }
 
