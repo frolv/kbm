@@ -26,7 +26,7 @@ static void get_os_codes(struct hotkey *hk);
 
 /* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
-			     uint8_t op, uint64_t opargs)
+			     uint8_t op, uint64_t opargs, uint32_t flags)
 {
 	struct hotkey *hk;
 
@@ -35,6 +35,7 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 	hk->kbm_modmask = modmask;
 	hk->op = op;
 	hk->opargs = opargs;
+	hk->key_flags = flags;
 	hk->next = NULL;
 	get_os_codes(hk);
 

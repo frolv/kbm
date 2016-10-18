@@ -432,7 +432,7 @@ static struct hotkey *parse_binding(FILE *f, struct lexer *lex)
 
 	return create_hotkey(key & 0xFFFFFFFF,
 			     (key >> 32) & 0xFFFFFFFF,
-			     op, args);
+			     op, args, 0);
 }
 
 /* parse_key: parse a key declaration and its modifiers */

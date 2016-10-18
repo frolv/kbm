@@ -35,6 +35,9 @@
 #define KBM_PRESS	0x00
 #define KBM_RELEASE	0x01
 
+/* additional flags */
+#define KBM_NOREPEAT	0x01
+
 struct hotkey {
 	uint8_t		kbm_code;	/* kbm keycode of the hotkey */
 	uint8_t		kbm_modmask;	/* kbm modifier masks */
@@ -42,12 +45,13 @@ struct hotkey {
 	uint32_t	os_modmask;	/* os-specific modifier masks */
 	uint8_t		op;		/* operation to perform on keypress */
 	uint64_t	opargs;		/* arguments for the operation */
+	uint32_t	key_flags;	/* extra hotkey flags */
 	struct hotkey	*next;		/* next key binding */
 };
 
 /* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
-			     uint8_t op, uint64_t opargs);
+			     uint8_t op, uint64_t opargs, uint32_t flags);
 
 /* add_hotkey: append hotkey hk to the end of list head */
 void add_hotkey(struct hotkey **head, struct hotkey *hk);
