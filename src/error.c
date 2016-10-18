@@ -94,7 +94,8 @@ void err_generic(struct lexer *lex, const char *err)
 	print_segment(lex->line, CURR_IND(lex), end, NULL);
 	if (end < strlen(lex->line))
 		putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start - lex->curr->len, lex->curr->len, KRED);
+	print_caret(CURR_IND(lex) - start - lex->curr->len,
+			lex->curr->len, KRED);
 }
 
 /* err_invkey: print error showing that the parsed token is not a valid key */
@@ -105,8 +106,7 @@ void err_invkey(struct lexer *lex)
 	if (lex->curr->tag == TOK_NUM)
 		PUTERR(lex, lex->line_num, CURR_START(lex),
 				"invalid key '%d'\n", lex->curr->val);
-	else if (lex->curr->tag == TOK_ID || lex->curr->tag == TOK_FUNC
-					  || lex->curr->tag == TOK_STRLIT)
+	else if (HAS_STR(lex->curr))
 		PUTERR(lex, lex->line_num, CURR_START(lex),
 				"invalid key '%s'\n", lex->curr->str);
 	else if (lex->curr->tag == TOK_ARROW)

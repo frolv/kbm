@@ -25,6 +25,9 @@
 
 #define CURR_IND(lex) (lex->pos - lex->line)
 #define CURR_START(lex) (CURR_IND(lex) - lex->curr->len)
+#define HAS_STR(tok) \
+	(tok->tag == TOK_ID || tok->tag == TOK_FUNC \
+	 || tok->tag == TOK_STRLIT || tok->tag == TOK_QUAL)
 
 /* parser token types */
 enum {
@@ -33,7 +36,8 @@ enum {
 	TOK_ARROW,
 	TOK_FUNC,
 	TOK_STRLIT,
-	TOK_MOD
+	TOK_MOD,
+	TOK_QUAL
 };
 
 struct token {

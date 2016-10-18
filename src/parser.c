@@ -35,6 +35,8 @@
 	((lexeme) == '^' || (lexeme) == '!' \
 	 || (lexeme) == '~' || (lexeme) == '@')
 
+#define IS_RESERVED(tok) (tok->tag == TOK_FUNC || tok->tag == TOK_QUAL)
+
 /* set bitmask mask to mods with duplicate notice */
 #define SET_MODS(mods, mask, lex) \
 	do { \
@@ -82,6 +84,7 @@ void reserve_symbols(void)
 	reserve(create_token(TOK_FUNC, "toggle"));
 	reserve(create_token(TOK_FUNC, "quit"));
 	reserve(create_token(TOK_FUNC, "exec"));
+	reserve(create_token(TOK_QUAL, "norepeat"));
 }
 
 /* free_symbols: free all tokens in the reserved hashtable */
@@ -125,7 +128,7 @@ int parse_file(const char *path, struct hotkey **head)
 	next_token(f, &lex, 0, 0);
 	while (lex.curr) {
 		if (!(hk = parse_binding(f, &lex))) {
-			if (lex.curr && lex.curr->tag != TOK_FUNC)
+			if (lex.curr && !IS_RESERVED(lex.curr))
 				free_token(lex.curr);
 			if (*head)
 				free_keys(*head);
@@ -325,6 +328,7 @@ static struct token *create_token(int tag, void *info)
 		break;
 	case TOK_ID:
 	case TOK_FUNC:
+	case TOK_QUAL:
 	case TOK_STRLIT:
 		t->str = strdup((char *)info);
 		t->len = strlen(t->str);
@@ -346,7 +350,7 @@ static struct token *create_token(int tag, void *info)
 /* free_token: free a token and its dynamically allocated data */
 static void free_token(struct token *t)
 {
-	if (t->tag == TOK_ID || t->tag == TOK_FUNC || t->tag == TOK_STRLIT)
+	if (HAS_STR(t))
 		free(t->str);
 	free(t);
 }
@@ -421,6 +425,10 @@ static struct hotkey *parse_binding(FILE *f, struct lexer *lex)
 	}
 	if (parse_func(f, lex, &op, &args) != 0)
 		return NULL;
+
+	if (lex->curr && lex->curr->tag == TOK_QUAL) {
+		next_token(f, lex, 0, 0);
+	}
 
 	return create_hotkey(key & 0xFFFFFFFF,
 			     (key >> 32) & 0xFFFFFFFF,
