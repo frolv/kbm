@@ -62,7 +62,7 @@ endif
 all: $(PROGRAM) $(APP)
 
 $(PROGRAM): $(OBJ) $(HEAD) $(NIB)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ)
+	$(CC) -o $@ $(OBJ) $(LDFLAGS)
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.m
 	$(CC) $(CFLAGS) -c -o $@ $^
