@@ -24,7 +24,7 @@
 #define PROGRAM_NAME "kbm"
 
 #define _VERSION_MAJOR "0"
-#define _VERSION_MINOR "1"
+#define _VERSION_MINOR "2"
 #define _VERSION_PATCH "0"
 
 #define PROGRAM_VERSION \
