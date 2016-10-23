@@ -145,8 +145,11 @@ void keymap_init(void)
 	add_key(KEY_NUMLOCK,	"numlock", "NumLock");
 	add_key(KEY_NUMDIV,	"numdiv", "NumDiv");
 	add_key(KEY_NUMDIV,	"numdivide", "NumDiv");
+	add_key(KEY_NUMDIV,	"numslash", "NumDiv");
 	add_key(KEY_NUMMULT,	"nummult", "NumMult");
 	add_key(KEY_NUMMULT,	"nummultiply", "NumMult");
+	add_key(KEY_NUMMULT,	"numasterisk", "NumMult");
+	add_key(KEY_NUMMULT,	"numtimes", "NumMult");
 	add_key(KEY_NUMMINUS,	"numminus", "NumMinus");
 	add_key(KEY_NUMPLUS,	"numplus", "NumPlus");
 	add_key(KEY_NUMENTER,	"numenter", "NumEnter");

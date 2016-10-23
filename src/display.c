@@ -1106,7 +1106,7 @@ void toggle_keys(void)
 
 /* find_by_os_code: return the hotkey in head with os_code code */
 static struct hotkey *find_by_os_code(struct hotkey *head,
-		uint32_t code, uint32_t mask)
+				      uint32_t code, uint32_t mask)
 {
 	for (; head; head = head->next) {
 		if (head->os_code == code && head->os_modmask == mask)
