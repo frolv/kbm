@@ -145,15 +145,24 @@ void close_display(void)
 		notify_uninit();
 }
 
+/*
+ * A key press event that occurs at the same time as a previous
+ * key release with the same key is an automatically repeated key.
+ */
+#define DETECT_AUTOREPEAT(last, evt, ks) \
+	(last && (last->response_type & ~0x80) == XCB_KEY_RELEASE \
+	 && (last_ks) == (ks) && last->time == evt->time)
+
 /* start_listening: map all hotkeys and start listening for keypresses */
 void start_listening(void)
 {
 	xcb_generic_event_t *e;
-	xcb_key_press_event_t *evt;
-	xcb_keysym_t ks;
+	xcb_key_press_event_t *evt, *last;
+	xcb_keysym_t ks, last_ks;
 	struct hotkey *hk;
 	unsigned int running = 1;
 
+	last = NULL;
 	while (running && (e = xcb_wait_for_event(conn))) {
 		switch (e->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
@@ -179,9 +188,13 @@ void start_listening(void)
 				 * pressed in quick succession.
 				 * The event should be sent back out.
 				 */
-				free(e);
-				continue;
+				goto setlast;
 			}
+
+			if (DETECT_AUTOREPEAT(last, evt, ks) &&
+					CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+				goto setlast;
+
 			if (process_hotkey(hk, KBM_PRESS) == -1)
 				running = 0;
 			break;
@@ -195,17 +208,20 @@ void start_listening(void)
 
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
 					&& !(hk = find_by_os_code(toggles,
-							ks, evt->state))) {
-				free(e);
-				continue;
-			}
+							ks, evt->state)))
+				goto setlast;
+
 			process_hotkey(hk, KBM_RELEASE);
 			break;
 		default:
-			break;
+			continue;
 		}
-		free(e);
+setlast:
+		free(last);
+		last = evt;
+		last_ks = ks;
 	}
+	free(e);
 }
 
 /* send_button: send a button event */
