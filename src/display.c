@@ -188,12 +188,13 @@ void start_listening(void)
 				 * pressed in quick succession.
 				 * The event should be sent back out.
 				 */
-				goto setlast;
+				break;
 			}
 
+			/* don't send an autorepeated key if norepeat flag */
 			if (DETECT_AUTOREPEAT(last, evt, ks) &&
 					CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
-				goto setlast;
+				break;
 
 			if (process_hotkey(hk, KBM_PRESS) == -1)
 				running = 0;
@@ -209,14 +210,13 @@ void start_listening(void)
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
 					&& !(hk = find_by_os_code(toggles,
 							ks, evt->state)))
-				goto setlast;
+				break;
 
 			process_hotkey(hk, KBM_RELEASE);
 			break;
 		default:
 			continue;
 		}
-setlast:
 		free(last);
 		last = evt;
 		last_ks = ks;
