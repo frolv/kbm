@@ -22,6 +22,26 @@
 #include "keymap.h"
 #include "hotkey.h"
 
+#if defined(__linux__) || defined(__APPLE__)
+#define MAX_PATH 4096
+
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif /* __linux__ || __APPLE__ */
+
+/* all hotkey mappings excluding toggles */
+static struct hotkey *actions;
+/* toggle hotkey mappings */
+static struct hotkey *toggles;
+
+static void map_keys(struct hotkey *head);
+static void unmap_keys(struct hotkey *head);
+static struct hotkey *find_by_os_code(struct hotkey *head,
+				      uint32_t code, uint32_t mask);
+static void send_notification(const char *msg);
+
 
 #ifdef __linux__
 #include <libnotify/notify.h>
@@ -41,76 +61,7 @@ static xcb_window_t root;
 static xcb_key_symbols_t *keysyms;
 
 static int isnummod(unsigned int keysym);
-#endif
 
-
-#if defined(__CYGWIN__) || defined (__MINGW32__)
-#include <Windows.h>
-
-#define KBM_UID 38471
-#define CLASS_NAME "KBM_WINDOW"
-
-/* context menu options */
-enum {
-	KBM_MENU_QUIT = 0x800,
-	KBM_MENU_NOTIFY
-};
-
-/* hook for keyboard input */
-HHOOK hook;
-
-HWND kbm_window;
-
-/*
- * Track fake modifier keypresses and releases sent by the program.
- * These are ignored when looking up active modifiers during a key release.
- */
-static int fake_mods[4] = { 0, 0, 0, 0 };
-
-static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
-static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
-				WPARAM wParam, LPARAM lParam);
-static unsigned int numpad_keycode(unsigned int kc);
-static void check_modifiers(unsigned int *mods);
-static void unset_fake_mods(unsigned int *mods);
-static void send_fake_mod(unsigned int keycode, int type);
-static void kill_fake_mods(void);
-static void show_context_menu(void);
-#endif
-
-
-#ifdef __APPLE__
-#include <ApplicationServices/ApplicationServices.h>
-#include "application.h"
-
-static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-			   CGEventRef event, void *refcon);
-static int open_app(char **argv);
-#endif
-
-#if defined(__linux__) || defined(__APPLE__)
-#define MAX_PATH 4096
-
-#include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#endif
-
-
-/* all hotkey mappings excluding toggles */
-static struct hotkey *actions;
-/* toggle hotkey mappings */
-static struct hotkey *toggles;
-
-static void map_keys(struct hotkey *head);
-static void unmap_keys(struct hotkey *head);
-static struct hotkey *find_by_os_code(struct hotkey *head,
-				      uint32_t code, uint32_t mask);
-static void send_notification(const char *msg);
-
-
-#ifdef __linux__
 /* init_display: connect to the X server and grab the root window */
 int init_display(void)
 {
@@ -419,6 +370,43 @@ static void send_notification(const char *msg)
 
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
+#include <Windows.h>
+
+#define KBM_UID 38471
+#define CLASS_NAME "KBM_WINDOW"
+
+/* context menu options */
+enum {
+	KBM_MENU_QUIT = 0x800,
+	KBM_MENU_NOTIFY
+};
+
+/* hook for keyboard input */
+HHOOK hook;
+
+HWND kbm_window;
+
+/*
+ * Track fake modifier keypresses and releases sent by the program.
+ * These are ignored when looking up active modifiers during a key release.
+ */
+static int fake_mods[4] = { 0, 0, 0, 0 };
+
+static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
+static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
+				WPARAM wParam, LPARAM lParam);
+static unsigned int numpad_keycode(unsigned int kc);
+static void check_modifiers(unsigned int *mods);
+static void unset_fake_mods(unsigned int *mods);
+static void send_fake_mod(unsigned int keycode, int type);
+static void kill_fake_mods(void);
+static void show_context_menu(void);
+
+/*
+ * init_display:
+ * Create a window and system tray icon for the program.
+ * Set up keyboard event hook.
+ */
 int init_display(void)
 {
 	WNDCLASSEX wx;
@@ -849,6 +837,13 @@ static void show_context_menu(void)
 
 
 #ifdef __APPLE__
+#include <ApplicationServices/ApplicationServices.h>
+#include "application.h"
+
+static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
+			   CGEventRef event, void *refcon);
+static int open_app(char **argv);
+
 /* init_display: enable the keypress event tap */
 int init_display(void)
 {
