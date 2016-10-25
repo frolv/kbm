@@ -592,7 +592,8 @@ void kbm_exec(void *args)
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	KBDLLHOOKSTRUCT *kb;
-	unsigned int kc, mods;
+	unsigned int kc, mods, repeated;
+	static unsigned int last_key, last_action, last_time;
 	struct hotkey *hk;
 
 	if (nCode != HC_ACTION)
@@ -612,9 +613,33 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	check_modifiers(&mods);
 
+	repeated = 0;
 	if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+		if (last_key == kc) {
+			/*
+			 * If multiple key presses of the same keycode occur
+			 * sequentially without an intermediary key release,
+			 * it indicates auto repeat.
+			 *
+			 * Alternatively, if a key release and key press of the
+			 * same keycode occur with the same timestamp, auto
+			 * repeat is also occurring.
+			 */
+			if (last_action == KBM_PRESS)
+				repeated = 1;
+			else if (last_time == kb->time)
+				repeated = 1;
+		}
+
+		last_key = kc;
+		last_action = KBM_PRESS;
+		last_time = kb->time;
+
 		if (kbm_info.keys_active && (hk = find_by_os_code(
 						actions, kc, mods))) {
+			if (repeated && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+				return 1;
+
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				/*
 				 * Any fake modifiers in the down position
@@ -627,6 +652,9 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 			return 1;
 		}
 		if ((hk = find_by_os_code(toggles, kc, mods))) {
+			if (repeated && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+				return 1;
+
 			process_hotkey(hk, KBM_PRESS);
 			return 1;
 		}
@@ -636,6 +664,9 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		 * be ignored when keys are released.
 		 */
 		unset_fake_mods(&mods);
+		last_key = kc;
+		last_action = KBM_RELEASE;
+		last_time = kb->time;
 		if (kbm_info.keys_active && (hk = find_by_os_code(
 						actions, kc, mods))) {
 			process_hotkey(hk, KBM_RELEASE);
