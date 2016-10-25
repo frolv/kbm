@@ -21,6 +21,7 @@
 #include "kbm.h"
 #include "keymap.h"
 #include "hotkey.h"
+#include "parser.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #define MAX_PATH 4096
@@ -378,7 +379,8 @@ static void send_notification(const char *msg)
 /* context menu options */
 enum {
 	KBM_MENU_QUIT = 0x800,
-	KBM_MENU_NOTIFY
+	KBM_MENU_NOTIFY,
+	KBM_MENU_OPEN
 };
 
 /* hook for keyboard input */
@@ -401,6 +403,8 @@ static void unset_fake_mods(unsigned int *mods);
 static void send_fake_mod(unsigned int keycode, int type);
 static void kill_fake_mods(void);
 static void show_context_menu(void);
+static void load_hotkey_file(void);
+static int open_file_dialog(char *filebuf, size_t size);
 
 /*
  * init_display:
@@ -681,6 +685,8 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hook, nCode, wParam, lParam);
 }
 
+#define MAX_FILE_PATH 4096
+
 static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 				WPARAM wParam, LPARAM lParam)
 {
@@ -696,6 +702,9 @@ static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 			break;
 		case KBM_MENU_NOTIFY:
 			kbm_info.notifications = !kbm_info.notifications;
+			break;
+		case KBM_MENU_OPEN:
+			load_hotkey_file();
 			break;
 		}
 		return 0;
@@ -854,6 +863,8 @@ static void show_context_menu(void)
 	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING | check,
 			KBM_MENU_NOTIFY, "Notifications");
 	InsertMenu(menu, 1, MF_BYPOSITION | MF_STRING,
+			KBM_MENU_OPEN, "Open File");
+	InsertMenu(menu, 2, MF_BYPOSITION | MF_STRING,
 			KBM_MENU_QUIT, "Quit");
 
 	GetCursorPos(&pt);
@@ -863,6 +874,48 @@ static void show_context_menu(void)
 			TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
 
 	DestroyMenu(menu);
+}
+
+/*
+ * load_hotkey_file:
+ * Launch a file picker for the user to choose a file
+ * and attempt to read key mappings from that file.
+ * If successful, load the new hotkeys.
+ */
+static void load_hotkey_file(void)
+{
+	char buf[MAX_FILE_PATH];
+	struct hotkey *head = NULL;
+
+	if (open_file_dialog(buf, MAX_FILE_PATH) == 0) {
+		PRINT_DEBUG("%s\n", buf);
+		if (parse_file(buf, &head) != 0) {
+			return;
+		}
+		unmap_keys(actions);
+		unmap_keys(toggles);
+		unload_keys();
+		load_keys(head);
+	} else {
+		fprintf(stderr, "failed to get file\n");
+	}
+}
+
+static int open_file_dialog(char *filebuf, size_t size)
+{
+	OPENFILENAME op;
+
+	*filebuf = '\0';
+	memset(&op, '\0', sizeof(op));
+	op.lStructSize = sizeof(op);
+	op.hwndOwner = kbm_window;
+	op.hInstance = kbm_info.instance;
+	op.lpstrFilter = "kbm Keymap Files\0*.kbm\0All Files\0*.*\0\0";
+	op.lpstrFile = filebuf;
+	op.nMaxFile = size;
+	op.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	return !GetOpenFileName(&op);
 }
 #endif /* __CYGWIN__ || __MINGW32__ */
 
