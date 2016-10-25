@@ -32,6 +32,19 @@ void osx_notify(const char *msg)
 			deliverNotification: n];
 }
 
+/* osx_alert: create a message box with message msg */
+void osx_alert(int style, const char *title, const char *msg)
+{
+	NSAlert *alert;
+
+	alert = [[NSAlert alloc] init];
+	alert.alertStyle = style;
+	alert.messageText = [NSString stringWithUTF8String: title];
+	alert.informativeText = [NSString stringWithUTF8String: msg];
+	[alert addButtonWithTitle:@"Ok"];
+	[alert runModal];
+}
+
 void terminate_app(void)
 {
 	[NSApp terminate:nil];
