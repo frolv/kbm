@@ -843,8 +843,7 @@ static void show_context_menu(void)
 static const char *ACCESS_MSG = PROGRAM_NAME " requires special permissions to "
 "monitor your key presses. Please go to System Preferences "
 "-> Security & Privacy -> Privacy -> Accessibility and add "
-PROGRAM_NAME " to the list of apps allowed to control your "
-"computer and restart the program.";
+PROGRAM_NAME " to the list of apps allowed to control your computer.";
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			   CGEventRef event, void *refcon);
