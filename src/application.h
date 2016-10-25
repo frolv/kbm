@@ -20,6 +20,7 @@
 #define KBM_APPLICATION_H
 
 void osx_notify(const char *msg);
+void osx_alert(const char *msg);
 void terminate_app(void);
 
 #endif /* KBM_APPLICATION_H */

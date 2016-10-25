@@ -862,6 +862,7 @@ int init_display(void)
 	if (!tap) {
 		/* enable access for assistive devices */
 		fprintf(stderr, "error: failed to create event tap\n");
+		osx_alert("test");
 		return 1;
 	}
 
