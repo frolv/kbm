@@ -840,6 +840,12 @@ static void show_context_menu(void)
 #include <ApplicationServices/ApplicationServices.h>
 #include "application.h"
 
+static const char *ACCESS_MSG = PROGRAM_NAME " requires special permissions to "
+"monitor your key presses. Please go to System Preferences "
+"-> Security & Privacy -> Privacy -> Accessibility and add "
+PROGRAM_NAME " to the list of apps allowed to control your "
+"computer and restart the program.";
+
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			   CGEventRef event, void *refcon);
 static int open_app(char **argv);
@@ -856,8 +862,8 @@ int init_display(void)
 			0, mask, callback, NULL);
 	if (!tap) {
 		/* enable access for assistive devices */
-		fprintf(stderr, "error: failed to create event tap\n");
-		osx_alert("test");
+		fprintf(stderr, "error: failed to initialize event tap\n");
+		osx_alert(2, "Failed to initialize event tap", ACCESS_MSG);
 		return 1;
 	}
 
