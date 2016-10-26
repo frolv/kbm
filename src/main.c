@@ -83,6 +83,7 @@ static void parseopts(int argc, char **argv)
 
 	kbm_info.keys_active = 1;
 	kbm_info.notifications = 1;
+	kbm_info.curr_file = NULL;
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
@@ -119,6 +120,10 @@ static void parseopts(int argc, char **argv)
 		}
 		if (parse_file(argv[optind], &head) != 0)
 			goto err_cleanup;
+
+		kbm_info.curr_file = basename(argv[optind]);
+		if (strcmp(kbm_info.curr_file, "-") == 0)
+			kbm_info.curr_file = "stdin";
 	}
 
 	if (init_display() != 0)

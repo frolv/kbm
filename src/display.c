@@ -444,7 +444,8 @@ int init_display(void)
 	n.uCallbackMessage = WM_APP;
 	n.hIcon = LoadImage(kbm_info.instance, MAKEINTRESOURCE(0),
 			    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
-	strcpy(n.szTip, "kbm");
+	snprintf(n.szTip, 64, "kbm - %s", kbm_info.curr_file
+			? kbm_info.curr_file : "No file loaded");
 
 	Shell_NotifyIcon(NIM_ADD, &n);
 
@@ -838,9 +839,8 @@ static void send_notification(const char *msg)
 	memset(&n, 0, sizeof(n));
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
-	n.uFlags = NIF_TIP | NIF_INFO;
+	n.uFlags = NIF_INFO;
 	n.uID = KBM_UID;
-	strcpy(n.szTip, "kbm");
 	strcpy(n.szInfo, msg);
 
 	Shell_NotifyIcon(NIM_MODIFY, &n);
@@ -886,16 +886,28 @@ static void load_hotkey_file(void)
 {
 	char buf[MAX_FILE_PATH];
 	struct hotkey *head = NULL;
+	NOTIFYICONDATA n;
 
 	if (open_file_dialog(buf, MAX_FILE_PATH) == 0) {
 		PRINT_DEBUG("%s\n", buf);
 		if (parse_file(buf, &head) != 0) {
 			return;
 		}
+
 		unmap_keys(actions);
 		unmap_keys(toggles);
 		unload_keys();
 		load_keys(head);
+		kbm_info.curr_file = basename(buf);
+
+		/* update systray icon with new filename */
+		memset(&n, 0, sizeof(n));
+		n.cbSize = sizeof(n);
+		n.hWnd = kbm_window;
+		n.uFlags = NIF_TIP;
+		n.uID = KBM_UID;
+		snprintf(n.szTip, 64, "kbm - %s", kbm_info.curr_file);
+		Shell_NotifyIcon(NIM_MODIFY, &n);
 	} else {
 		fprintf(stderr, "failed to get file\n");
 	}
