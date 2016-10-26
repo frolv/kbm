@@ -67,9 +67,8 @@ void err_unterm(struct lexer *lex)
 		PUTNOTE(lex, lex->err_num, col, "started here\n");
 		print_segment(lex->err_line, start, col, NULL);
 		print_segment(lex->err_line, col, end, KBLU);
-		if (end < strlen(lex->err_line))
-			putc('\n', stderr);
-		else
+		putc('\n', stderr);
+		if (end > strlen(lex->err_line))
 			end = strlen(lex->err_line);
 		print_caret(col, end - col, KBLU);
 	}
@@ -92,8 +91,7 @@ void err_generic(struct lexer *lex, const char *err)
 	print_segment(lex->line, start, CURR_START(lex), NULL);
 	print_token(lex, lex->curr, KRED);
 	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	if (end < strlen(lex->line))
-		putc('\n', stderr);
+	putc('\n', stderr);
 	print_caret(CURR_IND(lex) - start - lex->curr->len,
 			lex->curr->len, KRED);
 }
@@ -127,8 +125,7 @@ void err_invkey(struct lexer *lex)
 	print_segment(lex->line, start, CURR_START(lex), NULL);
 	print_token(lex, lex->curr, KRED);
 	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	if (end < strlen(lex->line))
-		putc('\n', stderr);
+	putc('\n', stderr);
 	print_caret(CURR_IND(lex) - start - lex->curr->len, lex->curr->len, KRED);
 }
 
@@ -146,8 +143,7 @@ void err_selfmod(struct lexer *lex)
 	print_segment(lex->err_line, start, col, NULL);
 	print_segment(lex->err_line, col, col + lex->err_len, KRED);
 	print_segment(lex->err_line, col + lex->err_len, end, NULL);
-	if (end < strlen(lex->err_line))
-		putc('\n', stderr);
+	putc('\n', stderr);
 	print_caret(col, lex->err_len, KRED);
 }
 
@@ -172,6 +168,7 @@ void err_eof(struct lexer *lex)
 	print_segment(lex->err_line, start, col, NULL);
 	print_segment(lex->err_line, col, err_end, KBLU);
 	print_segment(lex->err_line, err_end, end, NULL);
+	putc('\n', stderr);
 	print_caret(col, lex->err_len, KBLU);
 }
 
@@ -204,8 +201,7 @@ void note_duplicate(struct lexer *lex)
 	print_segment(lex->err_line, start, col, NULL);
 	print_segment(lex->err_line, col, err_end, KBLU);
 	print_segment(lex->err_line, err_end, end, NULL);
-	if (end < strlen(lex->err_line))
-		putc('\n', stderr);
+	putc('\n', stderr);
 	print_caret(col, lex->err_len, KBLU);
 }
 
@@ -222,7 +218,7 @@ static void print_segment(const char *buf, size_t start,
 
 	if (colour)
 		fprintf(stderr, "%s", colour);
-	for (i = start; i < end; ++i)
+	for (i = start; i < end && i != '\n'; ++i)
 		putc(buf[i], stderr);
 	if (colour)
 		fprintf(stderr, KNRM);
