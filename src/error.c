@@ -218,7 +218,7 @@ static void print_segment(const char *buf, size_t start,
 
 	if (colour)
 		fprintf(stderr, "%s", colour);
-	for (i = start; i < end && i != '\n'; ++i)
+	for (i = start; i < end && buf[i] != '\n'; ++i)
 		putc(buf[i], stderr);
 	if (colour)
 		fprintf(stderr, KNRM);
