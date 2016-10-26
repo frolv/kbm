@@ -99,6 +99,26 @@ void free_symbols(void)
 	}
 }
 
+#if defined(__CYGWIN__) || defined (__MINGW32__)
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
+
+/* basename: strip directories from file name */
+char *basename(char *path)
+{
+	char *s;
+
+	s = strchr(path, '\0');
+	while (*--s != PATH_SEP && s > path)
+		;
+	if (*s == PATH_SEP)
+		++s;
+
+	return s;
+}
+
 /*
  * parse_file:
  * Read the file at path, if it is accessible.
