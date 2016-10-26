@@ -110,13 +110,8 @@ char *basename(char *path)
 {
 	char *s;
 
-	s = strchr(path, '\0');
-	while (*--s != PATH_SEP && s > path)
-		;
-	if (*s == PATH_SEP)
-		++s;
-
-	return s;
+	s = strrchr(path, PATH_SEP);
+	return s ? s + 1 : path;
 }
 
 /*
