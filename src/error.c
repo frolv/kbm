@@ -20,28 +20,29 @@
 
 /* print a nice looking error message */
 #define PUTERR(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+	fprintf(lex->err_file, KWHT "%s:%u:%ld: " KNRM \
 		KRED "error: " KNRM fmt, \
 		lex->file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
 #define PUTWARN(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+	fprintf(lex->err_file, KWHT "%s:%u:%ld: " KNRM \
 		KMAG "warning: " KNRM fmt, \
 		lex->file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
 #define PUTNOTE(lex, lnum, ind, fmt, ...) \
-	fprintf(stderr, KWHT "%s:%u:%ld: " KNRM \
+	fprintf(lex->err_file, KWHT "%s:%u:%ld: " KNRM \
 		KBLU "note: " KNRM fmt, \
 		lex->file_path, lnum, (ind) + 1, \
 		##__VA_ARGS__)
 
 #define SUB_TO_ZERO(a, b) (((a) < (b)) ? 0 : (a) - (b))
 
-static void print_segment(const char *buf, size_t start,
-			  size_t end, const char *colour);
-static void print_caret(size_t nspace, size_t len, const char *colour);
+static void print_segment(const struct lexer *lex, const char *buf,
+			  size_t start, size_t end, const char *colour);
+static void print_caret(const struct lexer *lex, size_t nspace,
+			size_t len, const char *colour);
 static void print_token(const struct lexer *lex, const struct token *t,
 			const char *colour);
 
@@ -54,9 +55,9 @@ void err_unterm(struct lexer *lex)
 
 	PUTERR(lex, lex->line_num, CURR_IND(lex),
 			"unterminated string literal\n");
-	print_segment(lex->line, start, CURR_IND(lex), NULL);
-	putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start, 1, KRED);
+	print_segment(lex, lex->line, start, CURR_IND(lex), NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, CURR_IND(lex) - start, 1, KRED);
 
 	/* print the line where the error started */
 	if (lex->err_num != lex->line_num) {
@@ -65,12 +66,12 @@ void err_unterm(struct lexer *lex)
 		end = start + 80;
 
 		PUTNOTE(lex, lex->err_num, col, "started here\n");
-		print_segment(lex->err_line, start, col, NULL);
-		print_segment(lex->err_line, col, end, KBLU);
-		putc('\n', stderr);
+		print_segment(lex, lex->err_line, start, col, NULL);
+		print_segment(lex, lex->err_line, col, end, KBLU);
+		putc('\n', lex->err_file);
 		if (end > strlen(lex->err_line))
 			end = strlen(lex->err_line);
-		print_caret(col, end - col, KBLU);
+		print_caret(lex, col, end - col, KBLU);
 	}
 }
 
@@ -88,11 +89,11 @@ void err_generic(struct lexer *lex, const char *err)
 		end = CURR_IND(lex);
 
 	PUTERR(lex, lex->line_num, CURR_START(lex), "%s\n", err);
-	print_segment(lex->line, start, CURR_START(lex), NULL);
+	print_segment(lex, lex->line, start, CURR_START(lex), NULL);
 	print_token(lex, lex->curr, KRED);
-	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start - lex->curr->len,
+	print_segment(lex, lex->line, CURR_IND(lex), end, NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, CURR_IND(lex) - start - lex->curr->len,
 			lex->curr->len, KRED);
 }
 
@@ -122,11 +123,12 @@ void err_invkey(struct lexer *lex)
 	if (end < (size_t)CURR_IND(lex))
 		end = CURR_IND(lex);
 
-	print_segment(lex->line, start, CURR_START(lex), NULL);
+	print_segment(lex, lex->line, start, CURR_START(lex), NULL);
 	print_token(lex, lex->curr, KRED);
-	print_segment(lex->line, CURR_IND(lex), end, NULL);
-	putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start - lex->curr->len, lex->curr->len, KRED);
+	print_segment(lex, lex->line, CURR_IND(lex), end, NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, CURR_IND(lex) - start - lex->curr->len,
+			lex->curr->len, KRED);
 }
 
 /* err_selfmod: print error indicating a key has been modified with itself */
@@ -140,11 +142,11 @@ void err_selfmod(struct lexer *lex)
 	end = start + 80;
 
 	PUTERR(lex, lex->err_num, col, "key modified with itself\n");
-	print_segment(lex->err_line, start, col, NULL);
-	print_segment(lex->err_line, col, col + lex->err_len, KRED);
-	print_segment(lex->err_line, col + lex->err_len, end, NULL);
-	putc('\n', stderr);
-	print_caret(col, lex->err_len, KRED);
+	print_segment(lex, lex->err_line, start, col, NULL);
+	print_segment(lex, lex->err_line, col, col + lex->err_len, KRED);
+	print_segment(lex, lex->err_line, col + lex->err_len, end, NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, col, lex->err_len, KRED);
 }
 
 /* err_eof: print error indicating parser has hit EOF unexpectedly */
@@ -158,18 +160,18 @@ void err_eof(struct lexer *lex)
 	start = SUB_TO_ZERO(CURR_IND(lex), 79);
 
 	PUTERR(lex, lex->line_num, -1L, "unexpected EOF when parsing\n");
-	print_segment(lex->line, start, CURR_IND(lex), NULL);
-	putc('\n', stderr);
-	print_caret(CURR_IND(lex) - start, 1, KRED);
+	print_segment(lex, lex->line, start, CURR_IND(lex), NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, CURR_IND(lex) - start, 1, KRED);
 
 	PUTNOTE(lex, lex->err_num, col, "last statement here\n");
 	end = strlen(lex->err_line);
 	start = SUB_TO_ZERO(end, 79);
-	print_segment(lex->err_line, start, col, NULL);
-	print_segment(lex->err_line, col, err_end, KBLU);
-	print_segment(lex->err_line, err_end, end, NULL);
-	putc('\n', stderr);
-	print_caret(col, lex->err_len, KBLU);
+	print_segment(lex, lex->err_line, start, col, NULL);
+	print_segment(lex, lex->err_line, col, err_end, KBLU);
+	print_segment(lex, lex->err_line, err_end, end, NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, col, lex->err_len, KBLU);
 }
 
 /* warn_literal: print warning that string literal is being truncated */
@@ -181,9 +183,9 @@ void warn_literal(struct lexer *lex, size_t lim, int quote)
 
 	PUTWARN(lex, lex->line_num, CURR_IND(lex), "string literal exceeding "
 			"%zu characters truncated\n", lim);
-	print_segment(lex->line, start, CURR_IND(lex), NULL);
-	printf(KMAG "%c" KNRM "\n", quote);
-	print_caret(CURR_IND(lex) - start, 1, KMAG);
+	print_segment(lex, lex->line, start, CURR_IND(lex), NULL);
+	fprintf(lex->err_file, KMAG "%c" KNRM "\n", quote);
+	print_caret(lex, CURR_IND(lex) - start, 1, KMAG);
 }
 
 /* note_duplicate: print a note informing duplicate modifier declaration */
@@ -198,16 +200,16 @@ void note_duplicate(struct lexer *lex)
 	err_end = col + lex->err_len;
 
 	PUTNOTE(lex, lex->line_num, col, "duplicate modifier declaration\n");
-	print_segment(lex->err_line, start, col, NULL);
-	print_segment(lex->err_line, col, err_end, KBLU);
-	print_segment(lex->err_line, err_end, end, NULL);
-	putc('\n', stderr);
-	print_caret(col, lex->err_len, KBLU);
+	print_segment(lex, lex->err_line, start, col, NULL);
+	print_segment(lex, lex->err_line, col, err_end, KBLU);
+	print_segment(lex, lex->err_line, err_end, end, NULL);
+	putc('\n', lex->err_file);
+	print_caret(lex, col, lex->err_len, KBLU);
 }
 
 /* print_segment: print buf from start to end */
-static void print_segment(const char *buf, size_t start,
-			  size_t end, const char *colour)
+static void print_segment(const struct lexer *lex, const char *buf,
+			  size_t start, size_t end, const char *colour)
 {
 	size_t i;
 
@@ -217,24 +219,25 @@ static void print_segment(const char *buf, size_t start,
 		return;
 
 	if (colour)
-		fprintf(stderr, "%s", colour);
+		fprintf(lex->err_file, "%s", colour);
 	for (i = start; i < end && buf[i] != '\n'; ++i)
-		putc(buf[i], stderr);
+		putc(buf[i], lex->err_file);
 	if (colour)
-		fprintf(stderr, KNRM);
+		fprintf(lex->err_file, KNRM);
 }
 
 /* print_caret: print nspace spaces followed by a caret indicator of size len */
-static void print_caret(size_t nspace, size_t len, const char *colour)
+static void print_caret(const struct lexer *lex, size_t nspace,
+			size_t len, const char *colour)
 {
 	size_t i;
 
 	for (i = 0; i < nspace; ++i)
-		putc(' ', stderr);
-	fprintf(stderr, "%s^", colour);
+		putc(' ', lex->err_file);
+	fprintf(lex->err_file, "%s^", colour);
 	for (i = 0; i < len - 1; ++i)
-		putc('~', stderr);
-	fprintf(stderr, KNRM "\n");
+		putc('~', lex->err_file);
+	fprintf(lex->err_file, KNRM "\n");
 }
 
 /* print_token: print token t as it appears in lex */
@@ -243,8 +246,8 @@ static void print_token(const struct lexer *lex, const struct token *t,
 {
 	char *s;
 
-	fprintf(stderr, "%s", colour);
+	fprintf(lex->err_file, "%s", colour);
 	for (s = lex->pos - t->len; s < lex->pos; ++s)
-		putc(*s, stderr);
-	fprintf(stderr, KNRM);
+		putc(*s, lex->err_file);
+	fprintf(lex->err_file, KNRM);
 }

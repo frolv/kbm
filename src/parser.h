@@ -59,6 +59,7 @@ struct lexer {
 	unsigned int	err_len;		/* length of error lexeme */
 	char		err_line[BUFFER_SIZE];	/* full line of error */
 	char		*err_pos;		/* error start position */
+	FILE		*err_file;		/* error output file */
 	struct token	*curr;			/* the current parsed token */
 };
 
@@ -69,6 +70,6 @@ void free_symbols(void);
 char *basename(char *path);
 
 /* parse_file: parse hotkeys from the file at path into head */
-int parse_file(const char *path, struct hotkey **head);
+int parse_file(const char *path, struct hotkey **head, FILE *err);
 
 #endif /* KBM_PARSER_H */

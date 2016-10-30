@@ -118,7 +118,7 @@ static void parseopts(int argc, char **argv)
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
 			goto err_cleanup;
 		}
-		if (parse_file(argv[optind], &head) != 0)
+		if (parse_file(argv[optind], &head, stderr) != 0)
 			goto err_cleanup;
 
 		kbm_info.curr_file = basename(argv[optind]);

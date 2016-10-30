@@ -120,7 +120,7 @@ char *basename(char *path)
  * Process the keybindings in the file and store a
  * list of struct hotkeys representing them in head.
  */
-int parse_file(const char *path, struct hotkey **head)
+int parse_file(const char *path, struct hotkey **head, FILE *err)
 {
 	struct hotkey *hk;
 	struct lexer lex;
@@ -128,6 +128,7 @@ int parse_file(const char *path, struct hotkey **head)
 	int ret;
 
 	lex.file_path = path;
+	lex.err_file = err;
 
 	if (strcmp(path, "-") == 0) {
 		f = stdin;
