@@ -435,6 +435,7 @@ int init_display(void)
 		goto err_window;
 	}
 
+	/* set up the system tray icon */
 	memset(&n, 0, sizeof(n));
 	n.cbSize = sizeof(n);
 	n.hWnd = kbm_window;
@@ -489,6 +490,7 @@ void start_listening(void)
 	}
 }
 
+/* send_button: send a mouse button press followed by an immediate release */
 void send_button(unsigned int button)
 {
 	INPUT ip;
@@ -697,6 +699,7 @@ static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 			show_context_menu();
 		return 0;
 	case WM_COMMAND:
+		/* commands sent from the notifyicon's context menu */
 		switch (wParam & 0xFFFF) {
 		case KBM_MENU_QUIT:
 			PostQuitMessage(0);
@@ -718,6 +721,7 @@ static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
 
 }
 
+/* numpad_keycode: return the keycode of key kc with numlock on */
 static unsigned int numpad_keycode(unsigned int kc)
 {
 	switch (kc) {
@@ -913,6 +917,7 @@ static void load_hotkey_file(void)
 	}
 }
 
+/* open_file_dialog: launch a dialog prompting user to select a key map file */
 static int open_file_dialog(char *filebuf, size_t size)
 {
 	OPENFILENAME op;
