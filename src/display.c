@@ -889,13 +889,19 @@ static void show_context_menu(void)
 static void load_hotkey_file(void)
 {
 	char buf[MAX_FILE_PATH];
+	char err[MAX_FILE_PATH];
 	struct hotkey *head = NULL;
 	NOTIFYICONDATA n;
+	FILE *f;
 
 	if (open_file_dialog(buf, MAX_FILE_PATH) == 0) {
-		PRINT_DEBUG("%s\n", buf);
-		if (parse_file(buf, &head) != 0) {
-			return;
+		f = fopen("errdump.log", "a");
+		if (parse_file(buf, &head, f) != 0) {
+			snprintf(err, MAX_FILE_PATH, "Could not read key "
+					"bindings from file %s.\nErrors "
+					"logged in errdump.log.", buf);
+			MessageBox(kbm_window, err, NULL, MB_ICONEXCLAMATION);
+			goto cleanup;
 		}
 
 		unmap_keys(actions);
@@ -912,6 +918,9 @@ static void load_hotkey_file(void)
 		n.uID = KBM_UID;
 		snprintf(n.szTip, 64, "kbm - %s", kbm_info.curr_file);
 		Shell_NotifyIcon(NIM_MODIFY, &n);
+
+cleanup:
+		fclose(f);
 	} else {
 		fprintf(stderr, "failed to get file\n");
 	}
