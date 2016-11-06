@@ -106,9 +106,9 @@ void free_symbols(void)
 #endif
 
 /* basename: strip directories from file name */
-char *basename(char *path)
+const char *basename(const char *path)
 {
-	char *s;
+	const char *s;
 
 	s = strrchr(path, PATH_SEP);
 	return s ? s + 1 : path;

@@ -68,7 +68,7 @@
 struct _program_info {
 	int keys_active;	/* whether hotkeys are active */
 	int notifications;	/* whether notifications are enabled */
-	char *curr_file;	/* basename of loaded keymap file */
+	const char *curr_file;	/* basename of loaded keymap file */
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 	HINSTANCE instance;	/* program instance */
 #endif

@@ -88,8 +88,6 @@ int init_display(void)
 /* close_display: disconnect from X server and clean up */
 void close_display(void)
 {
-	unmap_keys(actions);
-	unmap_keys(toggles);
 	xcb_key_symbols_free(keysyms);
 	xcb_disconnect(conn);
 
@@ -904,8 +902,6 @@ static void load_hotkey_file(void)
 			goto cleanup;
 		}
 
-		unmap_keys(actions);
-		unmap_keys(toggles);
 		unload_keys();
 		load_keys(head);
 		kbm_info.curr_file = basename(buf);
@@ -1211,10 +1207,14 @@ void load_keys(struct hotkey *head)
 
 void unload_keys(void)
 {
-	if (actions)
+	if (actions) {
+		unmap_keys(actions);
 		free_keys(actions);
-	if (toggles)
+	}
+	if (toggles) {
+		unmap_keys(toggles);
 		free_keys(toggles);
+	}
 	actions = toggles = NULL;
 }
 

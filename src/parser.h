@@ -67,7 +67,7 @@ void reserve_symbols(void);
 void free_symbols(void);
 
 /* basename: strip directories from file name */
-char *basename(char *path);
+const char *basename(const char *path);
 
 /* parse_file: parse hotkeys from the file at path into head */
 int parse_file(const char *path, struct hotkey **head, FILE *err);
