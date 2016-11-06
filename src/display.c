@@ -1079,6 +1079,21 @@ static void unmap_keys(struct hotkey *head)
 		kbm_info.keys_active = 0;
 }
 
+/*
+ * The interval, in nanoseconds, used to determine an auto repeated key.
+ * If two subsequent key events with the same keycode occur at an interval
+ * less than this period, the second is assumed to be autorepeated.
+ * This isn't perfect, but it's the most reasonable limit that could be
+ * determined through testing and should detect the majority of auto
+ * repeated keys.
+ *
+ * Unfortunately, it is possible for a user to manually press a key twice
+ * and have the events occur within this interval, resulting in it erroneously
+ * being flagged as an autorepeat. This is, however, uncommon and thus this
+ * interval is deemed sufficient for regular usage.
+ */
+#define REPEAT_LIMIT 20000000
+
 /* callback: function called when event is registered */
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			   CGEventRef event, void *refcon)
@@ -1086,6 +1101,10 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	CGKeyCode keycode;
 	CGEventFlags flags;
 	struct hotkey *hk;
+	int repeat;
+	uint64_t curr;
+	static uint64_t last_time = 0;
+	static CGKeyCode last_kc = 0;
 
 	KBM_UNUSED(proxy);
 	KBM_UNUSED(refcon);
@@ -1101,9 +1120,21 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
 			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
+	curr = CGEventGetTimestamp(event);
+	/*
+	 * The autorepeat event value is only set for the first few key repeats.
+	 * Beyond that, we have to rely on the interval trick.
+	 */
+	repeat = CGEventGetIntegerValueField(event, kCGKeyboardEventAutorepeat)
+		|| (last_kc == keycode && curr - last_time < REPEAT_LIMIT);
 	if (type == kCGEventKeyDown) {
+		last_time = curr;
+		last_kc = keycode;
 		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
 							keycode, flags))) {
+			if (repeat && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+				return NULL;
+
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
 				CFRunLoopStop(CFRunLoopGetCurrent());
 				terminate_app();
@@ -1112,10 +1143,14 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			return NULL;
 		}
 		if ((hk = find_by_os_code(toggles, keycode, flags))) {
+			if (repeat && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+				return NULL;
 			process_hotkey(hk, KBM_PRESS);
 			return NULL;
 		}
 	} else {
+		last_time = curr;
+		last_kc = keycode;
 		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
 							keycode, flags))) {
 			process_hotkey(hk, KBM_RELEASE);
