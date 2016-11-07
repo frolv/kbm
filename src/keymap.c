@@ -108,6 +108,7 @@ void keymap_init(void)
 	add_key(KEY_CTRL,	"ctrl", "Control");
 	add_key(KEY_SUPER,	"super", "Super");
 	add_key(KEY_SUPER,	"command", "Super");
+	add_key(KEY_SUPER,	"cmd", "Super");
 	add_key(KEY_SUPER,	"win", "Super");
 	add_key(KEY_SUPER,	"windows", "Super");
 	add_key(KEY_META,	"meta", "Meta");
