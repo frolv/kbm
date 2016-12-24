@@ -23,9 +23,9 @@
 
 /* buttons on a mouse */
 enum {
-	KBM_BUTTON_LEFT		= 1,
-	KBM_BUTTON_MIDDLE	= 2,
-	KBM_BUTTON_RIGHT	= 3
+	KBM_BUTTON_LEFT         = 1,
+	KBM_BUTTON_MIDDLE       = 2,
+	KBM_BUTTON_RIGHT        = 3
 };
 
 /*

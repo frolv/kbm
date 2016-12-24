@@ -40,11 +40,11 @@
 #define SUB_TO_ZERO(a, b) (((a) < (b)) ? 0 : (a) - (b))
 
 static void print_segment(const struct lexer *lex, const char *buf,
-			  size_t start, size_t end, const char *colour);
+                          size_t start, size_t end, const char *colour);
 static void print_caret(const struct lexer *lex, size_t nspace,
-			size_t len, const char *colour);
+                        size_t len, const char *colour);
 static void print_token(const struct lexer *lex, const struct token *t,
-			const char *colour);
+                        const char *colour);
 
 /* err_unterm: print error detailing an unterminated string literal */
 void err_unterm(struct lexer *lex)
@@ -54,7 +54,7 @@ void err_unterm(struct lexer *lex)
 	start = SUB_TO_ZERO(CURR_IND(lex), 79);
 
 	PUTERR(lex, lex->line_num, CURR_IND(lex),
-			"unterminated string literal\n");
+	       "unterminated string literal\n");
 	print_segment(lex, lex->line, start, CURR_IND(lex), NULL);
 	putc('\n', lex->err_file);
 	print_caret(lex, CURR_IND(lex) - start, 1, KRED);
@@ -94,7 +94,7 @@ void err_generic(struct lexer *lex, const char *err)
 	print_segment(lex, lex->line, CURR_IND(lex), end, NULL);
 	putc('\n', lex->err_file);
 	print_caret(lex, CURR_IND(lex) - start - lex->curr->len,
-			lex->curr->len, KRED);
+	            lex->curr->len, KRED);
 }
 
 /* err_invkey: print error showing that the parsed token is not a valid key */
@@ -104,16 +104,16 @@ void err_invkey(struct lexer *lex)
 
 	if (lex->curr->tag == TOK_NUM)
 		PUTERR(lex, lex->line_num, CURR_START(lex),
-				"invalid key '%d'\n", lex->curr->val);
+		       "invalid key '%d'\n", lex->curr->val);
 	else if (HAS_STR(lex->curr))
 		PUTERR(lex, lex->line_num, CURR_START(lex),
-				"invalid key '%s'\n", lex->curr->str);
+		       "invalid key '%s'\n", lex->curr->str);
 	else if (lex->curr->tag == TOK_ARROW)
 		PUTERR(lex, lex->line_num, CURR_START(lex),
-				"invalid key '->'\n");
+		       "invalid key '->'\n");
 	else
 		PUTERR(lex, lex->line_num, CURR_START(lex),
-				"invalid key '%c'\n", lex->curr->tag);
+		       "invalid key '%c'\n", lex->curr->tag);
 
 	start = SUB_TO_ZERO(CURR_IND(lex), 40);
 	end = start + 80;
@@ -128,7 +128,7 @@ void err_invkey(struct lexer *lex)
 	print_segment(lex, lex->line, CURR_IND(lex), end, NULL);
 	putc('\n', lex->err_file);
 	print_caret(lex, CURR_IND(lex) - start - lex->curr->len,
-			lex->curr->len, KRED);
+	            lex->curr->len, KRED);
 }
 
 /* err_selfmod: print error indicating a key has been modified with itself */
@@ -182,7 +182,7 @@ void warn_literal(struct lexer *lex, size_t lim, int quote)
 	start = SUB_TO_ZERO(CURR_IND(lex), 79);
 
 	PUTWARN(lex, lex->line_num, CURR_IND(lex), "string literal exceeding "
-			"%zu characters truncated\n", lim);
+	        "%zu characters truncated\n", lim);
 	print_segment(lex, lex->line, start, CURR_IND(lex), NULL);
 	fprintf(lex->err_file, KMAG "%c" KNRM "\n", quote);
 	print_caret(lex, CURR_IND(lex) - start, 1, KMAG);
@@ -209,7 +209,7 @@ void note_duplicate(struct lexer *lex)
 
 /* print_segment: print buf from start to end */
 static void print_segment(const struct lexer *lex, const char *buf,
-			  size_t start, size_t end, const char *colour)
+                          size_t start, size_t end, const char *colour)
 {
 	size_t i;
 
@@ -228,7 +228,7 @@ static void print_segment(const struct lexer *lex, const char *buf,
 
 /* print_caret: print nspace spaces followed by a caret indicator of size len */
 static void print_caret(const struct lexer *lex, size_t nspace,
-			size_t len, const char *colour)
+                        size_t len, const char *colour)
 {
 	size_t i;
 
@@ -242,7 +242,7 @@ static void print_caret(const struct lexer *lex, size_t nspace,
 
 /* print_token: print token t as it appears in lex */
 static void print_token(const struct lexer *lex, const struct token *t,
-		 const char *colour)
+                        const char *colour)
 {
 	char *s;
 

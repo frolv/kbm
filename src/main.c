@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-		   LPSTR lpCmdLine, int nCmdShow)
+                   LPSTR lpCmdLine, int nCmdShow)
 {
 	KBM_UNUSED(hPrevInstance);
 	KBM_UNUSED(lpCmdLine);
@@ -97,11 +97,11 @@ static void parseopts(int argc, char **argv)
 			break;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
-					"Copyright (C) 2016 Alexei Frolov\n\n"
-					"This program is distributed as "
-					"free software under the terms\n"
-					"of the GNU General Public License, "
-					"version 3 or later.\n");
+			       "Copyright (C) 2016 Alexei Frolov\n\n"
+			       "This program is distributed as "
+			       "free software under the terms\n"
+			       "of the GNU General Public License, "
+			       "version 3 or later.\n");
 			exit(0);
 		default:
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);

@@ -41,26 +41,26 @@ enum {
 };
 
 struct token {
-	int		tag;	/* type of the token */
-	size_t		len;	/* length of token's lexeme */
+	int             tag;    /* type of the token */
+	size_t          len;    /* length of token's lexeme */
 	union {
-		int	val;	/* each token has either a numeric */
-		char	*str;	/* or string value associated with it */
+		int     val;    /* each token has either a numeric */
+		char    *str;   /* or string value associated with it */
 	};
-	UT_hash_handle	hh;	/* handle for hashtable */
+	UT_hash_handle  hh;     /* handle for hashtable */
 };
 
 struct lexer {
-	const char	*file_path;		/* path to the file */
-	unsigned int	line_num;		/* number of line in file */
-	char		line[BUFFER_SIZE];	/* line being read */
-	char		*pos;			/* current position in line */
-	unsigned int	err_num;		/* line number of err_line */
-	unsigned int	err_len;		/* length of error lexeme */
-	char		err_line[BUFFER_SIZE];	/* full line of error */
-	char		*err_pos;		/* error start position */
-	FILE		*err_file;		/* error output file */
-	struct token	*curr;			/* the current parsed token */
+	const char      *file_path;             /* path to the file */
+	unsigned int    line_num;               /* number of line in file */
+	char            line[BUFFER_SIZE];      /* line being read */
+	char            *pos;                   /* current position in line */
+	unsigned int    err_num;                /* line number of err_line */
+	unsigned int    err_len;                /* length of error lexeme */
+	char            err_line[BUFFER_SIZE];  /* full line of error */
+	char            *err_pos;               /* error start position */
+	FILE            *err_file;              /* error output file */
+	struct token    *curr;                  /* the current parsed token */
 };
 
 void reserve_symbols(void);

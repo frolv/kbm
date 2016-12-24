@@ -40,7 +40,7 @@ static struct hotkey *toggles;
 static void map_keys(struct hotkey *head);
 static void unmap_keys(struct hotkey *head);
 static struct hotkey *find_by_os_code(struct hotkey *head,
-				      uint32_t code, uint32_t mask);
+                                      uint32_t code, uint32_t mask);
 static void send_notification(const char *msg);
 
 
@@ -131,8 +131,7 @@ void start_listening(void)
 			evt->state &= ~XCB_MOD_MASK_LOCK;
 
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
-					&& !(hk = find_by_os_code(toggles,
-							ks, evt->state))) {
+			    && !(hk = find_by_os_code(toggles, ks, evt->state))) {
 				/*
 				 * This sometimes happens when keys are
 				 * pressed in quick succession.
@@ -143,7 +142,7 @@ void start_listening(void)
 
 			/* don't send an autorepeated key if norepeat flag */
 			if (DETECT_AUTOREPEAT(last, evt, ks) &&
-					CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+			    CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
 				break;
 
 			if (process_hotkey(hk, KBM_PRESS) == -1)
@@ -158,8 +157,7 @@ void start_listening(void)
 			evt->state &= ~XCB_MOD_MASK_LOCK;
 
 			if (!(hk = find_by_os_code(actions, ks, evt->state))
-					&& !(hk = find_by_os_code(toggles,
-							ks, evt->state)))
+			    && !(hk = find_by_os_code(toggles, ks, evt->state)))
 				break;
 
 			process_hotkey(hk, KBM_RELEASE);
@@ -178,9 +176,9 @@ void start_listening(void)
 void send_button(unsigned int button)
 {
 	xcb_test_fake_input(conn, XCB_BUTTON_PRESS, button,
-			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	xcb_test_fake_input(conn, XCB_BUTTON_RELEASE, button,
-			XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+	                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	xcb_flush(conn);
 }
 
@@ -196,49 +194,49 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		/* press the requested key */
 		xcb_test_fake_input(conn, XCB_KEY_PRESS, kc[0],
-				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 	} else {
 		/* release the requested keys and then all modifiers */
 		xcb_test_fake_input(conn, XCB_KEY_RELEASE, kc[0],
-				XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+		                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
-					XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
+			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
 		xcb_flush(conn);
 	}
@@ -267,16 +265,15 @@ static void map_keys(struct hotkey *head)
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
 		cookie = xcb_grab_key_checked(conn, 1, root,
-				head->os_modmask, kc[0],
-				XCB_GRAB_MODE_ASYNC,
-				XCB_GRAB_MODE_ASYNC);
+		                              head->os_modmask, kc[0],
+		                              XCB_GRAB_MODE_ASYNC,
+		                              XCB_GRAB_MODE_ASYNC);
 
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
 			fprintf(stderr, "error: the key '%s' is already "
-					"mapped by another program\n",
-					keystr(head->kbm_code,
-					       head->kbm_modmask));
+			        "mapped by another program\n",
+			        keystr(head->kbm_code, head->kbm_modmask));
 			free(err);
 		}
 
@@ -291,16 +288,14 @@ static void map_keys(struct hotkey *head)
 
 		/* num lock */
 		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_2,
-				kc[0], XCB_GRAB_MODE_ASYNC,
-				XCB_GRAB_MODE_ASYNC);
+		             kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		/* caps lock */
-		xcb_grab_key(conn, 1, root, head->os_modmask
-				| XCB_MOD_MASK_LOCK, kc[0],
-				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_LOCK,
+		             kc[0], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 		/* both */
-		xcb_grab_key(conn, 1, root, head->os_modmask
-				| XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2, kc[0],
-				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		xcb_grab_key(conn, 1, root, head->os_modmask | XCB_MOD_MASK_LOCK
+		             | XCB_MOD_MASK_2, kc[0], XCB_GRAB_MODE_ASYNC,
+		             XCB_GRAB_MODE_ASYNC);
 		free(kc);
 	}
 	xcb_flush(conn);
@@ -321,11 +316,11 @@ static void unmap_keys(struct hotkey *head)
 
 		/* account for num lock and caps lock modifiers */
 		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
-				| XCB_MOD_MASK_2);
+		               | XCB_MOD_MASK_2);
 		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
-				| XCB_MOD_MASK_LOCK);
+		               | XCB_MOD_MASK_LOCK);
 		xcb_ungrab_key(conn, kc[0], root, head->os_modmask
-				| XCB_MOD_MASK_2 | XCB_MOD_MASK_LOCK);
+		               | XCB_MOD_MASK_2 | XCB_MOD_MASK_LOCK);
 	}
 	xcb_flush(conn);
 }
@@ -360,7 +355,7 @@ static void send_notification(const char *msg)
 	n = notify_notification_new(msg, NULL, NULL);
 	if (!notify_notification_show(n, &err)) {
 		fprintf(stderr, "failed to send notification: %s\n",
-				err->message);
+		        err->message);
 		g_error_free(err);
 	}
 	g_object_unref(G_OBJECT(n));
@@ -394,7 +389,7 @@ static int fake_mods[4] = { 0, 0, 0, 0 };
 
 static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam);
 static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
-				WPARAM wParam, LPARAM lParam);
+                                WPARAM wParam, LPARAM lParam);
 static unsigned int numpad_keycode(unsigned int kc);
 static void check_modifiers(unsigned int *mods);
 static void unset_fake_mods(unsigned int *mods);
@@ -426,8 +421,8 @@ int init_display(void)
 	}
 
 	kbm_window = CreateWindowEx(0, CLASS_NAME, "kbm", 0, 0,
-				    0, 0, 0, HWND_MESSAGE, NULL,
-				    kbm_info.instance, NULL);
+	                            0, 0, 0, HWND_MESSAGE, NULL,
+	                            kbm_info.instance, NULL);
 	if (!kbm_window) {
 		fprintf(stderr, "error: failed to create main window\n");
 		goto err_window;
@@ -442,9 +437,9 @@ int init_display(void)
 	n.uID = KBM_UID;
 	n.uCallbackMessage = WM_APP;
 	n.hIcon = LoadImage(kbm_info.instance, MAKEINTRESOURCE(0),
-			    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+	                    IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 	snprintf(n.szTip, 64, "kbm - %s", kbm_info.curr_file
-			? kbm_info.curr_file : "No file loaded");
+	         ? kbm_info.curr_file : "No file loaded");
 
 	Shell_NotifyIcon(NIM_ADD, &n);
 
@@ -530,7 +525,7 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	 * it can be distinguished from physically held modifier keys.
 	 */
 	if (keycode == VK_SHIFT || keycode == VK_CONTROL
-			|| keycode == VK_MENU || keycode == VK_LWIN) {
+	    || keycode == VK_MENU || keycode == VK_LWIN) {
 		send_fake_mod(keycode, type);
 		return;
 	}
@@ -584,10 +579,10 @@ void kbm_exec(void *args)
 	 */
 	cmd = strdup(args);
 	if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE,
-				0, NULL, NULL, &si, &pi)) {
+	                   0, NULL, NULL, &si, &pi)) {
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				err, 256, NULL);
+		              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		              err, 256, NULL);
 		fprintf(stderr, "%s\n", err);
 		return;
 	}
@@ -644,8 +639,8 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		last_action = KBM_PRESS;
 		last_time = kb->time;
 
-		if (kbm_info.keys_active && (hk = find_by_os_code(
-						actions, kc, mods))) {
+		if (kbm_info.keys_active
+		    && (hk = find_by_os_code(actions, kc, mods))) {
 			if (repeated && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
 				return 1;
 
@@ -676,8 +671,8 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		last_key = kc;
 		last_action = KBM_RELEASE;
 		last_time = kb->time;
-		if (kbm_info.keys_active && (hk = find_by_os_code(
-						actions, kc, mods))) {
+		if (kbm_info.keys_active
+		    && (hk = find_by_os_code(actions, kc, mods))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return 1;
 		}
@@ -689,7 +684,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 #define MAX_FILE_PATH 4096
 
 static LRESULT CALLBACK wndproc(HWND hWnd, UINT uMsg,
-				WPARAM wParam, LPARAM lParam)
+                                WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
 	case WM_APP:
@@ -863,17 +858,17 @@ static void show_context_menu(void)
 
 	menu = CreatePopupMenu();
 	InsertMenu(menu, 0, MF_BYPOSITION | MF_STRING | check,
-			KBM_MENU_NOTIFY, "Notifications");
+	           KBM_MENU_NOTIFY, "Notifications");
 	InsertMenu(menu, 1, MF_BYPOSITION | MF_STRING,
-			KBM_MENU_OPEN, "Open File");
+	           KBM_MENU_OPEN, "Open File");
 	InsertMenu(menu, 2, MF_BYPOSITION | MF_STRING,
-			KBM_MENU_QUIT, "Quit");
+	           KBM_MENU_QUIT, "Quit");
 
 	GetCursorPos(&pt);
 	SetForegroundWindow(kbm_window);
 
 	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_BOTTOMALIGN |
-			TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
+	                 TPM_RIGHTBUTTON, pt.x, pt.y, kbm_window, NULL);
 
 	DestroyMenu(menu);
 }
@@ -896,8 +891,8 @@ static void load_hotkey_file(void)
 		f = fopen("errdump.log", "a");
 		if (parse_file(buf, &head, f) != 0) {
 			snprintf(err, MAX_FILE_PATH, "Could not read key "
-					"bindings from file %s.\nErrors "
-					"logged in errdump.log.", buf);
+			         "bindings from file %s.\nErrors "
+			         "logged in errdump.log.", buf);
 			MessageBox(kbm_window, err, NULL, MB_ICONEXCLAMATION);
 			goto cleanup;
 		}
@@ -952,7 +947,7 @@ static const char *ACCESS_MSG = PROGRAM_NAME " requires special permissions to "
 PROGRAM_NAME " to the list of apps allowed to control your computer.";
 
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-			   CGEventRef event, void *refcon);
+                           CGEventRef event, void *refcon);
 static int open_app(char **argv);
 
 /* init_display: enable the keypress event tap */
@@ -964,7 +959,7 @@ int init_display(void)
 
 	mask = (1 << kCGEventKeyDown) | (1 << kCGEventKeyUp);
 	tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
-			0, mask, callback, NULL);
+	                       0, mask, callback, NULL);
 	if (!tap) {
 		/* enable access for assistive devices */
 		fprintf(stderr, "error: failed to initialize event tap\n");
@@ -1096,7 +1091,7 @@ static void unmap_keys(struct hotkey *head)
 
 /* callback: function called when event is registered */
 static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
-			   CGEventRef event, void *refcon)
+                           CGEventRef event, void *refcon)
 {
 	CGKeyCode keycode;
 	CGEventFlags flags;
@@ -1114,11 +1109,11 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		return event;
 
 	keycode = (CGKeyCode)CGEventGetIntegerValueField(event,
-			kCGKeyboardEventKeycode);
+	                     kCGKeyboardEventKeycode);
 	flags = CGEventGetFlags(event);
 	/* filter out all the bits we're not interested in */
 	flags &= (kCGEventFlagMaskShift | kCGEventFlagMaskControl
-			| kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
+	          | kCGEventFlagMaskCommand | kCGEventFlagMaskAlternate);
 
 	curr = CGEventGetTimestamp(event);
 	/*
@@ -1126,12 +1121,12 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	 * Beyond that, we have to rely on the interval trick.
 	 */
 	repeat = CGEventGetIntegerValueField(event, kCGKeyboardEventAutorepeat)
-		|| (last_kc == keycode && curr - last_time < REPEAT_LIMIT);
+	         || (last_kc == keycode && curr - last_time < REPEAT_LIMIT);
 	if (type == kCGEventKeyDown) {
 		last_time = curr;
 		last_kc = keycode;
-		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
-							keycode, flags))) {
+		if (kbm_info.keys_active
+		    && (hk = find_by_os_code(actions, keycode, flags))) {
 			if (repeat && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
 				return NULL;
 
@@ -1151,8 +1146,8 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	} else {
 		last_time = curr;
 		last_kc = keycode;
-		if (kbm_info.keys_active && (hk = find_by_os_code(actions,
-							keycode, flags))) {
+		if (kbm_info.keys_active
+		    && (hk = find_by_os_code(actions, keycode, flags))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return NULL;
 		}
@@ -1268,7 +1263,7 @@ void toggle_keys(void)
 
 /* find_by_os_code: return the hotkey in head with os_code code */
 static struct hotkey *find_by_os_code(struct hotkey *head,
-				      uint32_t code, uint32_t mask)
+                                      uint32_t code, uint32_t mask)
 {
 	for (; head; head = head->next) {
 		if (head->os_code == code && head->os_modmask == mask)

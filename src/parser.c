@@ -59,15 +59,15 @@ static int next_token(FILE *f, struct lexer *lex, int free, int err);
 
 static struct hotkey *parse_binding(FILE *f, struct lexer *lex);
 static int parse_key(FILE *f, struct lexer *lex,
-		uint64_t *retval, int failnext);
+                     uint64_t *retval, int failnext);
 static int parse_mod(FILE *f, struct lexer *lex,
-		uint64_t *retval, int failnext);
+                     uint64_t *retval, int failnext);
 static int parse_id(FILE *f, struct lexer *lex,
-		uint64_t *retval, int failnext);
+                    uint64_t *retval, int failnext);
 static int parse_keynum(FILE *f, struct lexer *lex,
-		uint64_t *retval, int failnext);
+                        uint64_t *retval, int failnext);
 static int parse_misc(FILE *f, struct lexer *lex,
-		uint64_t *retval, int failnext);
+                      uint64_t *retval, int failnext);
 static int parse_func(FILE *f, struct lexer *lex, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, struct lexer *lex, uint32_t *num);
 static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval);
@@ -153,7 +153,7 @@ int parse_file(const char *path, struct hotkey **head, FILE *err)
 			goto cleanup;
 		}
 		PRINT_DEBUG("hotkey parsed: %s\n",
-				keystr(hk->kbm_code, hk->kbm_modmask));
+		            keystr(hk->kbm_code, hk->kbm_modmask));
 		add_hotkey(head, hk);
 	}
 	ret = 0;
@@ -236,7 +236,7 @@ static struct token *scan(FILE *f, struct lexer *lex)
 			buf[i++] = *lex->pos;
 			lex->pos++;
 		} while ((isalnum(*lex->pos) || *lex->pos == '_')
-					     && i < SCAN_SIZE - 1);
+		         && i < SCAN_SIZE - 1);
 		buf[i] = '\0';
 		HASH_FIND_STR(reserved, buf, t);
 		return t ? t : create_token(TOK_ID, &buf);
@@ -296,12 +296,12 @@ static struct token *read_str(FILE *f, struct lexer *lex)
 		/* skip over the rest of the string */
 		while (1) {
 			if (*lex->pos == '\n' && (*(lex->pos - 1) != '\\'
-					      || !next_line(f, lex))) {
+			                          || !next_line(f, lex))) {
 				err_unterm(lex);
 				exit(1);
 			}
 			if (*lex->pos == quote && (lex->pos == lex->line ||
-						*(lex->pos - 1) != '\\'))
+			                           *(lex->pos - 1) != '\\'))
 				break;
 			lex->pos++;
 		}
@@ -450,8 +450,8 @@ static struct hotkey *parse_binding(FILE *f, struct lexer *lex)
 	}
 
 	return create_hotkey(key & 0xFFFFFFFF,
-			     (key >> 32) & 0xFFFFFFFF,
-			     op, args, flags);
+	                     (key >> 32) & 0xFFFFFFFF,
+	                     op, args, flags);
 }
 
 /* parse_key: parse a key declaration and its modifiers */
