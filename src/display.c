@@ -409,8 +409,8 @@ int init_display(void)
 	WNDCLASSEX wx;
 	NOTIFYICONDATA n;
 
-	memset(&wx, 0, sizeof(wx));
-	wx.cbSize = sizeof(wx);
+	memset(&wx, 0, sizeof wx);
+	wx.cbSize = sizeof wx;
 	wx.lpfnWndProc = wndproc;
 	wx.lpszClassName = CLASS_NAME;
 	wx.hInstance = kbm_info.instance;
@@ -429,8 +429,8 @@ int init_display(void)
 	}
 
 	/* set up the system tray icon */
-	memset(&n, 0, sizeof(n));
-	n.cbSize = sizeof(n);
+	memset(&n, 0, sizeof n);
+	n.cbSize = sizeof n;
 	n.hWnd = kbm_window;
 	n.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
 	n.dwState = NIS_SHAREDICON;
@@ -462,7 +462,7 @@ void close_display(void)
 {
 	NOTIFYICONDATA n;
 
-	n.cbSize = sizeof(n);
+	n.cbSize = sizeof n;
 	n.hWnd = kbm_window;
 	n.uID = KBM_UID;
 
@@ -490,7 +490,7 @@ void send_button(unsigned int button)
 	unsigned int dnflags, upflags;
 
 	ip.type = INPUT_MOUSE;
-	memset(&ip.mi, 0, sizeof(ip.mi));
+	memset(&ip.mi, 0, sizeof ip.mi);
 
 	switch (button) {
 	case KBM_BUTTON_LEFT:
@@ -510,9 +510,9 @@ void send_button(unsigned int button)
 	}
 
 	ip.mi.dwFlags = dnflags;
-	SendInput(1, &ip, sizeof(ip));
+	SendInput(1, &ip, sizeof ip);
 	ip.mi.dwFlags = upflags;
-	SendInput(1, &ip, sizeof(ip));
+	SendInput(1, &ip, sizeof ip);
 }
 
 /* send_key: send a key event */
@@ -531,14 +531,14 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	}
 
 	key.type = INPUT_KEYBOARD;
-	memset(&key.ki, 0, sizeof(key.ki));
+	memset(&key.ki, 0, sizeof key.ki);
 	key.ki.wVk = keycode;
 
 	if (type == KBM_RELEASE)
 		key.ki.dwFlags = KEYEVENTF_KEYUP;
 
 	if (type == KBM_RELEASE)
-		SendInput(1, &key, sizeof(key));
+		SendInput(1, &key, sizeof key);
 
 	if (CHECK_MASK(modmask, MOD_SHIFT))
 		send_fake_mod(VK_SHIFT, type);
@@ -550,7 +550,7 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 		send_fake_mod(VK_LWIN, type);
 
 	if (type == KBM_PRESS)
-		SendInput(1, &key, sizeof(key));
+		SendInput(1, &key, sizeof key);
 }
 
 /* move_cursor: move cursor along vector x,y from current position */
@@ -570,8 +570,8 @@ void kbm_exec(void *args)
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
-	memset(&si, 0, sizeof(si));
-	si.cb = sizeof(si);
+	memset(&si, 0, sizeof si);
+	si.cb = sizeof si;
 
 	/*
 	 * The CreateProcess function can modify the string
@@ -777,7 +777,7 @@ static void send_fake_mod(unsigned int keycode, int type)
 	size_t i;
 
 	mod.type = INPUT_KEYBOARD;
-	memset(&mod.ki, 0, sizeof(mod.ki));
+	memset(&mod.ki, 0, sizeof mod.ki);
 	mod.ki.wVk = keycode;
 
 	switch (keycode) {
@@ -800,7 +800,7 @@ static void send_fake_mod(unsigned int keycode, int type)
 	if (type == KBM_RELEASE)
 		mod.ki.dwFlags = KEYEVENTF_KEYUP;
 
-	SendInput(1, &mod, sizeof(mod));
+	SendInput(1, &mod, sizeof mod);
 	fake_mods[i] = type == KBM_PRESS;
 }
 
@@ -833,8 +833,8 @@ static void send_notification(const char *msg)
 {
 	NOTIFYICONDATA n;
 
-	memset(&n, 0, sizeof(n));
-	n.cbSize = sizeof(n);
+	memset(&n, 0, sizeof n);
+	n.cbSize = sizeof n;
 	n.hWnd = kbm_window;
 	n.uFlags = NIF_INFO;
 	n.uID = KBM_UID;
@@ -902,8 +902,8 @@ static void load_hotkey_file(void)
 		kbm_info.curr_file = basename(buf);
 
 		/* update systray icon with new filename */
-		memset(&n, 0, sizeof(n));
-		n.cbSize = sizeof(n);
+		memset(&n, 0, sizeof n);
+		n.cbSize = sizeof n;
 		n.hWnd = kbm_window;
 		n.uFlags = NIF_TIP;
 		n.uID = KBM_UID;
@@ -923,8 +923,8 @@ static int open_file_dialog(char *filebuf, size_t size)
 	OPENFILENAME op;
 
 	*filebuf = '\0';
-	memset(&op, '\0', sizeof(op));
-	op.lStructSize = sizeof(op);
+	memset(&op, '\0', sizeof op);
+	op.lStructSize = sizeof op;
 	op.hwndOwner = kbm_window;
 	op.hInstance = kbm_info.instance;
 	op.lpstrFilter = "kbm Keymap Files\0*.kbm\0All Files\0*.*\0\0";
