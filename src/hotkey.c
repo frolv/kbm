@@ -30,7 +30,7 @@ struct hotkey *create_hotkey(uint8_t keycode, uint8_t modmask,
 {
 	struct hotkey *hk;
 
-	hk = malloc(sizeof(*hk));
+	hk = malloc(sizeof *hk);
 	hk->kbm_code = keycode;
 	hk->kbm_modmask = modmask;
 	hk->op = op;

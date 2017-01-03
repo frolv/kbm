@@ -239,7 +239,7 @@ static void add_key(uint32_t kc, const char *str, const char *name)
 {
 	struct skey *k;
 
-	k = malloc(sizeof(*k));
+	k = malloc(sizeof *k);
 	k->keycode = kc;
 	k->keystr = str;
 	k->keyname = name;
