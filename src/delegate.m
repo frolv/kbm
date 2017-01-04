@@ -120,6 +120,7 @@ cleanup:
 
 	unload_keys();
 	close_display();
+	free_windows(&kbm_info.map);
 	keymap_free();
 }
 
