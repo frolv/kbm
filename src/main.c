@@ -1,7 +1,7 @@
 /*
  * kbm - a simple hotkey mapper
  * main.c
- * Copyright (C) 2016 Alexei Frolov
+ * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ static void parseopts(int argc, char **argv)
 			break;
 		case 'v':
 			printf(PROGRAM_NAME " " PROGRAM_VERSION "\n"
-			       "Copyright (C) 2016 Alexei Frolov\n\n"
+			       "Copyright (C) 2016-2017 Alexei Frolov\n\n"
 			       "This program is distributed as "
 			       "free software under the terms\n"
 			       "of the GNU General Public License, "
