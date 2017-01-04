@@ -440,7 +440,7 @@ static void parse_windows(FILE *f, struct lexer *lex, struct keymap *k)
  */
 static void parse_globals(FILE *f, struct lexer *lex, struct keymap *k)
 {
-	while (lex->curr->tag == TOK_GDEF) {
+	while (lex->curr && lex->curr->tag == TOK_GDEF) {
 		if (strcmp(lex->curr->str, "active_window") == 0) {
 			k->flags |= KBM_ACTIVEWIN;
 			if (next_token(f, lex, 0, 1) != 0)
