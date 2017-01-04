@@ -57,17 +57,6 @@ static void reserve(struct token *word);
 static char *next_line(FILE *f, struct lexer *lex);
 static int next_token(FILE *f, struct lexer *lex, int free, int err);
 
-static struct hotkey *parse_binding(FILE *f, struct lexer *lex);
-static int parse_key(FILE *f, struct lexer *lex,
-                     uint64_t *retval, int failnext);
-static int parse_mod(FILE *f, struct lexer *lex,
-                     uint64_t *retval, int failnext);
-static int parse_id(FILE *f, struct lexer *lex,
-                    uint64_t *retval, int failnext);
-static int parse_keynum(FILE *f, struct lexer *lex,
-                        uint64_t *retval, int failnext);
-static int parse_misc(FILE *f, struct lexer *lex,
-                      uint64_t *retval, int failnext);
 static int parse_func(FILE *f, struct lexer *lex, uint8_t *op, uint64_t *args);
 static int parse_num(FILE *f, struct lexer *lex, uint32_t *num);
 static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval);
@@ -86,6 +75,7 @@ void reserve_symbols(void)
 	reserve(create_token(TOK_FUNC, "quit"));
 	reserve(create_token(TOK_FUNC, "exec"));
 	reserve(create_token(TOK_QUAL, "norepeat"));
+	reserve(create_token(TOK_GDEF, "active_window"));
 }
 
 /* free_symbols: free all tokens in the reserved hashtable */
@@ -108,11 +98,12 @@ void free_symbols(void)
 /* basename: strip directories from file name */
 const char *basename(const char *path)
 {
-	const char *s;
-
-	s = strrchr(path, PATH_SEP);
+	const char *s = strrchr(path, PATH_SEP);
 	return s ? s + 1 : path;
 }
+
+static void parse_globals(FILE *f, struct lexer *lex, struct keymap *k);
+static struct hotkey *parse_binding(FILE *f, struct lexer *lex);
 
 /*
  * parse_file:
@@ -120,7 +111,7 @@ const char *basename(const char *path)
  * Process the keybindings in the file and store a
  * list of struct hotkeys representing them in head.
  */
-int parse_file(const char *path, struct hotkey **head, FILE *err)
+int parse_file(const char *path, struct keymap *k, FILE *err)
 {
 	struct hotkey *hk;
 	struct lexer lex;
@@ -143,20 +134,29 @@ int parse_file(const char *path, struct hotkey **head, FILE *err)
 
 	/* grab the first token */
 	next_token(f, &lex, 0, 0);
+
+	/* global definitions at the start of the file */
+	parse_globals(f, &lex, k);
+	if (!lex.curr) {
+		ret = 1;
+		goto cleanup;
+	}
+
+	ret = 0;
 	while (lex.curr) {
 		if (!(hk = parse_binding(f, &lex))) {
 			if (lex.curr && !IS_RESERVED(lex.curr))
 				free_token(lex.curr);
-			if (*head)
-				free_keys(*head);
+			if (k->keys)
+				free_keys(k->keys);
+			free_windows(k);
 			ret = 1;
 			goto cleanup;
 		}
 		PRINT_DEBUG("hotkey parsed: %s\n",
 		            keystr(hk->kbm_code, hk->kbm_modmask));
-		add_hotkey(head, hk);
+		add_hotkey(&k->keys, hk);
 	}
-	ret = 0;
 
 cleanup:
 	fclose(f);
@@ -328,7 +328,7 @@ static struct token *create_token(int tag, void *info)
 	struct token *t;
 	int i;
 
-	t = malloc(sizeof(*t));
+	t = malloc(sizeof *t);
 	t->tag = tag;
 
 	switch (tag) {
@@ -347,6 +347,7 @@ static struct token *create_token(int tag, void *info)
 	case TOK_FUNC:
 	case TOK_QUAL:
 	case TOK_STRLIT:
+	case TOK_GDEF:
 		t->str = strdup((char *)info);
 		t->len = strlen(t->str);
 		/* surrounding quotes */
@@ -411,6 +412,62 @@ static int next_token(FILE *f, struct lexer *lex, int free, int err)
 	}
 	return 0;
 }
+
+static void parse_windows(FILE *f, struct lexer *lex, struct keymap *k)
+{
+	if (k->win_size == 0) {
+		k->win_size = 10;
+		k->windows = malloc(k->win_size * sizeof *k->windows);
+	}
+
+	while (lex->curr && lex->curr->tag == TOK_STRLIT) {
+		if (k->win_len == k->win_size - 1) {
+			k->win_size *= 2;
+			k->windows = realloc(k->windows, k->win_size);
+		}
+		k->windows[k->win_len++] = lex->curr->str;
+		PRINT_DEBUG("active_window: %s\n", lex->curr->str);
+		free(lex->curr);
+		next_token(f, lex, 0, 0);
+	}
+	k->windows[k->win_len] = NULL;
+}
+
+/*
+ * parse_globals:
+ * Read all global definitions located at the start of the keymap file and
+ * set appropriate flags in the program's keymap struct.
+ */
+static void parse_globals(FILE *f, struct lexer *lex, struct keymap *k)
+{
+	while (lex->curr->tag == TOK_GDEF) {
+		if (strcmp(lex->curr->str, "active_window") == 0) {
+			k->flags |= KBM_ACTIVEWIN;
+			if (next_token(f, lex, 0, 1) != 0)
+				return;
+
+			if (lex->curr->tag != TOK_STRLIT) {
+				err_generic(lex, "expected string after "
+				                 "active_window");
+				free_token(lex->curr);
+				lex->curr = NULL;
+				return;
+			}
+			parse_windows(f, lex, k);
+		}
+	}
+}
+
+static int parse_key(FILE *f, struct lexer *lex,
+                     uint64_t *retval, int failnext);
+static int parse_mod(FILE *f, struct lexer *lex,
+                     uint64_t *retval, int failnext);
+static int parse_id(FILE *f, struct lexer *lex,
+                    uint64_t *retval, int failnext);
+static int parse_keynum(FILE *f, struct lexer *lex,
+                        uint64_t *retval, int failnext);
+static int parse_misc(FILE *f, struct lexer *lex,
+                      uint64_t *retval, int failnext);
 
 /*
  * parse_binding:
@@ -728,7 +785,7 @@ static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval)
 	 * this is more than enough for 99% of use cases.
 	 */
 	allocsz = 10;
-	argv = malloc(allocsz * sizeof(*argv));
+	argv = malloc(allocsz * sizeof *argv);
 	argc = 0;
 
 #ifdef __APPLE__
@@ -751,12 +808,12 @@ static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval)
 		next_token(f, lex, 0, 0);
 	}
 	argv[argc] = NULL;
-	memcpy(retval, &argv, sizeof(*retval));
+	memcpy(retval, &argv, sizeof *retval);
 #endif
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 	allocsz = 4096;
-	args = malloc(allocsz * sizeof(*args));
+	args = malloc(allocsz * sizeof *args);
 	s = args;
 	len = 0;
 
@@ -788,7 +845,7 @@ static int parse_exec(FILE *f, struct lexer *lex, uint64_t *retval)
 	}
 	/* get rid of final space */
 	*--s = '\0';
-	memcpy(retval, &args, sizeof(*retval));
+	memcpy(retval, &args, sizeof *retval);
 #endif
 
 	return 0;

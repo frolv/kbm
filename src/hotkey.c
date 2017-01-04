@@ -162,6 +162,17 @@ int process_hotkey(struct hotkey *hk, unsigned int type)
 	}
 }
 
+void free_windows(struct keymap *k)
+{
+	char **s;
+
+	if (k->win_size) {
+		for (s = k->windows; *s; ++s)
+			free(*s);
+		free(k->windows);
+	}
+}
+
 /* get_os_codes: load os-specific keycodes and mod masks into hk */
 static void get_os_codes(struct hotkey *hk)
 {

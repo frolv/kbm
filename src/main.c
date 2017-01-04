@@ -78,12 +78,13 @@ int main(int argc, char **argv)
 /* parseopts: parse program options and load hotkeys */
 static void parseopts(int argc, char **argv)
 {
-	struct hotkey *head;
 	int c;
 
 	kbm_info.keys_active = 1;
 	kbm_info.notifications = 1;
 	kbm_info.curr_file = NULL;
+	memset(&kbm_info.map, 0, sizeof kbm_info.map);
+
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
@@ -109,7 +110,6 @@ static void parseopts(int argc, char **argv)
 		}
 	}
 
-	head = NULL;
 	keymap_init();
 	reserve_symbols();
 
@@ -118,7 +118,7 @@ static void parseopts(int argc, char **argv)
 			fprintf(stderr, "usage: %s [FILE]\n", argv[0]);
 			goto err_cleanup;
 		}
-		if (parse_file(argv[optind], &head, stderr) != 0)
+		if (parse_file(argv[optind], &kbm_info.map, stderr) != 0)
 			goto err_cleanup;
 
 		kbm_info.curr_file = basename(argv[optind]);
@@ -129,10 +129,11 @@ static void parseopts(int argc, char **argv)
 	if (init_display() != 0)
 		goto err_cleanup;
 
-	load_keys(head);
+	load_keys(kbm_info.map.keys);
 	return;
 
 err_cleanup:
+	free_windows(&kbm_info.map);
 	keymap_free();
 	free_symbols();
 	exit(1);
@@ -144,6 +145,7 @@ static int run(void)
 	start_listening();
 	unload_keys();
 	close_display();
+	free_windows(&kbm_info.map);
 	keymap_free();
 	free_symbols();
 

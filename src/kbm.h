@@ -59,18 +59,22 @@
 #define KWHT	""
 #endif
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 0x1000
 
 #if defined(__CYGWIN__) || defined (__MINGW32__)
 #include <Windows.h>
 #endif
 
+#include "hotkey.h"
+
 struct _program_info {
-	int keys_active;	/* whether hotkeys are active */
-	int notifications;	/* whether notifications are enabled */
-	const char *curr_file;	/* basename of loaded keymap file */
+	int keys_active;        /* whether hotkeys are active */
+	int notifications;      /* whether notifications are enabled */
+	const char *curr_file;  /* basename of loaded keymap file */
+	struct keymap map;
+
 #if defined(__CYGWIN__) || defined (__MINGW32__)
-	HINSTANCE instance;	/* program instance */
+	HINSTANCE instance;     /* program instance */
 #endif
 };
 

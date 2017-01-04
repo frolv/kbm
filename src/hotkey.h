@@ -49,6 +49,16 @@ struct hotkey {
 	struct hotkey	*next;		/* next key binding */
 };
 
+#define KBM_ACTIVEWIN   0x01    /* only run hotkeys in specified windows */
+
+struct keymap {
+	int flags;              /* global flags */
+	char **windows;         /* titles of windows in which keys are active */
+	size_t win_len;         /* number of windows in which keys are active */
+	size_t win_size;        /* allocated size of windows array */
+	struct hotkey *keys;    /* list of mapped keys */
+};
+
 /* create_hotkey: define a new hotkey */
 struct hotkey *create_hotkey(uint8_t keycode, uint8_t mods,
                              uint8_t op, uint64_t opargs, uint32_t flags);
@@ -61,5 +71,7 @@ void free_keys(struct hotkey *head);
 
 /* process_hotkey: perform the operation of hotkey hk */
 int process_hotkey(struct hotkey *hk, unsigned int type);
+
+void free_windows(struct keymap *k);
 
 #endif /* KBM_HOTKEY_H */

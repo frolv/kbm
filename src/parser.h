@@ -37,7 +37,8 @@ enum {
 	TOK_FUNC,
 	TOK_STRLIT,
 	TOK_MOD,
-	TOK_QUAL
+	TOK_QUAL,
+	TOK_GDEF
 };
 
 struct token {
@@ -70,6 +71,6 @@ void free_symbols(void);
 const char *basename(const char *path);
 
 /* parse_file: parse hotkeys from the file at path into head */
-int parse_file(const char *path, struct hotkey **head, FILE *err);
+int parse_file(const char *path, struct keymap *k, FILE *err);
 
 #endif /* KBM_PARSER_H */
