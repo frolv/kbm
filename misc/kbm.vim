@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language: kbm
 " Maintainer: Alexei Frolov
-" Latest Revision: 5 November 2016
+" Latest Revision: 2 November 2017
 
 if exists("b:current_syntax")
     finish
@@ -11,6 +11,7 @@ syn keyword kbm_operation click rclick exec toggle quit
 syn keyword kbm_operation jump nextgroup=kbm_number skipwhite
 syn keyword kbm_operation key nextgroup=kbm_keydef skipwhite
 syn keyword kbm_qualifier norepeat
+syn keyword kbm_global active_window
 syn match kbm_arrow /->\>/
 
 syn keyword kbm_todo contained TODO XXX NOTE
@@ -47,6 +48,7 @@ let b:current_syntax = "kbm"
 
 hi def link kbm_operation Function
 hi def link kbm_qualifier Statement
+hi def link kbm_global Statement
 hi def link kbm_arrow Operator
 hi def link kbm_todo Todo
 hi def link kbm_comment Comment
