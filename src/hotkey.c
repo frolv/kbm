@@ -171,6 +171,8 @@ void free_windows(struct keymap *k)
 			free(*s);
 		free(k->windows);
 	}
+	k->win_size = 0;
+	k->win_len = 0;
 }
 
 /* get_os_codes: load os-specific keycodes and mod masks into hk */

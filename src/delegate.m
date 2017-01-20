@@ -70,7 +70,6 @@
 	FILE *f;
 	char buf[MAX_PATH], err_file[MAX_PATH];
 	static char path[MAX_PATH];
-	struct hotkey *head = NULL;
 
 	panel = [[NSOpenPanel alloc] init];
 	panel.canChooseFiles = true;
@@ -83,7 +82,8 @@
 		strncat(path, [file fileSystemRepresentation], 1024);
 		snprintf(err_file, MAX_PATH, "%s/.kbm_errlog", getenv("HOME"));
 		f = fopen(err_file, "a");
-		if (parse_file(path, &head, f) != 0) {
+		free_windows(&kbm_info.map);
+		if (parse_file(path, &kbm_info.map, f) != 0) {
 			snprintf(buf, MAX_PATH, "Could not parse keys from the "
 						"file\n%s.\nErrors written "
 						"to\n%s", path, err_file);
@@ -92,7 +92,7 @@
 		}
 
 		unload_keys();
-		load_keys(head);
+		load_keys(kbm_info.map.keys);
 		kbm_info.curr_file = basename(path);
 
 cleanup:

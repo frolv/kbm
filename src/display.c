@@ -883,13 +883,13 @@ static void load_hotkey_file(void)
 {
 	char buf[MAX_FILE_PATH];
 	char err[MAX_FILE_PATH];
-	struct hotkey *head = NULL;
 	NOTIFYICONDATA n;
 	FILE *f;
 
 	if (open_file_dialog(buf, MAX_FILE_PATH) == 0) {
 		f = fopen("errdump.log", "a");
-		if (parse_file(buf, &head, f) != 0) {
+		free_windows(&kbm_info.map);
+		if (parse_file(buf, &kbm_info.map, f) != 0) {
 			snprintf(err, MAX_FILE_PATH, "Could not read key "
 			         "bindings from file %s.\nErrors "
 			         "logged in errdump.log.", buf);
@@ -898,7 +898,7 @@ static void load_hotkey_file(void)
 		}
 
 		unload_keys();
-		load_keys(head);
+		load_keys(kbm_info.map.keys);
 		kbm_info.curr_file = basename(buf);
 
 		/* update systray icon with new filename */

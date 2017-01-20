@@ -120,6 +120,7 @@ int parse_file(const char *path, struct keymap *k, FILE *err)
 
 	lex.file_path = path;
 	lex.err_file = err;
+	memset(k, 0, sizeof *k);
 
 	if (strcmp(path, "-") == 0) {
 		f = stdin;
