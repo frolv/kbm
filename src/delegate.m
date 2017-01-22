@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#import <string.h>
+
 #import "application.h"
 #import "delegate.h"
 #import "display.h"
@@ -52,6 +54,12 @@
 		[[menu itemWithTitle:@"Notifications"] setState: NSOnState];
 
 	_status.menu = menu;
+
+	/* start listening for window changes */
+	[[[NSWorkspace sharedWorkspace] notificationCenter]
+		addObserver:self selector:@selector(windowChange:)
+		name:NSWorkspaceDidActivateApplicationNotification
+		object:nil];
 
 	start_listening();
 }
@@ -112,6 +120,34 @@ cleanup:
 	state = kbm_info.notifications ? NSOnState : NSOffState;
 
 	[m setState: state];
+}
+
+/*
+ * windowChange:
+ * Called when the active window changes. Check to see if it is in the
+ * active windows array and process accordingly.
+ */
+- (void)windowChange:(NSNotification *)notification
+{
+	const char *window;
+	char **s;
+	NSWorkspace *ws = [notification object];
+
+	if (!(kbm_info.map.flags & KBM_ACTIVEWIN))
+		return;
+
+	window = [[[ws frontmostApplication] localizedName] UTF8String];
+
+	for (s = kbm_info.map.windows; *s; ++s) {
+		if (strcmp(*s, window) == 0) {
+			PRINT_DEBUG("ACTIVE window %s - keys enabled\n",
+			            window);
+			break;
+		}
+	}
+	if (!*s) {
+		PRINT_DEBUG("window %s - keys disabled\n", window);
+	}
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification
