@@ -81,6 +81,7 @@ static void parseopts(int argc, char **argv)
 	int c;
 
 	kbm_info.keys_active = 1;
+	kbm_info.toggles_active = 1;
 	kbm_info.notifications = 1;
 	kbm_info.curr_file = NULL;
 

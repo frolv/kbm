@@ -142,7 +142,7 @@ void start_listening(void)
 
 			/* don't send an autorepeated key if norepeat flag */
 			if (DETECT_AUTOREPEAT(last, evt, ks) &&
-			    CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+			    (hk->key_flags & KBM_NOREPEAT))
 				break;
 
 			if (process_hotkey(hk, KBM_PRESS) == -1)
@@ -191,22 +191,22 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	mod = NULL;
 	if (type == KBM_PRESS) {
 		/* press all required modifier keys */
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
+		if (modmask & XCB_MOD_MASK_SHIFT) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
+		if (modmask & XCB_MOD_MASK_CONTROL) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
+		if (modmask & XCB_MOD_MASK_4) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
+		if (modmask & XCB_MOD_MASK_1) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_PRESS, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
@@ -218,22 +218,22 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 		/* release the requested keys and then all modifiers */
 		xcb_test_fake_input(conn, XCB_KEY_RELEASE, kc[0],
 		                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_SHIFT)) {
+		if (modmask & XCB_MOD_MASK_SHIFT) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Shift_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_CONTROL)) {
+		if (modmask & XCB_MOD_MASK_CONTROL) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Control_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_4)) {
+		if (modmask & XCB_MOD_MASK_4) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Super_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
 		}
-		if (CHECK_MASK(modmask, XCB_MOD_MASK_1)) {
+		if (modmask & XCB_MOD_MASK_1) {
 			mod = xcb_key_symbols_get_keycode(keysyms, XK_Alt_L);
 			xcb_test_fake_input(conn, XCB_KEY_RELEASE, mod[0],
 			                    XCB_CURRENT_TIME, XCB_NONE, 0, 0, 0);
@@ -259,8 +259,13 @@ static void map_keys(struct hotkey *head)
 	xcb_void_cookie_t cookie;
 	xcb_generic_error_t *err;
 
-	if (head && head->op != OP_TOGGLE)
+	if (!head)
+		return;
+
+	if (head->op != OP_TOGGLE)
 		kbm_info.keys_active = 1;
+	else
+		kbm_info.toggles_active = 1;
 
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
@@ -306,8 +311,13 @@ static void unmap_keys(struct hotkey *head)
 {
 	xcb_keycode_t *kc;
 
-	if (head && head->op != OP_TOGGLE)
+	if (!head)
+		return;
+
+	if (head->op != OP_TOGGLE)
 		kbm_info.keys_active = 0;
+	else
+		kbm_info.toggle_active = 0;
 
 	for (; head; head = head->next) {
 
@@ -540,13 +550,13 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type)
 	if (type == KBM_RELEASE)
 		SendInput(1, &key, sizeof key);
 
-	if (CHECK_MASK(modmask, MOD_SHIFT))
+	if (modmask & MOD_SHIFT)
 		send_fake_mod(VK_SHIFT, type);
-	if (CHECK_MASK(modmask, MOD_CONTROL))
+	if (modmask & MOD_CONTROL)
 		send_fake_mod(VK_CONTROL, type);
-	if (CHECK_MASK(modmask, MOD_ALT))
+	if (modmask & MOD_ALT)
 		send_fake_mod(VK_MENU, type);
-	if (CHECK_MASK(modmask, MOD_WIN))
+	if (modmask & MOD_WIN)
 		send_fake_mod(VK_LWIN, type);
 
 	if (type == KBM_PRESS)
@@ -641,7 +651,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 
 		if (kbm_info.keys_active
 		    && (hk = find_by_os_code(actions, kc, mods))) {
-			if (repeated && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+			if (repeated && (hk->key_flags & KBM_NOREPEAT))
 				return 1;
 
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
@@ -655,8 +665,9 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 			/* prevent the event from propagating further */
 			return 1;
 		}
-		if ((hk = find_by_os_code(toggles, kc, mods))) {
-			if (repeated && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+		if (kbm_info.toggles_active
+		    && (hk = find_by_os_code(toggles, kc, mods))) {
+			if (repeated && (hk->key_flags & KBM_NOREPEAT))
 				return 1;
 
 			process_hotkey(hk, KBM_PRESS);
@@ -819,14 +830,22 @@ static void kill_fake_mods(void)
 
 static void map_keys(struct hotkey *head)
 {
-	if (head && head->op != OP_TOGGLE)
-		kbm_info.keys_active = 1;
+	if (head) {
+		if (head->op != OP_TOGGLE)
+			kbm_info.keys_active = 1;
+		else
+			kbm_info.toggles_active = 1;
+	}
 }
 
 static void unmap_keys(struct hotkey *head)
 {
-	if (head && head->op != OP_TOGGLE)
-		kbm_info.keys_active = 0;
+	if (head) {
+		if (head->op != OP_TOGGLE)
+			kbm_info.keys_active = 0;
+		else
+			kbm_info.toggles_active = 0;
+	}
 }
 
 static void send_notification(const char *msg)
@@ -1064,14 +1083,22 @@ void move_cursor(int x, int y)
 
 static void map_keys(struct hotkey *head)
 {
-	if (head && head->op != OP_TOGGLE)
-		kbm_info.keys_active = 1;
+	if (head) {
+		if (head->op != OP_TOGGLE)
+			kbm_info.keys_active = 1;
+		else
+			kbm_info.toggles_active = 1;
+	}
 }
 
 static void unmap_keys(struct hotkey *head)
 {
-	if (head && head->op != OP_TOGGLE)
-		kbm_info.keys_active = 0;
+	if (head) {
+		if (head->op != OP_TOGGLE)
+			kbm_info.keys_active = 0;
+		else
+			kbm_info.toggles_active = 0;
+	}
 }
 
 /*
@@ -1127,7 +1154,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 		last_kc = keycode;
 		if (kbm_info.keys_active
 		    && (hk = find_by_os_code(actions, keycode, flags))) {
-			if (repeat && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+			if (repeat && (hk->key_flags & KBM_NOREPEAT))
 				return NULL;
 
 			if (process_hotkey(hk, KBM_PRESS) == -1) {
@@ -1137,8 +1164,9 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			/* prevent the event from propagating further */
 			return NULL;
 		}
-		if ((hk = find_by_os_code(toggles, keycode, flags))) {
-			if (repeat && CHECK_MASK(hk->key_flags, KBM_NOREPEAT))
+		if (kbm_info.toggles_active
+		    && (hk = find_by_os_code(toggles, keycode, flags))) {
+			if (repeat && (hk->key_flags & KBM_NOREPEAT))
 				return NULL;
 			process_hotkey(hk, KBM_PRESS);
 			return NULL;
@@ -1232,7 +1260,8 @@ void load_keys(struct hotkey *head)
 
 	if (kbm_info.keys_active)
 		map_keys(actions);
-	map_keys(toggles);
+	if (kbm_info.toggles_active)
+		map_keys(toggles);
 }
 
 void unload_keys(void)
