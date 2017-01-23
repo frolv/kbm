@@ -40,7 +40,7 @@
 /* set bitmask mask to mods with duplicate notice */
 #define SET_MODS(mods, mask, lex) \
 	do { \
-		if (CHECK_MASK(mods, mask)) \
+		if (mods & mask) \
 			note_duplicate(lex); \
 		mods |= mask; \
 	} while (0)
@@ -885,7 +885,7 @@ static int validkey(uint64_t *key, struct lexer *lex)
 			mask = KBM_META_MASK;
 			break;
 		}
-		if (CHECK_MASK(mods, mask)) {
+		if (mods & mask) {
 			err_selfmod(lex);
 			return 0;
 		}

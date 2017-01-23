@@ -157,9 +157,6 @@
 #define KBM_SUPER_MASK  0x04    /* command on OS X */
 #define KBM_META_MASK   0x08    /* option  on OS X */
 
-/* check whether a bit is set */
-#define CHECK_MASK(I,MASK) (((I) & (MASK)) == (MASK))
-
 /* check if kc is the keycode of a modifier */
 #define K_ISMOD(kc) \
 	((kc) == KEY_CTRL || (kc) == KEY_SHIFT || \

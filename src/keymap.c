@@ -201,13 +201,13 @@ char *keystr(uint8_t keycode, uint8_t mask)
 
 	key_str[0] = '\0';
 
-	if (CHECK_MASK(mask, KBM_CTRL_MASK))
+	if (mask & KBM_CTRL_MASK)
 		strcat(key_str, "Control-");
-	if (CHECK_MASK(mask, KBM_SUPER_MASK))
+	if (mask & KBM_SUPER_MASK)
 		strcat(key_str, "Super-");
-	if (CHECK_MASK(mask, KBM_META_MASK))
+	if (mask & KBM_META_MASK)
 		strcat(key_str, "Meta-");
-	if (CHECK_MASK(mask, KBM_SHIFT_MASK))
+	if (mask & KBM_SHIFT_MASK)
 		strcat(key_str, "Shift-");
 
 	HASH_ITER(hh, keymap, k, tmp) {
@@ -281,13 +281,13 @@ unsigned int kbm_to_xcb_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
+	if (modmask & KBM_SHIFT_MASK)
 		mask |= XCB_MOD_MASK_SHIFT;
-	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
+	if (modmask & KBM_CTRL_MASK)
 		mask |= XCB_MOD_MASK_CONTROL;
-	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
+	if (modmask & KBM_SUPER_MASK)
 		mask |= XCB_MOD_MASK_4;
-	if (CHECK_MASK(modmask, KBM_META_MASK))
+	if (modmask & KBM_META_MASK)
 		mask |= XCB_MOD_MASK_1;
 
 	return mask;
@@ -322,13 +322,13 @@ unsigned int kbm_to_win_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
+	if (modmask & KBM_SHIFT_MASK)
 		mask |= MOD_SHIFT;
-	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
+	if (modmask & KBM_CTRL_MASK)
 		mask |= MOD_CONTROL;
-	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
+	if (modmask & KBM_SUPER_MASK)
 		mask |= MOD_WIN;
-	if (CHECK_MASK(modmask, KBM_META_MASK))
+	if (modmask & KBM_META_MASK)
 		mask |= MOD_ALT;
 
 	return mask;
@@ -375,13 +375,13 @@ unsigned int kbm_to_osx_masks(uint8_t modmask)
 {
 	unsigned int mask = 0;
 
-	if (CHECK_MASK(modmask, KBM_SHIFT_MASK))
+	if (modmask & KBM_SHIFT_MASK)
 		mask |= kCGEventFlagMaskShift;
-	if (CHECK_MASK(modmask, KBM_CTRL_MASK))
+	if (modmask & KBM_CTRL_MASK)
 		mask |= kCGEventFlagMaskControl;
-	if (CHECK_MASK(modmask, KBM_SUPER_MASK))
+	if (modmask & KBM_SUPER_MASK)
 		mask |= kCGEventFlagMaskCommand;
-	if (CHECK_MASK(modmask, KBM_META_MASK))
+	if (modmask & KBM_META_MASK)
 		mask |= kCGEventFlagMaskAlternate;
 
 	return mask;
