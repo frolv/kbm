@@ -317,7 +317,7 @@ static void unmap_keys(struct hotkey *head)
 	if (head->op != OP_TOGGLE)
 		kbm_info.keys_active = 0;
 	else
-		kbm_info.toggle_active = 0;
+		kbm_info.toggles_active = 0;
 
 	for (; head; head = head->next) {
 
