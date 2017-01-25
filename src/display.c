@@ -1243,19 +1243,19 @@ void load_keys(struct hotkey *head)
 
 	if (kbm_info.keys_active) {
 		if (kbm_info.keys_toggled)
-			map_keys(actions, 1);
-		map_keys(toggles, 1);
+			map_keys(actions, 0);
+		map_keys(toggles, 0);
 	}
 }
 
 void unload_keys(void)
 {
 	if (actions) {
-		unmap_keys(actions, 1);
+		unmap_keys(actions, 0);
 		free_keys(actions);
 	}
 	if (toggles) {
-		unmap_keys(toggles, 1);
+		unmap_keys(toggles, 0);
 		free_keys(toggles);
 	}
 	actions = toggles = NULL;
