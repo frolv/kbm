@@ -69,7 +69,7 @@
 
 struct _program_info {
 	int keys_active;        /* whether hotkeys are active */
-	int toggles_active;     /* whether `toggle` keys are active */
+	int keys_toggled;       /* whether keys are toggled on */
 	int notifications;      /* whether notifications are enabled */
 	const char *curr_file;  /* basename of loaded keymap file */
 	struct keymap map;

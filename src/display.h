@@ -55,7 +55,13 @@ void send_key(unsigned int keycode, unsigned int modmask, unsigned int type);
 /* move_cursor: move cursor along vector x,y from current position */
 void move_cursor(int x, int y);
 
-/* toggle_keys: disable hotkeys if active; enable otherwise */
+/* enable_keys: enable all hotkeys */
+void enable_keys(void);
+
+/* disable_keys: disable all hotkeys */
+void disable_keys(void);
+
+/* toggle_keys: disable action hotkeys if active; enable otherwise */
 void toggle_keys(void);
 
 /* kbm_exec: execute the specified program */

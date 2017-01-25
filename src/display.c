@@ -37,8 +37,8 @@ static struct hotkey *actions;
 /* toggle hotkey mappings */
 static struct hotkey *toggles;
 
-static void map_keys(struct hotkey *head);
-static void unmap_keys(struct hotkey *head);
+static void map_keys(struct hotkey *head, int set_state);
+static void unmap_keys(struct hotkey *head, int set_state);
 static struct hotkey *find_by_os_code(struct hotkey *head,
                                       uint32_t code, uint32_t mask);
 static void send_notification(const char *msg);
@@ -253,7 +253,7 @@ void move_cursor(int x, int y)
 }
 
 /* map_keys: grab all provided hotkeys */
-static void map_keys(struct hotkey *head)
+static void map_keys(struct hotkey *head, int set_state)
 {
 	xcb_keycode_t *kc;
 	xcb_void_cookie_t cookie;
@@ -262,10 +262,8 @@ static void map_keys(struct hotkey *head)
 	if (!head)
 		return;
 
-	if (head->op != OP_TOGGLE)
-		kbm_info.keys_active = 1;
-	else
-		kbm_info.toggles_active = 1;
+	if (set_state && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 1;
 
 	for (; head; head = head->next) {
 		kc = xcb_key_symbols_get_keycode(keysyms, head->os_code);
@@ -307,17 +305,15 @@ static void map_keys(struct hotkey *head)
 }
 
 /* unmap_keys: ungrab all assigned hotkeys */
-static void unmap_keys(struct hotkey *head)
+static void unmap_keys(struct hotkey *head, int set_state)
 {
 	xcb_keycode_t *kc;
 
 	if (!head)
 		return;
 
-	if (head->op != OP_TOGGLE)
-		kbm_info.keys_active = 0;
-	else
-		kbm_info.toggles_active = 0;
+	if (set_states && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 0;
 
 	for (; head; head = head->next) {
 
@@ -649,7 +645,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		last_action = KBM_PRESS;
 		last_time = kb->time;
 
-		if (kbm_info.keys_active
+		if (kbm_info.keys_active && kbm_info.keys_toggled
 		    && (hk = find_by_os_code(actions, kc, mods))) {
 			if (repeated && (hk->key_flags & KBM_NOREPEAT))
 				return 1;
@@ -665,7 +661,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 			/* prevent the event from propagating further */
 			return 1;
 		}
-		if (kbm_info.toggles_active
+		if (kbm_info.keys_active
 		    && (hk = find_by_os_code(toggles, kc, mods))) {
 			if (repeated && (hk->key_flags & KBM_NOREPEAT))
 				return 1;
@@ -682,7 +678,7 @@ static LRESULT CALLBACK kbproc(int nCode, WPARAM wParam, LPARAM lParam)
 		last_key = kc;
 		last_action = KBM_RELEASE;
 		last_time = kb->time;
-		if (kbm_info.keys_active
+		if (kbm_info.keys_active && kbm_info.keys_toggled
 		    && (hk = find_by_os_code(actions, kc, mods))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return 1;
@@ -828,24 +824,16 @@ static void kill_fake_mods(void)
 		send_fake_mod(VK_LWIN, KBM_RELEASE);
 }
 
-static void map_keys(struct hotkey *head)
+static void map_keys(struct hotkey *head, int set_state)
 {
-	if (head) {
-		if (head->op != OP_TOGGLE)
-			kbm_info.keys_active = 1;
-		else
-			kbm_info.toggles_active = 1;
-	}
+	if (set_state && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 1;
 }
 
-static void unmap_keys(struct hotkey *head)
+static void unmap_keys(struct hotkey *head, int set_state)
 {
-	if (head) {
-		if (head->op != OP_TOGGLE)
-			kbm_info.keys_active = 0;
-		else
-			kbm_info.toggles_active = 0;
-	}
+	if (set_state && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 0;
 }
 
 static void send_notification(const char *msg)
@@ -1081,24 +1069,16 @@ void move_cursor(int x, int y)
 	CFRelease(moveevent);
 }
 
-static void map_keys(struct hotkey *head)
+static void map_keys(struct hotkey *head, int set_state)
 {
-	if (head) {
-		if (head->op != OP_TOGGLE)
-			kbm_info.keys_active = 1;
-		else
-			kbm_info.toggles_active = 1;
-	}
+	if (set_state && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 1;
 }
 
-static void unmap_keys(struct hotkey *head)
+static void unmap_keys(struct hotkey *head, int set_state)
 {
-	if (head) {
-		if (head->op != OP_TOGGLE)
-			kbm_info.keys_active = 0;
-		else
-			kbm_info.toggles_active = 0;
-	}
+	if (set_state && head->op != OP_TOGGLE)
+		kbm_info.keys_toggled = 0;
 }
 
 /*
@@ -1152,7 +1132,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	if (type == kCGEventKeyDown) {
 		last_time = curr;
 		last_kc = keycode;
-		if (kbm_info.keys_active
+		if (kbm_info.keys_active && kbm_info.keys_toggled
 		    && (hk = find_by_os_code(actions, keycode, flags))) {
 			if (repeat && (hk->key_flags & KBM_NOREPEAT))
 				return NULL;
@@ -1164,7 +1144,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 			/* prevent the event from propagating further */
 			return NULL;
 		}
-		if (kbm_info.toggles_active
+		if (kbm_info.keys_active
 		    && (hk = find_by_os_code(toggles, keycode, flags))) {
 			if (repeat && (hk->key_flags & KBM_NOREPEAT))
 				return NULL;
@@ -1174,7 +1154,7 @@ static CGEventRef callback(CGEventTapProxy proxy, CGEventType type,
 	} else {
 		last_time = curr;
 		last_kc = keycode;
-		if (kbm_info.keys_active
+		if (kbm_info.keys_active && kbm_info.keys_toggled
 		    && (hk = find_by_os_code(actions, keycode, flags))) {
 			process_hotkey(hk, KBM_RELEASE);
 			return NULL;
@@ -1248,6 +1228,9 @@ void load_keys(struct hotkey *head)
 {
 	struct hotkey *tmp;
 
+	if (!head)
+		return;
+
 	while (head) {
 		tmp = head;
 		head = head->next;
@@ -1258,33 +1241,50 @@ void load_keys(struct hotkey *head)
 			add_hotkey(&actions, tmp);
 	}
 
-	if (kbm_info.keys_active)
-		map_keys(actions);
-	if (kbm_info.toggles_active)
-		map_keys(toggles);
+	if (kbm_info.keys_active) {
+		if (kbm_info.keys_toggled)
+			map_keys(actions, 1);
+		map_keys(toggles, 1);
+	}
 }
 
 void unload_keys(void)
 {
 	if (actions) {
-		unmap_keys(actions);
+		unmap_keys(actions, 1);
 		free_keys(actions);
 	}
 	if (toggles) {
-		unmap_keys(toggles);
+		unmap_keys(toggles, 1);
 		free_keys(toggles);
 	}
 	actions = toggles = NULL;
 }
 
+void enable_keys(void) {
+	kbm_info.keys_active = 1;
+	if (actions)
+		map_keys(actions, 0);
+	if (toggles)
+		map_keys(toggles, 0);
+}
+
+void disable_keys(void) {
+	kbm_info.keys_active = 0;
+	if (actions)
+		unmap_keys(actions, 0);
+	if (toggles)
+		unmap_keys(toggles, 0);
+}
+
 void toggle_keys(void)
 {
-	if (kbm_info.keys_active) {
-		unmap_keys(actions);
+	if (kbm_info.keys_toggled) {
+		unmap_keys(actions, 1);
 		if (kbm_info.notifications)
 			send_notification("Hotkeys disabled");
 	} else {
-		map_keys(actions);
+		map_keys(actions, 1);
 		if (kbm_info.notifications)
 			send_notification("Hotkeys enabled");
 	}

@@ -81,14 +81,15 @@ static void parseopts(int argc, char **argv)
 	int c;
 
 	kbm_info.keys_active = 1;
-	kbm_info.toggles_active = 1;
+	kbm_info.keys_toggled = 1;
 	kbm_info.notifications = 1;
 	kbm_info.curr_file = NULL;
+	memset(&kbm_info.map, 0, sizeof kbm_info.map);
 
 	while ((c = getopt_long(argc, argv, "dhnv", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'd':
-			kbm_info.keys_active = 0;
+			kbm_info.keys_toggled = 0;
 			break;
 		case 'h':
 			print_help();

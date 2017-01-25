@@ -31,6 +31,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
 	NSMenu *menu;
+	const char *window;
 
 	KBM_UNUSED(notification);
 
@@ -60,6 +61,16 @@
 		addObserver:self selector:@selector(windowChange:)
 		name:NSWorkspaceDidActivateApplicationNotification
 		object:nil];
+
+	/* check the currently active window and set keys */
+	if (kbm_info.map.flags & KBM_ACTIVEWIN) {
+		window = [[[[NSWorkspace sharedWorkspace] frontmostApplication]
+			localizedName] UTF8String];
+		if (![self checkWindow:window]) {
+			kbm_info.keys_active = 0;
+			PRINT_DEBUG("window %s - keys disabled\n", window);
+		}
+	}
 
 	start_listening();
 }
@@ -130,24 +141,34 @@ cleanup:
 - (void)windowChange:(NSNotification *)notification
 {
 	const char *window;
-	char **s;
 	NSWorkspace *ws = [notification object];
 
 	if (!(kbm_info.map.flags & KBM_ACTIVEWIN))
 		return;
 
 	window = [[[ws frontmostApplication] localizedName] UTF8String];
-
-	for (s = kbm_info.map.windows; *s; ++s) {
-		if (strcmp(*s, window) == 0) {
-			PRINT_DEBUG("ACTIVE window %s - keys enabled\n",
-			            window);
-			break;
-		}
-	}
-	if (!*s) {
+	if ([self checkWindow:window]) {
+		enable_keys();
+		PRINT_DEBUG("ACTIVE window %s - keys enabled\n",
+			    window);
+	} else {
+		disable_keys();
 		PRINT_DEBUG("window %s - keys disabled\n", window);
 	}
+}
+
+- (int)checkWindow:(const char *)window
+{
+	char **s;
+
+	if (!kbm_info.map.win_len)
+		return 0;
+
+	for (s = kbm_info.map.windows; *s; ++s) {
+		if (strcmp(*s, window) == 0)
+			return 1;
+	}
+	return 0;
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification
