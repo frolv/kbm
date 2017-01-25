@@ -312,7 +312,7 @@ static void unmap_keys(struct hotkey *head, int set_state)
 	if (!head)
 		return;
 
-	if (set_states && head->op != OP_TOGGLE)
+	if (set_state && head->op != OP_TOGGLE)
 		kbm_info.keys_toggled = 0;
 
 	for (; head; head = head->next) {
