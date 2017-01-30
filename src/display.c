@@ -99,9 +99,9 @@ void close_display(void)
  * A key press event that occurs at the same time as a previous
  * key release with the same key is an automatically repeated key.
  */
-#define DETECT_AUTOREPEAT(last, evt, ks) \
-	(last && (last->response_type & ~0x80) == XCB_KEY_RELEASE \
-	 && (last_ks) == (ks) && last->time == evt->time)
+#define DETECT_AUTOREPEAT(last, evt, last_ks, ks) \
+	((last) && ((last)->response_type & ~0x80) == XCB_KEY_RELEASE \
+	 && (last_ks) == (ks) && (last)->time == (evt)->time)
 
 /* start_listening: map all hotkeys and start listening for keypresses */
 void start_listening(void)
@@ -141,7 +141,7 @@ void start_listening(void)
 			}
 
 			/* don't send an autorepeated key if norepeat flag */
-			if (DETECT_AUTOREPEAT(last, evt, ks) &&
+			if (DETECT_AUTOREPEAT(last, evt, last_ks, ks) &&
 			    (hk->key_flags & KBM_NOREPEAT))
 				break;
 
@@ -274,7 +274,7 @@ static void map_keys(struct hotkey *head, int set_state)
 
 		/* key grab will fail if the key is already grabbed */
 		if ((err = xcb_request_check(conn, cookie))) {
-			fprintf(stderr, "error: the key '%s' is already "
+			fprintf(stderr, "error: the key `%s' is already "
 			        "mapped by another program\n",
 			        keystr(head->kbm_code, head->kbm_modmask));
 			free(err);
